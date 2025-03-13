@@ -14,7 +14,8 @@ class LoginReducer {
             is LoginIntent.TogglePasswordVisibility -> currentState.copy(
                 isPasswordVisible = intent.isVisible
             )
-            is LoginIntent.Login -> currentState.copy(isLoading = true)
+            is LoginIntent.Login -> currentState.copy(
+                isLoading = true)
             is LoginIntent.LoginSuccess -> currentState.copy(
                 isLoading = false,
                 isLoginSuccessful = true
