@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,10 +38,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
 import com.d104.yogaapp.features.solo.SoloScreen
+import com.d104.yogaapp.features.solo.SoloYogaPlayScreen
 import com.d104.yogaapp.ui.theme.YogaYoTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -56,40 +62,81 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ){
-                    MainScreen()
+                    MainNavigation()
                 }
+            }
+        }
+    }
+}
+@Composable
+fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
+    val navController = rememberNavController()
+    val state by viewModel.state.collectAsState()
+
+    // 화면 전환 시 바텀바 표시 여부 설정
+    val currentDestination = navController.currentBackStackEntryAsState().value?.destination
+    LaunchedEffect(currentDestination) {
+        val shouldShowBottomBar = when (currentDestination?.route) {
+            "main_tabs" -> true
+            else -> false
+        }
+        viewModel.processIntent(MainIntent.SetBottomBarVisibility(shouldShowBottomBar))
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        bottomBar = {
+            if (state.showBottomBar) {
+                CustomBottomNavigation(
+                    selectedTab = state.selectedTab,
+                    onTabSelected = { tab ->
+                        viewModel.processIntent(MainIntent.SelectTab(tab))
+                    }
+                )
+            }
+        }
+    ) { paddingValues ->
+        NavHost(
+            navController = navController,
+            startDestination = "main_tabs",
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            // 메인 탭 화면들
+            composable("main_tabs") {
+                MainTabScreen(
+                    selectedTab = state.selectedTab,
+                    onNavigateToYogaPlay = {
+                        navController.navigate("solo_yoga_play")
+                    }
+                )
+            }
+
+            // 요가 플레이 화면
+            composable("solo_yoga_play") {
+                SoloYogaPlayScreen(
+                    onBackPressed = {
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
-    val state by viewModel.state.collectAsState()
-
-    Scaffold(
+fun MainTabScreen(
+    selectedTab: Tab,
+    onNavigateToYogaPlay: () -> Unit
+) {
+    Box(
         modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            CustomBottomNavigation(
-                selectedTab = state.selectedTab,
-                onTabSelected = { tab ->
-                    viewModel.processIntent(MainIntent.SelectTab(tab))
-                }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            when (state.selectedTab) {
-                Tab.Solo -> SoloScreen()
-                Tab.Multi -> MultiScreen()
-                Tab.MyPage -> MyPageScreen()
-            }
+        contentAlignment = Alignment.Center
+    ) {
+        when (selectedTab) {
+            Tab.Solo -> SoloScreen(onNavigateToYogaPlay)
+            Tab.Multi -> MultiScreen()
+            Tab.MyPage -> MyPageScreen()
         }
     }
 }
