@@ -5,7 +5,10 @@ import javax.inject.Inject
 class MainReducer @Inject constructor() {
     fun reduce(currentState: MainState, intent: MainIntent): MainState {
         return when (intent) {
-            is MainIntent.SelectTab -> currentState.copy(selectedTab = intent.tab)
+            is MainIntent.SelectTab ->
+                currentState.copy(selectedTab = intent.tab)
+            is MainIntent.SetBottomBarVisibility ->
+                currentState.copy(showBottomBar = intent.visible)
         }
     }
 }
