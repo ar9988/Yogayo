@@ -1,6 +1,8 @@
 package com.d104.yogaapp.features.signup
 
-class SignUpReducer {
+import javax.inject.Inject
+
+class SignUpReducer @Inject constructor(){
     fun reduce(currentState: SignUpState, intent: SignUpIntent) : SignUpState {
         return when(intent){
             SignUpIntent.NavigateToLogin -> currentState
