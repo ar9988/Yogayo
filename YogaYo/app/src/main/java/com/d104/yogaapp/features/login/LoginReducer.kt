@@ -1,6 +1,8 @@
 package com.d104.yogaapp.features.login
 
-class LoginReducer {
+import javax.inject.Inject
+
+class LoginReducer @Inject constructor() {
     fun reduce(currentState: LoginState, intent: LoginIntent): LoginState {
         return when (intent) {
             is LoginIntent.UpdateId -> currentState.copy(

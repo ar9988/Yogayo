@@ -28,18 +28,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.d104.domain.event.AuthEvent
 import com.d104.yogaapp.R
+import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
+import com.d104.yogaapp.features.signup.SignUpScreen
 import com.d104.yogaapp.features.solo.SoloScreen
 import com.d104.yogaapp.ui.theme.YogaYoTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -66,7 +72,16 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
-
+    LaunchedEffect(key1 = Unit) {
+        viewModel.authEvents.collect { event ->
+            when (event) {
+                is AuthEvent.TokenRefreshFailed -> {
+                    // 로그인 화면으로 이동
+                    viewModel.processIntent(MainIntent.SelectTab(tab = Tab.Login))
+                }
+            }
+        }
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -89,6 +104,8 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
                 Tab.Solo -> SoloScreen()
                 Tab.Multi -> MultiScreen()
                 Tab.MyPage -> MyPageScreen()
+                Tab.Login -> LoginScreen()
+                Tab.SignUp -> SignUpScreen()
             }
         }
     }

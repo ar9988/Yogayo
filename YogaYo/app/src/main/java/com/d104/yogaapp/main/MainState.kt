@@ -4,5 +4,5 @@ data class MainState(
     val selectedTab: Tab = Tab.Solo
 )
 enum class Tab{
-    Solo, Multi, MyPage
+    Solo, Multi, MyPage, Login, SignUp
 }

@@ -1,5 +1,6 @@
 package com.d104.data.di
 
+import com.d104.data.remote.api.UserApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
 import com.squareup.moshi.Moshi
@@ -48,5 +49,11 @@ object NetworkModule {
             .client(okHttpClient)
             .addConverterFactory(provideMoshiConverterFactory())
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(retrofit: Retrofit): UserApiService {
+        return retrofit.create(UserApiService::class.java)
     }
 }
