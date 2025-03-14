@@ -46,7 +46,7 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
 import com.d104.yogaapp.features.solo.SoloScreen
-import com.d104.yogaapp.features.solo.SoloYogaPlayScreen
+import com.d104.yogaapp.features.solo.play.SoloYogaPlayScreen
 import com.d104.yogaapp.ui.theme.YogaYoTheme
 import dagger.hilt.android.AndroidEntryPoint
 
