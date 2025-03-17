@@ -19,9 +19,6 @@ public class Badge {
     private String badgeImg;       // badge_img
     private String badgeCondition; // badge_condition
 
-    // 한 뱃지를 여러 사용자가 가질 수 있음
-//    @OneToMany(mappedBy = "badge")
-//    private List<User> user;
 
     // 한 뱃지에 대한 사용자 뱃지 내역
     @OneToMany(mappedBy = "badge")

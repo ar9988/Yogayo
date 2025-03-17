@@ -20,12 +20,6 @@ public class User {
     private String userPwd;
     private String userNickname;
     private String userProfile;
-
-    // 여러 사용자가 같은 Badge를 가질 수 있음
-    @ManyToOne
-    @JoinColumn(name = "badge_id")
-    private Badge badge;
-
     private Long createdAt;
     private Long modifyAt;
 

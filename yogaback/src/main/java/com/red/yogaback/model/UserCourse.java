@@ -13,7 +13,7 @@ public class UserCourse {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long courseId; // course_id
+    private Long userCourseId; // course_id
 
     // 해당 코스는 반드시 하나의 User에 속함
     @ManyToOne

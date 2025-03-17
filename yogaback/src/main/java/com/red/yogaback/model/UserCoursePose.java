@@ -12,7 +12,7 @@ public class UserCoursePose {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long coursePoseId; // course_pose_id
+    private Long userCoursePoseId; // course_pose_id
 
     // 해당 코스 포즈는 하나의 Pose와 연관됨
     @ManyToOne
