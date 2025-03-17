@@ -3,6 +3,7 @@ package com.d104.yogaapp.features.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.d104.domain.model.LoginResult
 import com.d104.domain.usecase.LoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,17 +35,36 @@ class LoginViewModel @Inject constructor(
 
     private fun performLogin() {
         viewModelScope.launch {
-            try {
-                val result = loginUseCase(uiState.value.id, uiState.value.password)
-                // 성공 시 성공 인텐트 발행
-//                if(result.success)
-                processIntent(LoginIntent.LoginSuccess)
-//                else
-                processIntent(LoginIntent.LoginFailure("로그인에 실패했습니다."))
-            } catch (e: Exception) {
-                // 실패 시 실패 인텐트 발행
-                processIntent(LoginIntent.LoginFailure(e.message ?: "로그인에 실패했습니다."))
-            }
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            loginUseCase(uiState.value.id, uiState.value.password)
+                .collect { result ->
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+
+                    result.fold(
+                        onSuccess = { loginResult ->
+                            when (loginResult) {
+                                is LoginResult.Success -> {
+                                    processIntent(LoginIntent.LoginSuccess)
+                                }
+                                is LoginResult.Error -> {
+                                    val errorMessage = when (loginResult) {
+                                        is LoginResult.Error.InvalidCredentials -> loginResult.message
+                                        is LoginResult.Error.UserNotFound -> loginResult.message
+                                    }
+                                    processIntent(LoginIntent.LoginFailure(errorMessage))
+                                }
+                            }
+                        },
+                        onFailure = { throwable ->
+                            processIntent(
+                                LoginIntent.LoginFailure(
+                                    throwable.message ?: "인터넷 접속 환경을 확인하세요."
+                                )
+                            )
+                        }
+                    )
+                }
         }
     }
 }
