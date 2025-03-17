@@ -58,6 +58,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.RectangleShape
@@ -91,7 +92,7 @@ fun YogaPlayScreen(
                     .fillMaxHeight()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                    leftContent()
+                leftContent()
             }
             Spacer(modifier = Modifier
                 .weight(0.02f))
@@ -102,24 +103,29 @@ fun YogaPlayScreen(
                     .weight(0.60f)
                     .fillMaxHeight()
             ) {
-                // 카메라 프리뷰
-                CameraPreview(modifier = Modifier.fillMaxSize())
+                // 카메라 프리뷰 - isPlaying 상태 전달
+                CameraPreview(
+                    modifier = Modifier.fillMaxSize(),
+                    isPlaying = isPlaying
+                )
 
-                // 일시정지 버튼
-                IconButton(
-                    onClick = onPause,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.7f), CircleShape)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_pause),
-                        contentDescription = if (isPlaying) "일시정지" else "재생",
-                        tint = Color.Black,
-                        modifier = Modifier.size(24.dp)
-                    )
+                // 일시정지/재생 버튼
+                if(isPlaying) {
+                    IconButton(
+                        onClick = onPause,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .size(36.dp)
+                            .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_pause),
+                            contentDescription = "일시정지",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
 
                 Box(
@@ -157,93 +163,110 @@ fun YogaPlayScreen(
 
 @Composable
 fun CameraPreview(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPlaying: Boolean = true // 재생 상태 파라미터 추가
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var cameraPermissionGranted by remember { mutableStateOf(false) }
-    //권한 요청은 camera view말고 각 플레이 페이지 진입 지점으로 이동할듯
-    // 권한 요청 런처
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        cameraPermissionGranted = isGranted
-    }
 
-    // 권한 상태 확인 및 즉시 요청
-    LaunchedEffect(Unit) {
-        when {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                cameraPermissionGranted = true
-            }
-            else -> {
-                // 즉시 권한 요청
-                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-        }
-    }
+    // 카메라 제공자와 Preview UseCase 저장
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    var preview by remember { mutableStateOf<Preview?>(null) }
 
-    Box(modifier = modifier) {
-        if (cameraPermissionGranted) {
-            // 카메라 프리뷰 표시
-            AndroidView(
-                factory = { ctx ->
-                    val previewView = PreviewView(ctx).apply {
-                        this.scaleType = PreviewView.ScaleType.FILL_CENTER
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                    }
-
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
-                        }
-
-                        val cameraSelector = CameraSelector.Builder()
-                            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                            .build()
-
-                        try {
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview
-                            )
-                        } catch (e: Exception) {
-                            Timber.e("카메라 바인딩 실패", e)
-                        }
-                    }, ContextCompat.getMainExecutor(ctx))
-
-                    previewView
-                },
-                modifier = Modifier.fillMaxSize()
+    // PreviewView 참조 저장
+    val previewView = remember {
+        PreviewView(context).apply {
+            this.scaleType = PreviewView.ScaleType.FILL_CENTER
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
-        } else {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("카메라 권한이 필요합니다")
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-                    }
-                ) {
-                    Text("권한 요청")
-                }
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
+    }
+
+    // 바인딩 함수를 remember 람다로 저장
+    val bindCamera = remember {
+        {
+            try {
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                    .build()
+
+                cameraProvider?.unbindAll()
+                cameraProvider?.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview
+                )
+            } catch (e: Exception) {
+                Timber.e("카메라 바인딩 실패", e)
             }
         }
+    }
+
+    // 초기 카메라 설정
+    DisposableEffect(Unit) {
+        val cameraListener = Runnable {
+            try {
+                // 카메라 제공자 및 UseCase 초기화
+                cameraProvider = cameraProviderFuture.get()
+                preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+
+                // 초기 상태가 재생 중이면 카메라 바인딩
+                if (isPlaying) {
+                    bindCamera()
+                }
+            } catch (e: Exception) {
+                Timber.e("카메라 초기화 실패", e)
+            }
+        }
+
+        cameraProviderFuture.addListener(cameraListener, ContextCompat.getMainExecutor(context))
+
+        onDispose {
+            // 컴포넌트가 제거될 때 카메라 언바인딩
+            cameraProvider?.unbindAll()
+        }
+    }
+
+    // isPlaying 상태 변경에 따른 처리
+    LaunchedEffect(isPlaying) {
+        if (cameraProvider != null && preview != null) {
+            if (isPlaying) {
+                bindCamera()
+            } else {
+                // 일시정지 시 카메라 언바인딩
+                cameraProvider?.unbindAll()
+            }
+        }
+    }
+
+    // 카메라 프리뷰 UI
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = { previewView },
+            modifier = Modifier.fillMaxSize()
+        )
+
+//        // 일시정지 상태일 때 오버레이 표시 (선택적)
+//        if (!isPlaying) {
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(Color.Black.copy(alpha = 0.5f)),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Icon(
+//                    painter = painterResource(id = R.drawable.ic_pause),
+//                    contentDescription = "일시정지됨",
+//                    tint = Color.White,
+//                    modifier = Modifier.size(64.dp)
+//                )
+//            }
+//        }
     }
 }
