@@ -5,5 +5,5 @@ import retrofit2.http.GET
 
 interface UserApiService {
     @GET("user/info")
-    suspend fun getUserInfo(): MyPageInfoDto
+    suspend fun getMyPageInfo(): MyPageInfoDto
 }

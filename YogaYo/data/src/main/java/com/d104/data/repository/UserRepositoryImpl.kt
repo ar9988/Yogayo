@@ -15,7 +15,7 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getMyPageInfo(): Flow<Result<MyPageInfo>> {
         return flow {
             try {
-                val myPageInfoDto = userApi.getUserInfo()
+                val myPageInfoDto = userApi.getMyPageInfo()
                 val myPageInfo = myPageInfoMapper.map(myPageInfoDto)
                 emit(Result.success(myPageInfo))
             } catch (e:Exception){
