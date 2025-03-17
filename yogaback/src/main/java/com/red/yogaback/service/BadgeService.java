@@ -2,14 +2,18 @@ package com.red.yogaback.service;
 
 import com.red.yogaback.dto.respond.BadgeListRes;
 import com.red.yogaback.model.Badge;
+import com.red.yogaback.model.User;
 import com.red.yogaback.model.UserBadge;
 import com.red.yogaback.repository.BadgeRepository;
 import com.red.yogaback.repository.UserBadgeRepository;
+import com.red.yogaback.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 
 @Service
@@ -18,12 +22,14 @@ public class BadgeService {
 
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;
+    private final UserRepository userRepository;
 
     // 뱃지 목록 요청
     public List<BadgeListRes> getBadgeList(Long userId) {
 
         List<Badge> badges = badgeRepository.findAll();
-        List<UserBadge> userBadges = userBadgeRepository.findByUserId(userId);
+        User user = userRepository.findById(userId).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
+        List<UserBadge> userBadges = userBadgeRepository.findByUser(user);
         ArrayList<BadgeListRes> result = new ArrayList<>();
 
         for (UserBadge userBadge : userBadges) {
