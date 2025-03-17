@@ -48,6 +48,7 @@ import com.d104.yogaapp.R
 @Composable
 fun SignUpScreen(
     viewModel: SignUpViewModel = hiltViewModel(),
+    onBackPressed: () -> Unit,
     onNavigateToLogin: () -> Unit = {}
 ){
     val uiState by viewModel.uiState.collectAsState()
@@ -173,10 +174,4 @@ fun SignUpScreen(
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun PreviewSignUpScreen(){
-    SignUpScreen()
 }

@@ -1,5 +1,7 @@
 package com.d104.data.di
 
+import com.d104.data.remote.api.AuthApiService
+import com.d104.data.remote.api.UserApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
 import com.squareup.moshi.Moshi
@@ -18,7 +20,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = ""
+    private const val BASE_URL = "https://192.168.100.63"
 
     @Provides
     @Singleton
@@ -41,12 +43,43 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @Named("YogaYo")
-    fun provideMoyeoRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    @Named("AuthNotRequired")
+    fun provideNonAuthOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("AuthNotRequired")
+    fun provideNonAuthRetrofit(@Named("AuthNotRequired") okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(provideMoshiConverterFactory())
             .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("YogaYo")
+    fun provideYogaYoRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(provideMoshiConverterFactory())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(@Named("YogaYo") retrofit: Retrofit): UserApiService {
+        return retrofit.create(UserApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthApiService(@Named("AuthNotRequired") retrofit: Retrofit): AuthApiService{
+        return retrofit.create(AuthApiService::class.java)
     }
 }

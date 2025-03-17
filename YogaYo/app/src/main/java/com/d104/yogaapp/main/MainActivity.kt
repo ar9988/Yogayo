@@ -42,9 +42,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.d104.domain.event.AuthEvent
 import com.d104.yogaapp.R
+import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
+import com.d104.yogaapp.features.signup.SignUpScreen
 import com.d104.yogaapp.features.solo.SoloScreen
 import com.d104.yogaapp.features.solo.play.SoloYogaPlayScreen
 import com.d104.yogaapp.ui.theme.YogaYoTheme
@@ -81,6 +84,16 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             else -> false
         }
         viewModel.processIntent(MainIntent.SetBottomBarVisibility(shouldShowBottomBar))
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is NavigationEvent.NavigateToLogin -> {
+                    navController.navigate("login_screen")
+                }
+                is NavigationEvent.NavigateToSignUp -> {
+                    navController.navigate("signUp_screen")
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -115,6 +128,24 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             // 요가 플레이 화면
             composable("solo_yoga_play") {
                 SoloYogaPlayScreen(
+                    onBackPressed = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // 로그인 화면
+            composable("login_screen"){
+                LoginScreen(
+                    onBackPressed = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // 회원가입 화면
+            composable("signUp_screen"){
+                SignUpScreen(
                     onBackPressed = {
                         navController.popBackStack()
                     }
