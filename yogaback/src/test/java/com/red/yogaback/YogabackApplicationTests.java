@@ -3,11 +3,11 @@ package com.red.yogaback;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class YogabackApplicationTests {
-
-//    @Test
-//    void contextLoads() {
-//    }
-
-}
+//@SpringBootTest
+//class YogabackApplicationTests {
+//
+////    @Test
+////    void contextLoads() {
+////    }
+//
+//}
