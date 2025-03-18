@@ -94,6 +94,7 @@ import coil.request.ImageRequest
 import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseInCourse
 import com.d104.domain.model.YogaPoseWithOrder
+import com.d104.yogaapp.features.common.CourseCard
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.ui.theme.Neutral70
 import kotlinx.coroutines.delay
@@ -161,17 +162,42 @@ fun SoloScreen(
                 }
 
                 items(state.courses) { course ->
-                    SwipeableCourseDismissBox(
-                        course = course,
-                        poseList = viewModel.tmpPoseInfo,
-                        onClick = { onNavigateToYogaPlay() },
-                        onUpdateCourse = { courseName, poses ->
-                            viewModel.handleIntent(SoloIntent.UpdateCourse(course.courseId, courseName, poses))
-                        },
-                        onDeleteCourse = { courseToDelete ->
-                            viewModel.handleIntent(SoloIntent.DeleteCourse(courseToDelete.courseId))
-                        }
-                    )
+                    if(course.courseId<0){
+                        CourseCard(
+                            header = {SoloCourseCardHeader(course)},
+                            poseList = course.poses,
+                            course = course,
+                            onClick = {onNavigateToYogaPlay()},
+                            onUpdateCourse = { courseName, poses ->
+                                viewModel.handleIntent(
+                                    SoloIntent.UpdateCourse(
+                                        course.courseId,
+                                        courseName,
+                                        poses
+                                    )
+                                )
+                            },
+
+                        )
+                    }else {
+                        SwipeableCourseDismissBox(
+                            course = course,
+                            poseList = viewModel.tmpPoseInfo,
+                            onClick = { onNavigateToYogaPlay() },
+                            onUpdateCourse = { courseName, poses ->
+                                viewModel.handleIntent(
+                                    SoloIntent.UpdateCourse(
+                                        course.courseId,
+                                        courseName,
+                                        poses
+                                    )
+                                )
+                            },
+                            onDeleteCourse = { courseToDelete ->
+                                viewModel.handleIntent(SoloIntent.DeleteCourse(courseToDelete.courseId))
+                            }
+                        )
+                    }
                 }
 
                 if (state.courses.size <= 8) {
@@ -198,137 +224,75 @@ fun SoloScreen(
 }
 
 @Composable
-fun CourseCard(
-    poseList: List<YogaPose> = emptyList(),
-    course: UserCourse,
-    onClick: () -> Unit,
-    onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit,
-) {
-
-    var showDialog by remember { mutableStateOf(false) }
-
-    // 대화 상자가 표시되어야 하는 경우
-    if (showDialog) {
-        CustomCourseDialog(
-            originalCourseName = course.courseName,
-            poseInCourse = course.poses.mapIndexed{index, yogaPose->
-                YogaPoseInCourse(
-                    uniqueID ="${course.courseId}-${yogaPose.poseId}-${index}",
-                    pose = yogaPose)
-            },
-            poseList = poseList,
-            onDismiss = { showDialog = false },
-            onSave = { courseName,poses ->
-                onUpdateCourse(courseName,poses)
-                showDialog = false
-            }
-        )
-    }
-    Card(
+fun SoloCourseCardHeader(course: UserCourse){
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF7F6FA)
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ){
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // 상단 헤더: 코스 이름, 튜토리얼 여부, 예상 시간
-            if(course.courseId>=0){
-                IconButton(
-                    onClick = {showDialog = true},
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .size(32.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_edit),
-                        contentDescription = "수정버튼",
-                        tint = Neutral70,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ){
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 코스 이름과 튜토리얼 표시
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = course.courseName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
+            // 코스 이름과 튜토리얼 표시
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = course.courseName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
 
-                        // 튜토리얼 여부 표시
-                        if (course.tutorial == true) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = PrimaryColor,
-                                modifier = Modifier.height(26.dp)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                ) {
-                                    Text(
-                                        text = "튜토리얼",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            }
+                // 튜토리얼 여부 표시
+                if (course.tutorial == true) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = PrimaryColor,
+                        modifier = Modifier.height(26.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        ) {
+                            Text(
+                                text = "튜토리얼",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
-
-                    // 예상 시간 표시
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = "예상 시간",
-                            tint = Color.Gray
-                        )
-
-                        // 각 포즈당 3분으로 계산
-                        val durationMinutes = course.poses.size * 3
-                        Text(
-                            text = "${durationMinutes}분",
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            // 예상 시간 표시
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccessTime,
+                    contentDescription = "예상 시간",
+                    tint = Color.Gray
+                )
 
-            // 포즈 이미지 행
-            PosesRowWithArrows(course = course)
+                // 각 포즈당 3분으로 계산
+                val durationMinutes = course.poses.size * 3
+                Text(
+                    text = "${durationMinutes}분",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
         }
     }
 }
+
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -367,37 +331,39 @@ fun SwipeableCourseDismissBox(
             onDeleteCourse(course)
         }
     }
-
-    AnimatedVisibility(
-        visible = !isRemoved,
-        exit = fadeOut(
-            animationSpec = tween(
-                durationMillis = 300,
-            )
-        ) + shrinkHorizontally(
-            animationSpec = tween(
-                durationMillis = 300,
-            ),
-            shrinkTowards = Alignment.Start
-        )
-    ) {
-        SwipeToDismissBox(
-            state = dismissState,
-            enableDismissFromStartToEnd = false, // 오른쪽에서 왼쪽으로 스와이프만 허용
-            enableDismissFromEndToStart = canDelete, // ID가 0 이상인 경우만 삭제 활성화
-            backgroundContent = {
-                SwipeDismissBoxBackground(dismissState)
-            },
-            content = {
-                CourseCard(
-                    poseList = poseList,
-                    course = course,
-                    onClick = onClick,
-                    onUpdateCourse = onUpdateCourse
+    if(!isRemoved) {
+        AnimatedVisibility(
+            visible = !isRemoved,
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 300,
                 )
-            },
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+            ) + shrinkHorizontally(
+                animationSpec = tween(
+                    durationMillis = 300,
+                ),
+                shrinkTowards = Alignment.Start
+            )
+        ) {
+            SwipeToDismissBox(
+                state = dismissState,
+                enableDismissFromStartToEnd = false, // 오른쪽에서 왼쪽으로 스와이프만 허용
+                enableDismissFromEndToStart = canDelete, // ID가 0 이상인 경우만 삭제 활성화
+                backgroundContent = {
+                    SwipeDismissBoxBackground(dismissState)
+                },
+                content = {
+                    CourseCard(
+                        header = {SoloCourseCardHeader(course)},
+                        poseList = poseList,
+                        course = course,
+                        onClick = onClick,
+                        onUpdateCourse = onUpdateCourse
+                    )
+                },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
     }
 }
 
