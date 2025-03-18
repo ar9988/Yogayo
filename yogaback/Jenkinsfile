@@ -101,7 +101,7 @@ pipeline {
                 echo 'Deploying the application on EC2...'
                 sshPublisher(publishers: [
                     sshPublisherDesc(
-                        configName: 'EC2-Server',
+                        configName: 'EC2-SERVER',
                         transfers: [
                             sshTransfer(
                                 execCommand: """
