@@ -31,8 +31,6 @@ class MainViewModel @Inject constructor(
     val navigationEvent: SharedFlow<NavigationEvent> = _navigationEvent.asSharedFlow()
 
     fun processIntent(intent: MainIntent) {
-        val newState = reducer.reduce(state.value, intent)
-        _state.value = newState
         when (intent) {
             is MainIntent.SelectTab -> {
                 // 로그인이 필요한 탭인지 확인
@@ -41,11 +39,14 @@ class MainViewModel @Inject constructor(
                     viewModelScope.launch {
                         _navigationEvent.emit(NavigationEvent.NavigateToLogin)
                     }
+                    return
                 }
             }
 
             else -> {}
         }
+        val newState = reducer.reduce(state.value, intent)
+        _state.value = newState
     }
 
     private fun isLoggedIn(): Boolean {

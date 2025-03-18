@@ -26,6 +26,20 @@ class SignUpReducer @Inject constructor(){
                 password = intent.password,
                 errorMessage = null
             )
+
+            is SignUpIntent.UpdateName -> currentState.copy(
+                name = intent.name,
+                errorMessage = null
+            )
+            is SignUpIntent.UpdateNickname -> currentState.copy(
+                nickname = intent.nickname,
+                errorMessage = null
+            )
+
+            is SignUpIntent.UpdateImageUri -> currentState.copy(
+                uri = intent.uri,
+                errorMessage = null
+            )
         }
     }
 }

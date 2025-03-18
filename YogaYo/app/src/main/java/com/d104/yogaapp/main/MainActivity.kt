@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -42,7 +41,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.d104.domain.event.AuthEvent
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
@@ -140,6 +138,12 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                     onBackPressed = {
                         navController.popBackStack()
                     }
+                    ,
+                    onNavigateToSignUp = {
+                        navController.navigate("signUp_screen"){
+                            popUpTo("login_screen")
+                        }
+                    }
                 )
             }
 
@@ -148,6 +152,9 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                 SignUpScreen(
                     onBackPressed = {
                         navController.popBackStack()
+                    },
+                    onNavigateToLogin = {
+                        navController.navigate("login_screen")
                     }
                 )
             }
