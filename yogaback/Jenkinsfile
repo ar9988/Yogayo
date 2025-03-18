@@ -31,13 +31,13 @@ pipeline {
 //         BOOTPAY_APPID=credentials('BOOTPAY_APPID')
 
         JAVA_HOME = '/opt/java/openjdk'
-        GRADLE_HOME = '/opt/gradle/gradle-8.12.1'
+        GRADLE_HOME = '/var/jenkins_home/gradle-8.12.1'
         PATH = "${JAVA_HOME}/bin:${GRADLE_HOME}/bin:${env.PATH}"
     }
 
     tools {// 젠킨스에 등록해둔 이름으로...
         jdk 'jdk17'
-        gradle 'Gradle 8.12.1'
+        gradle 'Gradle-8.12.1'
     }
 
     stages {
