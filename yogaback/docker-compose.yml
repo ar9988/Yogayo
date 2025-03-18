@@ -13,7 +13,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${DB_PROD_PASSWORD}
     depends_on:
       - mysql
-    command: ["dockerize", "-wait", "tcp://mysql:3306", "-timeout", "60s", "java", "-jar", "/yogayo.jar"]
+    command: ["java", "-jar", "/yogayo.jar"]
     networks:
       - app-network
 
