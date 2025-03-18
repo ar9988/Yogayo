@@ -50,7 +50,7 @@ pipeline {
                 echo 'Cloning the repository...'
                 git branch: 'develop-back',
                     url: 'https://lab.ssafy.com/s12-ai-image-sub1/S12P21D104.git',
-                    credentialsId: 'GIRLAB-PAT'
+                    credentialsId: 'GITLAB_PAT'
             }
         }
 //         stage('Copy Files') {
