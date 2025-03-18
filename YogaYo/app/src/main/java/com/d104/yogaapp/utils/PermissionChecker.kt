@@ -1,4 +1,4 @@
-package com.d104.yogaapp.features.common
+package com.d104.yogaapp.utils
 
 import android.Manifest
 import android.content.Context
