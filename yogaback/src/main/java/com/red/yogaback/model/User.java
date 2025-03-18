@@ -1,14 +1,17 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
 import java.util.List;
 
 @Entity
 @Table(name = "User")
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
     @Id

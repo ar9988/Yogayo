@@ -19,3 +19,28 @@ logging:
     org.springframework.web: DEBUG
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+jwt:
+  secret: lcCoZ5lvEmT7BNFMCz9TGgw0zy2lqTSv
+  expiration:
+    access: 86400000
+    refresh: 604800000
+
+url:
+  https: https_address
+  http: http_address
+
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha # 태그 알파벳 순.
+    operations-sorter: alpha
+  packages-to-scan: com.red.yogaback
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+aws:
+  s3:
+    bucket: ${your-bucket-name}
+    region: ap-northeast-2
+    access-key: ${yourAccessKey}
+    secret-key: ${yourSecretKey}
