@@ -4,6 +4,6 @@ import com.d104.data.remote.dto.MyPageInfoDto
 import retrofit2.http.GET
 
 interface UserApiService {
-    @GET("user/info")
+    @GET("api/user/mypage")
     suspend fun getMyPageInfo(): MyPageInfoDto
 }

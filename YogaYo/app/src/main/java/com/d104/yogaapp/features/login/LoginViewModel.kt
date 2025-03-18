@@ -28,7 +28,6 @@ class LoginViewModel @Inject constructor(
         // 필요한 부수 효과 처리
         when (intent) {
             is LoginIntent.Login -> performLogin()
-            is LoginIntent.NavigateToSignUp -> {} // 네비게이션 처리는 UI에서 할 수도 있음
             else -> {} // 다른 Intent는 상태 업데이트만 필요하므로 추가 처리 없음
         }
     }
