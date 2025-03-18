@@ -112,6 +112,7 @@ pipeline {
                                     docker rmi ${DOCKER_IMAGE}:latest || true
                                     docker load < ${DOCKER_PATH}/YogaYoBack-0.0.1-SNAPSHOT.tar.gz
                                     docker run -d --name ${DOCKER_CONTAINER} \
+                                      --network app-network \
                                       -p ${DOCKER_PORT}:${DOCKER_PORT} \
                                       -e SERVER_PORT=${DOCKER_PORT} \
                                       -e DB_PROD_URL=${DB_URL} \
