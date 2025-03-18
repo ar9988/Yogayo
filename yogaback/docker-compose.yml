@@ -31,12 +31,17 @@ services:
   jenkins:
     image: jenkins/jenkins:lts
     container_name: jenkins
+    privileged: true
+    user: root
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
     ports:
       - "18080:8080"
       - "50000:50000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./jenkins_home:/var/jenkins_home
+      - /usr/bin/docker:/usr/bin/docker
     networks:
       - app-network
 networks:
