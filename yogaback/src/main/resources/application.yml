@@ -30,3 +30,18 @@ jwt:
 url:
   https: https_address
   http: http_address
+
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha # 태그 알파벳 순.
+    operations-sorter: alpha
+  packages-to-scan: com.red.yogaback
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+aws:
+  s3:
+    bucket: ${your-bucket-name}
+    region: ap-northeast-2
+    access-key: ${yourAccessKey}
+    secret-key: ${yourSecretKey}

@@ -9,7 +9,9 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-
+/*Spring Security에서 인가(authorization) 실패 시
+ 처리하는 사용자 정의 핸들러(Custom Access Denied Handler)를 구현
+ */
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
     @Override
@@ -18,7 +20,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         String message = (accessDeniedException != null && accessDeniedException.getMessage() != null) ? accessDeniedException.getMessage() : "Authorization failed";
         String path = request.getRequestURI();
 
-        response.setHeader("ganhoho-denied-reason", "Authentication failed");
+        response.setHeader("yogayo-denied-reason", "Authentication failed");
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.setContentType("application/json;charset=UTF-8");
 
