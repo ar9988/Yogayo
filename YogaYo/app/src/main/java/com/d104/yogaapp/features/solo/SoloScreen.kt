@@ -1,71 +1,542 @@
 package com.d104.yogaapp.features.solo
 
-import android.Manifest
-import android.app.Activity
-import android.content.Context
-import android.content.pm.ActivityInfo
-import android.os.Build
-import android.view.WindowManager
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.Paint
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.d104.domain.model.UserCourse
+import com.d104.yogaapp.R
+import com.d104.yogaapp.ui.theme.PrimaryColor
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.motionEventSpy
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.d104.yogaapp.features.common.GifImage
-import com.d104.yogaapp.features.common.PermissionChecker
-import com.d104.yogaapp.features.common.YogaPlayScreen
-import com.d104.yogaapp.features.common.findActivity
-import com.d104.yogaapp.features.solo.play.SoloYogaPlayIntent
-import com.d104.yogaapp.features.solo.play.SoloYogaPlayViewModel
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.d104.domain.model.YogaPose
+import com.d104.domain.model.YogaPoseInCourse
+import com.d104.domain.model.YogaPoseWithOrder
+import com.d104.yogaapp.features.common.CustomCourseDialog
+import com.d104.yogaapp.ui.theme.Neutral70
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.Collections
 
 
 @Composable
-fun SoloScreen(onNavigateToYogaPlay: () -> Unit) {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+fun SoloScreen(
+    viewModel: SoloViewModel = hiltViewModel()
+    ,onNavigateToYogaPlay: () -> Unit) {
+    val state by viewModel.state.collectAsState()
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+//    LaunchedEffect(state.courses.size) {
+//        if (state.courses.isNotEmpty()) {
+//            // 코스가 추가되었을 때 스크롤을 아래로 내림
+//            coroutineScope.launch {
+//                listState.animateScrollToItem(state.courses.size - 1 + 1) // +1은 "코스 추가하기" 버튼 때문
+//            }
+//        }
+//    }
+
+
+
+    if (state.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+    ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Button(onClick = onNavigateToYogaPlay) {
-                Text("요가 카메라")
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp) // 간격 조정
+            ) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, bottom = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Image(
+                            modifier = Modifier
+                                .height(16.dp)
+                                .width(24.dp),
+                            painter = painterResource(id = R.drawable.ic_yoga),
+                            contentDescription = "logo img",
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }
+                }
+
+                items(state.courses) { course ->
+                    SwipeableCourseDismissBox(
+                        course = course,
+                        poseList = viewModel.tmpPoseInfo,
+                        onClick = { onNavigateToYogaPlay() },
+                        onUpdateCourse = { courseName, poses ->
+                            viewModel.handleIntent(SoloIntent.UpdateCourse(course.courseId, courseName, poses))
+                        },
+                        onDeleteCourse = { courseToDelete ->
+                            viewModel.handleIntent(SoloIntent.DeleteCourse(courseToDelete.courseId))
+                        }
+                    )
+                }
+
+                if (state.courses.size <= 8) {
+                    item {
+                        AddCourseButton(
+                            poseList = viewModel.tmpPoseInfo,
+                            onSaveNewCourse = { courseName, poses ->
+                                viewModel.handleIntent(SoloIntent.CreateCourse(courseName, poses))
+                                coroutineScope.launch {
+                                    delay(100)
+                                    listState.animateScrollToItem(state.courses.size)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
             }
         }
     }
+}
 
+@Composable
+fun CourseCard(
+    poseList: List<YogaPose> = emptyList(),
+    course: UserCourse,
+    onClick: () -> Unit,
+    onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit,
+) {
+
+    var showDialog by remember { mutableStateOf(false) }
+
+    // 대화 상자가 표시되어야 하는 경우
+    if (showDialog) {
+        CustomCourseDialog(
+            originalCourseName = course.courseName,
+            poseInCourse = course.poses.mapIndexed{index, yogaPose->
+                YogaPoseInCourse(
+                    uniqueID ="${course.courseId}-${yogaPose.poseId}-${index}",
+                    pose = yogaPose)
+            },
+            poseList = poseList,
+            onDismiss = { showDialog = false },
+            onSave = { courseName,poses ->
+                onUpdateCourse(courseName,poses)
+                showDialog = false
+            }
+        )
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF7F6FA)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            // 상단 헤더: 코스 이름, 튜토리얼 여부, 예상 시간
+            if(course.courseId>=0){
+                IconButton(
+                    onClick = {showDialog = true},
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .size(32.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_edit),
+                        contentDescription = "수정버튼",
+                        tint = Neutral70,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ){
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 코스 이름과 튜토리얼 표시
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = course.courseName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // 튜토리얼 여부 표시
+                        if (course.tutorial == true) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = PrimaryColor,
+                                modifier = Modifier.height(26.dp)
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                ) {
+                                    Text(
+                                        text = "튜토리얼",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 예상 시간 표시
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = "예상 시간",
+                            tint = Color.Gray
+                        )
+
+                        // 각 포즈당 3분으로 계산
+                        val durationMinutes = course.poses.size * 3
+                        Text(
+                            text = "${durationMinutes}분",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 포즈 이미지 행
+            PosesRowWithArrows(course = course)
+        }
+    }
 }
 
 
-//// 권한 다시 요청을 위한 확장 기능
-//@Composable
-//fun RequestPermissionLauncher(
-//    onResult: (Boolean) -> Unit
-//): ManagedActivityResultLauncher<String, Boolean> {
-//    return rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.RequestPermission(),
-//        onResult = onResult
-//    )
-//}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableCourseDismissBox(
+    course: UserCourse,
+    poseList: List<YogaPose> = emptyList(),
+    onClick: () -> Unit,
+    onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit,
+    onDeleteCourse: (UserCourse) -> Unit
+) {
+    // 코스 ID가 0 이상인 경우에만 스와이프 삭제 기능 활성화
+    val canDelete = course.courseId >= 0
+
+    // 삭제 상태 관리
+    var isRemoved by remember { mutableStateOf(false) }
+
+    // 스와이프 상태 설정
+    val dismissState = rememberSwipeToDismissBoxState(
+        initialValue = SwipeToDismissBoxValue.Settled,
+        positionalThreshold = { totalDistance -> totalDistance * 0.4f }, // 40% 이상 스와이프 시 동작
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart && canDelete) {
+                isRemoved = true
+                true
+            } else {
+                false
+            }
+        }
+    )
+
+    // 삭제 애니메이션 후 실제 삭제 호출
+    LaunchedEffect(isRemoved) {
+        if (isRemoved) {
+            delay(300) // 애니메이션 시간 동안 대기
+            onDeleteCourse(course)
+        }
+    }
+
+    AnimatedVisibility(
+        visible = !isRemoved,
+        exit = fadeOut(
+            animationSpec = tween(
+                durationMillis = 300,
+            )
+        ) + shrinkHorizontally(
+            animationSpec = tween(
+                durationMillis = 300,
+            ),
+            shrinkTowards = Alignment.Start
+        )
+    ) {
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false, // 오른쪽에서 왼쪽으로 스와이프만 허용
+            enableDismissFromEndToStart = canDelete, // ID가 0 이상인 경우만 삭제 활성화
+            backgroundContent = {
+                SwipeDismissBoxBackground(dismissState)
+            },
+            content = {
+                CourseCard(
+                    poseList = poseList,
+                    course = course,
+                    onClick = onClick,
+                    onUpdateCourse = onUpdateCourse
+                )
+            },
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeDismissBoxBackground(dismissState: SwipeToDismissBoxState) {
+    // 스와이프 방향에 따른 배경 색상 및 아이콘 표시
+    val color = when {
+        dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart -> Color(0xFFFF6F60) // 빨간색 계열
+        else -> Color.Transparent
+    }
+
+    val alignment = when {
+        dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+        else -> Alignment.Center
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(16.dp))
+            .background(color)
+            .padding(horizontal = 16.dp),
+        contentAlignment = alignment
+    ) {
+        if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "삭제",
+                tint = Color.White
+            )
+        }
+    }
+}
+
+
+
+@Composable
+fun PosesRowWithArrows(course: UserCourse) {
+    // 외부 Box에 둥근 모서리와 패딩 적용
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        // LazyRow에는 별도의 배경을 적용하지 않음 (외부 Box가 배경 역할)
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // itemsIndexed를 사용하여 인덱스 기반으로 접근
+            itemsIndexed(course.poses) { index, pose ->
+                // 포즈 아이템
+                PoseItem(pose = pose)
+
+                // 마지막 항목이 아니면 화살표 표시 (인덱스 기반 비교)
+                if (index < course.poses.size - 1) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_arrow_right),
+                        contentDescription = "다음",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// 각 요가 포즈 아이템
+@Composable
+fun PoseItem(pose: YogaPose) {
+    AsyncImage(
+        model = pose.poseImg,
+        contentDescription = pose.poseName,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(80.dp)
+            .clip(RoundedCornerShape(8.dp))
+    )
+}
+
+
+@Composable
+fun AddCourseButton(
+    poseList:List<YogaPose>,
+    onSaveNewCourse: (String, List<YogaPoseWithOrder>) -> Unit,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    // 대화 상자가 표시되어야 하는 경우
+    if (showDialog) {
+        CustomCourseDialog(
+            poseList = poseList,
+            onDismiss = { showDialog = false },
+            onSave = { courseName,poses ->
+                onSaveNewCourse(courseName,poses)
+                showDialog = false
+            }
+        )
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showDialog = true },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row (
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "코스 추가하기",
+                    tint = Color.Black
+                )
+                Text(
+                    text = "코스 추가하기",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black
+                )
+            }
+
+        }
+    }
+}
+
+

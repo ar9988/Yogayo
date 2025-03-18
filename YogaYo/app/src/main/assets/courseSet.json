@@ -1,0 +1,114 @@
+
+[
+  {
+    "courseId" : -1,
+    "courseName" : "초급 코스",
+    "tutorial" : true,
+    "poses" :[
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      }
+    ]
+  },
+  {
+    "courseId" : -2,
+    "courseName" : "중급 코스",
+    "tutorial" : false,
+    "poses" :[
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      }
+    ]
+  },
+  {
+    "courseId" : -3,
+    "courseName" : "상급 코스",
+    "tutorial" : true,
+    "poses" :[
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      },
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "설명",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseVideo": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2
+      }
+    ]
+  }
+]

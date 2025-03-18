@@ -100,6 +100,7 @@ dependencies {
 
     // Coil
     implementation("io.coil-kt:coil:2.0.0-rc03")
+    implementation("io.coil-kt:coil-compose:2.4.0")
 
     // Glide
     implementation("com.github.bumptech.glide:glide:4.12.0")
