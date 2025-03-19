@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.red.yogaback.service.S3FileStorageService;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +26,12 @@ public class AuthServiceImpl implements AuthService {
     private final S3FileStorageService s3FileStorageService;
 
     @Override //회원가입
-    public boolean signUp(SignUpRequest signUpRequest) {
+    public boolean signUp(SignUpRequest signUpRequest, MultipartFile userProfile) {
         try {
             if(isIdDuplicate(signUpRequest.getUserLoginId())) { //유저로그인 아이디를 불러와서 중복 조회
                 throw new CustomException(ErrorCode.EXIST_ID);
             } else {
-                String userProfileUrl = s3FileStorageService.storeFile(signUpRequest.getUserProfile());
+                String userProfileUrl = s3FileStorageService.storeFile(userProfile);
                 User user = User.builder()
                         .userLoginId(signUpRequest.getUserLoginId())
                         .userPwd(passwordEncoder.encode(signUpRequest.getUserPwd()))

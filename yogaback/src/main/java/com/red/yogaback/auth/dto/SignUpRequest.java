@@ -12,5 +12,4 @@ public class SignUpRequest {
     private String userPwd;
     private String userName;
     private String userNickname;
-    private MultipartFile userProfile;
 }

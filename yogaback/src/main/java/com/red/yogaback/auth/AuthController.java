@@ -6,8 +6,10 @@ import com.red.yogaback.auth.dto.SignUpRequest;
 import com.red.yogaback.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @Slf4j
@@ -17,9 +19,10 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/signup")
-    public ResponseEntity<Boolean> signUp(@RequestBody SignUpRequest signUpRequest) {
-        Boolean isSuccess = authService.signUp(signUpRequest);
+    @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> signUp(@RequestPart SignUpRequest signUpRequest,
+                                          @RequestPart(value = "userProfile", required = false) MultipartFile userProfile) {
+        Boolean isSuccess = authService.signUp(signUpRequest, userProfile);
         return ResponseEntity.ok(isSuccess);
     }
 
