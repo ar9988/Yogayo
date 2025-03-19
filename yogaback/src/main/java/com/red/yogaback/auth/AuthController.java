@@ -19,7 +19,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Boolean> signUp(@RequestPart("signUpRequest") SignUpRequest signUpRequest,
                                           @RequestPart(value = "userProfile", required = false) MultipartFile userProfile) {
         Boolean isSuccess = authService.signUp(signUpRequest, userProfile);
