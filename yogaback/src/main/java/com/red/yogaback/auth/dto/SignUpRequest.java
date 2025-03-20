@@ -15,6 +15,6 @@ public class SignUpRequest {
     private String userName;
     private String userNickname;
 
-    @Builder.Default
-    private Optional<MultipartFile> userProfile = Optional.empty();
+//    @Builder.Default
+//    private Optional<MultipartFile> userProfile = Optional.empty();
 }

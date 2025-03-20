@@ -29,7 +29,6 @@ public class AuthController {
     public ResponseEntity<Boolean> signUp(
             @RequestPart("signUpRequest") SignUpRequest signUpRequest,
             @RequestPart(value = "userProfile", required = false) MultipartFile userProfile){
-        signUpRequest.setUserProfile(Optional.ofNullable(userProfile));
         Boolean isSuccess = authService.signUp(signUpRequest,userProfile);
         return ResponseEntity.ok(isSuccess);
     }
