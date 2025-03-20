@@ -11,12 +11,9 @@ pipeline {
         EC2_IP = credentials('EC2_IP')
         SSH_KEY = credentials('ssafyd104')
         SPRING_PROFILES_ACTIVE = 'prod'
-//         JWT_SECRET = credentials('JWT_SECRET')
 
 
-//         FCM_API_URL = credentials('FCM_API_URL')
 
-//         SPRING_PROFILES_ACTIVE = 'prod'
         DB_URL = credentials('DB_PROD_URL')
         DB_USERNAME = credentials('DB_PROD_USERNAME')
         DB_PASSWORD = credentials('DB_PROD_PASSWORD')
@@ -30,21 +27,13 @@ pipeline {
         S3_SECRET_KEY = credentials('yourSecretKey')
 
         JWT_SECRET_KEY = credentials('JWT_SECRET_KEY')
-//         client_secret = credentials('client_secret')
-
-
-//         GOOGLE_SERVICES_JSON = credentials('FIREBASE-SERVICE-KEY.JSON')
-//         FCM_SERVICE_KEY_JSON = credentials('FCM_SERVICE_KEY.JSON')
-//
-//         BOOTPAY_PRIVATE_KEY=credentials('BOOTPAY_PRIVATE_KEY')
-//         BOOTPAY_APPID=credentials('BOOTPAY_APPID')
 
         JAVA_HOME = '/opt/java/openjdk'
         GRADLE_HOME = '/var/jenkins_home/gradle-8.12.1'
         PATH = "${JAVA_HOME}/bin:${GRADLE_HOME}/bin:${env.PATH}"
     }
 
-    tools {// 젠킨스에 등록해둔 이름으로...
+    tools {
         jdk 'jdk17'
         gradle 'Gradle-8.12.1'
     }
@@ -58,17 +47,6 @@ pipeline {
                     credentialsId: 'GITLAB_PAT'
             }
         }
-//         stage('Copy Files') {
-//             steps {
-//                 echo 'Copying files...'
-//                 withCredentials([file(credentialsId: 'FIREBASE-SERVICE-KEY.JSON', variable: 'GOOGLE_SERVICES_JSON')]) {
-//                     sh 'cp $GOOGLE_SERVICES_JSON BE/PrePay/src/main/resources/firebase-service-key.json'
-//                 }
-//                 withCredentials([file(credentialsId: 'FCM_SERVICE_KEY.JSON', variable: 'GOOGLE_SERVICES_JSON')]) {
-//                     sh 'cp $FCM_SERVICE_KEY_JSON BE/PrePay/src/main/resources/fcm-google-services.json'
-//                 }
-//             }
-//         }
         stage('Build Application') {
             steps {
                 echo 'Building the application with Gradle Wrapper...'
@@ -108,73 +86,77 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 echo 'Deploying the application on EC2...'
-                 // 프로필 동적으로 설정
-                 script {
-                        def profile = ''
-                        if (env.BUILD_TYPE == 'test') {
-                            profile = 'test'
-                        } else {
-                            profile = 'prod'
-                        }
-               sshPublisher(publishers: [
-                           sshPublisherDesc(
-                               configName: 'EC2-SERVER',
-                               transfers: [
-                                   sshTransfer(
-                                       execCommand: """
-                                           mkdir -p ${DOCKER_PATH}
-                                           docker stop ${DOCKER_CONTAINER} || true
-                                           docker rm ${DOCKER_CONTAINER} || true
-                                           docker rmi ${DOCKER_IMAGE}:latest || true
-                                           docker load < ${DOCKER_PATH}/YogaYoBack-0.0.1-SNAPSHOT.tar.gz
+                script {
+                    def profile = ''
+                    if (env.BUILD_TYPE == 'test') {
+                        profile = 'test'
+                    } else {
+                        profile = 'prod'
+                    }
 
-                                           docker run -d --name ${DOCKER_CONTAINER} \
-                                               --network ubuntu_app-network \
-                                               -e SPRING_PROFILES_ACTIVE=${profile} \
-                                               -p ${DOCKER_PORT}:${DOCKER_PORT} \
-                                               -e SERVER_PORT=${DOCKER_PORT} \
-                                               -e DB_PROD_URL=${DB_URL} \
-                                               -e DB_PROD_USERNAME=${DB_USERNAME} \
-                                               -e DB_PROD_PASSWORD=${DB_PASSWORD} \
-                                               -e DB_TEST_URL=${DB_TEST_URL} \
-                                               -e DB_TEST_USERNAME=${DB_TEST_USERNAME} \
-                                               -e DB_TEST_PASSWORD=${DB_TEST_PASSWORD} \
-                                               -e your-bucket-name=${S3_BUCKET_NAME} \
-                                               -e yourAccessKey=${S3_ACCESS_KEY} \
-                                               -e yourSecretKey=${S3_SECRET_KEY} \
-                                               -e JWT-SECRET=${JWT_SECRET_KEY} \
-                                               -e TZ=Asia/Seoul \
-                                               ${DOCKER_IMAGE}:latest
-                                       """.stripIndent()
-                            )
-                        ]
-                    )
-                ])
+                    sshPublisher(publishers: [
+                        sshPublisherDesc(
+                            configName: 'EC2-SERVER',
+                            transfers: [
+                                sshTransfer(
+                                    execCommand: """
+                                        mkdir -p ${DOCKER_PATH}
+                                        docker stop ${DOCKER_CONTAINER} || true
+                                        docker rm ${DOCKER_CONTAINER} || true
+                                        docker rmi ${DOCKER_IMAGE}:latest || true
+                                        docker load < ${DOCKER_PATH}/YogaYoBack-0.0.1-SNAPSHOT.tar.gz
+
+                                        docker run -d --name ${DOCKER_CONTAINER} \
+                                            --network ubuntu_app-network \
+                                            -e SPRING_PROFILES_ACTIVE=${profile} \
+                                            -p ${DOCKER_PORT}:${DOCKER_PORT} \
+                                            -e SERVER_PORT=${DOCKER_PORT} \
+                                            -e DB_PROD_URL=${DB_URL} \
+                                            -e DB_PROD_USERNAME=${DB_USERNAME} \
+                                            -e DB_PROD_PASSWORD=${DB_PASSWORD} \
+                                            -e DB_TEST_URL=${DB_TEST_URL} \
+                                            -e DB_TEST_USERNAME=${DB_TEST_USERNAME} \
+                                            -e DB_TEST_PASSWORD=${DB_TEST_PASSWORD} \
+                                            -e your-bucket-name=${S3_BUCKET_NAME} \
+                                            -e yourAccessKey=${S3_ACCESS_KEY} \
+                                            -e yourSecretKey=${S3_SECRET_KEY} \
+                                            -e JWT-SECRET=${JWT_SECRET_KEY} \
+                                            -e TZ=Asia/Seoul \
+                                            ${DOCKER_IMAGE}:latest
+                                    """.stripIndent()
+                                )
+                            ]
+                        )
+                    ])
+                }
             }
         }
     }
-     post {
-            success {
-            	script {
-                    def Author_ID = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
-                    def Author_Name = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
-                    mattermostSend (color: 'good',
+
+    post {
+        success {
+            script {
+                def Author_ID = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+                def Author_Name = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+                mattermostSend(
+                    color: 'good',
                     message: "빌드 성공!: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${Author_ID}\n(<${env.BUILD_URL}|Details>)",
                     endpoint: 'https://meeting.ssafy.com/hooks/fuwwodco37nb9jmxho46gzm4wr',
                     channel: 'd104jenkins'
-                    )
-                }
+                )
             }
-            failure {
-            	script {
-                    def Author_ID = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
-                    def Author_Name = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
-                    mattermostSend (color: 'danger',
+        }
+        failure {
+            script {
+                def Author_ID = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+                def Author_Name = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+                mattermostSend(
+                    color: 'danger',
                     message: "빌드 실패ㅠ: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${Author_ID}\n(<${env.BUILD_URL}|Details>)",
                     endpoint: 'https://meeting.ssafy.com/hooks/fuwwodco37nb9jmxho46gzm4wr',
                     channel: 'd104jenkins'
-                    )
-                }
+                )
             }
         }
+    }
 }
