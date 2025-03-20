@@ -10,8 +10,7 @@ pipeline {
         EC2_USER = credentials('EC2_USER')
         EC2_IP = credentials('EC2_IP')
         SSH_KEY = credentials('ssafyd104')
-        SPRING_PROFILES_ACTIVE = 'prod'
-
+ 
 
 
         DB_URL = credentials('DB_PROD_URL')
