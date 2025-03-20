@@ -41,8 +41,11 @@ public class S3FileStorageService {
                     .acl("public-read")
                     .build();
 
-            PutObjectResponse response = s3Client.putObject(putOb,
-                    software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
+            PutObjectResponse response = s3Client.putObject(
+                    putOb,
+                    software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes())
+            );
+            System.out.println("S3 Response status: " + response.sdkHttpResponse().statusCode());
 
             // S3에 public-read ACL이 설정되어 있다면, 아래와 같이 URL을 생성할 수 있습니다.
             return "https://" + bucketName + ".s3.amazonaws.com/" + fileName;

@@ -20,9 +20,10 @@ logging:
     org.springframework.web: DEBUG
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+    com.red.yogaback: DEBUG
 
 jwt:
-  secret: lcCoZ5lvEmT7BNFMCz9TGgw0zy2lqTSv
+  secret: ${JWT-SECRET}
   expiration:
     access: 86400000
     refresh: 604800000
