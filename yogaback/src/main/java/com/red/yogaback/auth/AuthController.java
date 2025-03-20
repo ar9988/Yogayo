@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +25,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "회원가입", description = "필요 파라미터 : 로그인 ID, 비밀번호, 이름, 닉네임, 프로필 사진(선택)"
+    @Operation(summary = "회원가입", description = "필요 파라미터 : 로그인 ID, 비밀번호, 이름, 닉네임, 프로필 사진(선택)")
     public ResponseEntity<Boolean> signUp(
             @RequestPart("signUpRequest") SignUpRequest signUpRequest,
             @RequestPart(value = "userProfile", required = false) MultipartFile userProfile){
