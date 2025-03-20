@@ -11,9 +11,12 @@ services:
       - SPRING_DATASOURCE_URL=${DB_PROD_URL}
       - SPRING_DATASOURCE_USERNAME=${DB_PROD_USERNAME}
       - SPRING_DATASOURCE_PASSWORD=${DB_PROD_PASSWORD}
+      - your-bucket-name=${your-bucket-name}
+      - yourAccessKey=${yourAccessKey}
+      - yourSecretKey=${yourSecretKey}
     depends_on:
       - mysql
-    command: ["dockerize", "-wait", "tcp://mysql:3306", "-timeout", "60s", "java", "-jar", "/yogayo.jar"]
+    command: ["java", "-jar", "/yogayo.jar"]
     networks:
       - app-network
 
