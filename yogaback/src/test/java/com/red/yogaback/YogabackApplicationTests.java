@@ -7,6 +7,7 @@ import org.springframework.test.context.TestPropertySource;
 
 
 @SpringBootTest(classes = YogabackApplicationTests.class)
+@ActiveProfiles("test")
 class YogabackApplicationTests {
 
     @Test
