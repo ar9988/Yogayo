@@ -21,10 +21,6 @@ pipeline {
         DB_USERNAME = credentials('DB_PROD_USERNAME')
         DB_PASSWORD = credentials('DB_PROD_PASSWORD')
 
-        DB_TEST_URL = credentials('DB_TEST_URL')
-        DB_TEST_USERNAME = credentials('DB_TEST_USERNAME')
-        DB_TEST_PASSWORD = credentials('DB_TEST_PASSWORD')
-
         S3_BUCKET_NAME = credentials('your-bucket-name')
         S3_ACCESS_KEY = credentials('yourAccessKey')
         S3_SECRET_KEY = credentials('yourSecretKey')
@@ -128,9 +124,6 @@ pipeline {
                                                -e DB_PROD_URL=${DB_URL} \
                                                -e DB_PROD_USERNAME=${DB_USERNAME} \
                                                -e DB_PROD_PASSWORD=${DB_PASSWORD} \
-                                               -e DB_TEST_URL=${DB_TEST_URL} \
-                                               -e DB_TEST_USERNAME=${DB_TEST_USERNAME} \
-                                               -e DB_TEST_PASSWORD=${DB_TEST_PASSWORD} \
                                                -e your-bucket-name=${S3_BUCKET_NAME} \
                                                -e yourAccessKey=${S3_ACCESS_KEY} \
                                                -e yourSecretKey=${S3_SECRET_KEY} \
