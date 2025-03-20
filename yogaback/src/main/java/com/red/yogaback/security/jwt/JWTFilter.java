@@ -65,7 +65,8 @@ public class JWTFilter extends OncePerRequestFilter {
                 path.startsWith("/swagger-resources/") ||
                 path.startsWith("/webjars/") ||
                 path.equals("/api/notifications/button-patterns") ||
-                path.startsWith("/api/groups/invite");
+                path.startsWith("/api/groups/invite") ||
+                path.startsWith("/api/yoga/all");
     }
 
     private void setErrorResponse(HttpServletResponse response, CustomException e) throws IOException {

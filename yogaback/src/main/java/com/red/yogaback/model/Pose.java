@@ -20,6 +20,7 @@ public class Pose {
     private String poseImg;         // pose_img
     private Long poseLevel;         // pose_level
     private String poseVideo;       // pose_video
+    private String poseAnimation;   // pose_animation
 
     // 자기 참조: 상위 자세 (없을 수도 있음)
     @ManyToOne
