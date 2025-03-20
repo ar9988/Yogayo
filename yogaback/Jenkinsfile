@@ -69,7 +69,7 @@ pipeline {
             steps {
                 echo 'Building the application with Gradle Wrapper...'
                 dir('yogaback') {
-                    sh 'gradle clean build -Dspring.profiles.active=prod'
+                    sh 'gradle clean build'
                     sh 'ls -al $(pwd)/build/libs'
                 }
             }

@@ -1,15 +1,15 @@
 package com.red.yogaback;
 
 
+
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 
-@SpringBootTest
-@ActiveProfiles("prod")
+
+@SpringBootTest(classes = YogabackApplicationTests.class)
 class YogabackApplicationTests {
 
     private static final Logger log = LoggerFactory.getLogger(YogabackApplicationTests.class);
@@ -17,6 +17,7 @@ class YogabackApplicationTests {
     @Test
     void contextLoads(){
         log.info("테스트 코드 시작");
+
 
     }
 
