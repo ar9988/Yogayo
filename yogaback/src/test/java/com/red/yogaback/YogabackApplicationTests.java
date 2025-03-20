@@ -5,8 +5,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-@TestPropertySource("classpath:application-test.yml")
-@SpringBootTest
+
+@SpringBootTest(classes = YogabackApplicationTests.class)
 class YogabackApplicationTests {
 
     @Test

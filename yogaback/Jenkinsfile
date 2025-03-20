@@ -122,7 +122,7 @@ pipeline {
 
                                            docker run -d --name ${DOCKER_CONTAINER} \
                                                --network ubuntu_app-network \
-                                               -e SPRING_PROFILES_ACTIVE='test' \
+                                               -e SPRING_PROFILES_ACTIVE='prod' \
                                                -p ${DOCKER_PORT}:${DOCKER_PORT} \
                                                -e SERVER_PORT=${DOCKER_PORT} \
                                                -e DB_PROD_URL=${DB_URL} \
