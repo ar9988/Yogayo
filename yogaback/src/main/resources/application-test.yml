@@ -21,7 +21,7 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
 
 jwt:
-  secret: lcCoZ5lvEmT7BNFMCz9TGgw0zy2lqTSv
+  secret: ${JWT-SECRET}
   expiration:
     access: 86400000
     refresh: 604800000
