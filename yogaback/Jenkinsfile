@@ -71,6 +71,7 @@ pipeline {
                 dir('yogaback') {
                     sh 'gradle clean build'
                     sh 'ls -al $(pwd)/build/libs'
+                    sh 'gradle bootRun -Dspring.profiles.active=prod'
                 }
             }
         }

@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 
 
-@SpringBootTest(classes = YogabackApplicationTests.class)
+@SpringBootTest
 //@ActiveProfiles("test")
 class YogabackApplicationTests {
 
