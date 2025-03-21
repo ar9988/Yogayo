@@ -47,6 +47,7 @@ services:
       - /usr/bin/docker:/usr/bin/docker
     networks:
       - app-network
+
 networks:
   app-network:
     driver: bridge
