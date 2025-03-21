@@ -41,24 +41,6 @@ public class ProjectSecurityConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
-                    @Override
-                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                        CorsConfiguration config = new CorsConfiguration();
-                        config.setAllowedOriginPatterns(List.of(
-                                "http://127.0.0.1:5173",
-                                "http://localhost:5173",
-                                httpServerUrl,
-                                httpsServerUrl
-                        ));
-                        config.setAllowedMethods(Collections.singletonList("*"));
-                        config.setAllowedHeaders(Collections.singletonList("*"));
-                        config.setMaxAge(3600L);
-                        config.setAllowCredentials(true);
-                        config.setExposedHeaders(Collections.singletonList("Authorization"));
-                        return config;
-                    }
-                }))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/api/auth/**", "/error", "/api/notifications/button-patterns", "/api/groups/invite/**", "/api/yoga/all", "/api/yoga/detail/**").permitAll()
