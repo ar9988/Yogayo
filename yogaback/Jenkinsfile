@@ -65,11 +65,15 @@ pipeline {
 //                 }
 //             }
 //         }
+
+        stage('Test') {
+            sh 'gradle test'
+        }
         stage('Build Application') {
             steps {
                 echo 'Building the application with Gradle Wrapper...'
                 dir('yogaback') {
-                    sh 'gradle clean build'
+                    sh 'gradle clean build -x test'
                     sh 'ls -al $(pwd)/build/libs'
                 }
             }
