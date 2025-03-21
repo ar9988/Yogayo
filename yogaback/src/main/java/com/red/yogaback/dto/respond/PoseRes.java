@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PoseListRes {
+public class PoseRes {
     private Long poseId;
     private String poseName;
     private String poseDescription;
@@ -21,8 +21,8 @@ public class PoseListRes {
     private String poseAnimation;
 
     // Pose 엔티티를 PoseListRes DTO로 변환하는 정적 메서드
-    public static PoseListRes fromEntity(Pose pose) {
-        return PoseListRes.builder()
+    public static PoseRes fromEntity(Pose pose) {
+        return PoseRes.builder()
                 .poseId(pose.getPoseId())
                 .poseName(pose.getPoseName())
                 .poseDescription(pose.getPoseDescription())
