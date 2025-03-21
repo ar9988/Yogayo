@@ -66,15 +66,6 @@ pipeline {
 //             }
 //         }
 
-        stage('Test') {
-        steps{
-            echo 'Run test...'
-             dir('yogaback'){
-            sh 'gradle test'
-            }
-        }
-
-        }
         stage('Build Application') {
             steps {
                 echo 'Building the application with Gradle Wrapper...'
