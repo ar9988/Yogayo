@@ -3,14 +3,30 @@ package com.d104.yogaapp.features.mypage
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ProvidedValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.gson.JsonPrimitive
 
 @Composable
-fun MyPageScreen(){
+fun MyPageScreen(
+    viewModel: MyPageViewModel = hiltViewModel(),
+    onNavigateSoloScreen: () -> Unit
+){
+    val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(uiState.isLogoutSuccessful){
+        if(uiState.isLogoutSuccessful){
+            onNavigateSoloScreen()
+        }
+    }
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Box(
             modifier = Modifier
@@ -19,6 +35,9 @@ fun MyPageScreen(){
             contentAlignment = Alignment.Center
         ) {
             Text("MyPageScreen")
+            Button(onClick = { viewModel.processIntent(MyPageIntent.Logout) }) {
+                Text("Logout")
+            }
         }
     }
 }

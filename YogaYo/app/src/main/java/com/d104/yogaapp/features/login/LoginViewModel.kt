@@ -34,8 +34,6 @@ class LoginViewModel @Inject constructor(
 
     private fun performLogin() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-
             loginUseCase(uiState.value.id, uiState.value.password)
                 .collect { result ->
                     _uiState.value = _uiState.value.copy(isLoading = false)

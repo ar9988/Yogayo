@@ -36,7 +36,8 @@ fun CourseCard(
     poseList: List<YogaPose> = emptyList(),
     course: UserCourse,
     onClick: () -> Unit,
-    onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit,
+    onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit = { _, _ -> },
+    showEditButton: Boolean = true
 ) {
 
     var showDialog by remember { mutableStateOf(false) }
@@ -74,7 +75,7 @@ fun CourseCard(
             modifier = Modifier.padding(12.dp)
         ) {
             // 상단 헤더: 코스 이름, 튜토리얼 여부, 예상 시간
-            if(course.courseId>=0){
+            if(showEditButton&&course.courseId>=0){
                 IconButton(
                     onClick = {showDialog = true},
                     modifier = Modifier
