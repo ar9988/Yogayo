@@ -1,6 +1,8 @@
 package com.d104.data.di
 
 import com.d104.data.remote.api.AuthApiService
+import com.d104.data.remote.api.SseApiService
+import com.d104.data.remote.api.SseApiServiceImpl
 import com.d104.data.remote.api.UserApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
@@ -82,4 +84,11 @@ object NetworkModule {
     fun provideAuthApiService(@Named("AuthNotRequired") retrofit: Retrofit): AuthApiService{
         return retrofit.create(AuthApiService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideSseApiService(okHttpClient: OkHttpClient): SseApiService {
+        return SseApiServiceImpl(okHttpClient)
+    }
+
 }

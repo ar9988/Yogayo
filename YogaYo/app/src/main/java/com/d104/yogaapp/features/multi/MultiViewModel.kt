@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
+import com.d104.domain.usecase.CancelSearchStreamUseCase
 import com.d104.domain.usecase.GetRoomUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,11 +18,12 @@ import javax.inject.Inject
 @HiltViewModel
 class MultiViewModel @Inject constructor(
     private val multiReducer: MultiReducer,
-    private val getRoomUseCase : GetRoomUseCase
+    private val getRoomUseCase : GetRoomUseCase,
+    private val cancelSearchStreamUseCase: CancelSearchStreamUseCase
 ) : ViewModel(){
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
-
+    private var searchJob: Job? = null
     private val _rooms = MutableStateFlow<List<Room>>(emptyList())
     val rooms: StateFlow<List<Room>> = _rooms.asStateFlow()
     val tmpPoseInfo = listOf(
@@ -35,43 +38,36 @@ class MultiViewModel @Inject constructor(
         when(intent){
             is MultiIntent.SearchRoom ->{
                 _uiState.value.page = rooms.value
+                loadRooms(newState.searchText,newState.pageIndex)
             }
-
-            is MultiIntent.CreateRoom -> {
-
-            }
-            is MultiIntent.SelectRoom -> {
-
-            }
-            is MultiIntent.UpdateSearchText -> {
-
-            }
-            is MultiIntent.SelectCourse -> {
-
-            }
-            is MultiIntent.NextPage -> {
-
-            }
-            is MultiIntent.PrevPage -> {
-
-            }
-            is MultiIntent.SearchCourse -> {
-
-            }
-
-            is MultiIntent.ClearRoom -> {
-
-            }
+            else -> {}
         }
     }
 
     // 방 목록 조회 함수
-    fun loadRooms() {
-        viewModelScope.launch {
-            getRoomUseCase().collect { roomsList ->
-
+    fun loadRooms(searchText: String, pageIndex: Int) {
+        cancelSearch()
+        searchJob = viewModelScope.launch {
+            getRoomUseCase(searchText,pageIndex).collect { result ->
+                result.onSuccess {
+                    _rooms.value = it
+                    processIntent(MultiIntent.RoomLoaded)
+                }
+                result.onFailure {
+                    // 에러 처리
+                }
             }
         }
+    }
+
+    fun cancelSearch() {
+        searchJob?.cancel()
+        cancelSearchStreamUseCase()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        cancelSearch()
     }
 
     // 상태 초기화 함수

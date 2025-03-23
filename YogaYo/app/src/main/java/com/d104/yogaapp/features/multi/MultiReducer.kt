@@ -33,7 +33,11 @@ class MultiReducer @Inject constructor() {
                 pageIndex = currentState.pageIndex-1
             )
 
-            MultiIntent.ClearRoom -> currentState.copy(
+            is MultiIntent.ClearRoom -> currentState.copy(
+            )
+
+            is MultiIntent.RoomLoaded -> currentState.copy(
+                isLoading = false
             )
         }
     }

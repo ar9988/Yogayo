@@ -13,5 +13,6 @@ sealed class MultiIntent {
     data object PrevPage: MultiIntent()
     data object NextPage: MultiIntent()
     data object ClearRoom: MultiIntent()
+    data object RoomLoaded: MultiIntent()
 
 }
