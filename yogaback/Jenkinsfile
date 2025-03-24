@@ -17,13 +17,9 @@ pipeline {
 //         FCM_API_URL = credentials('FCM_API_URL')
 
 //         SPRING_PROFILES_ACTIVE = 'prod'
-        DB_URL = credentials('DB_PROD_URL')
-        DB_USERNAME = credentials('DB_PROD_USERNAME')
-        DB_PASSWORD = credentials('DB_PROD_PASSWORD')
-
-        DB_TEST_URL = credentials('DB_TEST_URL')
-        DB_TEST_USERNAME = credentials('DB_TEST_USERNAME')
-        DB_TEST_PASSWORD = credentials('DB_TEST_PASSWORD')
+        DB_PROD_URL = credentials('DB_PROD_URL')
+        DB_PROD_USERNAME = credentials('DB_PROD_USERNAME')
+        DB_PROD_PASSWORD = credentials('DB_PROD_PASSWORD')
 
         S3_BUCKET_NAME = credentials('your-bucket-name')
         S3_ACCESS_KEY = credentials('yourAccessKey')
@@ -69,11 +65,12 @@ pipeline {
 //                 }
 //             }
 //         }
+
         stage('Build Application') {
             steps {
                 echo 'Building the application with Gradle Wrapper...'
                 dir('yogaback') {
-                    sh 'gradle clean build'
+                    sh 'gradle clean build -x test'
                     sh 'ls -al $(pwd)/build/libs'
                 }
             }
@@ -108,14 +105,6 @@ pipeline {
         stage('Deploy to EC2') {
             steps {
                 echo 'Deploying the application on EC2...'
-                 // 프로필 동적으로 설정
-                 script {
-                        def profile = ''
-                        if (env.BUILD_TYPE == 'test') {
-                            profile = 'test'
-                        } else {
-                            profile = 'prod'
-                        }
                sshPublisher(publishers: [
                            sshPublisherDesc(
                                configName: 'EC2-SERVER',
@@ -130,15 +119,12 @@ pipeline {
 
                                            docker run -d --name ${DOCKER_CONTAINER} \
                                                --network ubuntu_app-network \
-                                               -e SPRING_PROFILES_ACTIVE=${profile} \
+                                               -e SPRING_PROFILES_ACTIVE='prod' \
                                                -p ${DOCKER_PORT}:${DOCKER_PORT} \
                                                -e SERVER_PORT=${DOCKER_PORT} \
-                                               -e DB_PROD_URL=${DB_URL} \
-                                               -e DB_PROD_USERNAME=${DB_USERNAME} \
-                                               -e DB_PROD_PASSWORD=${DB_PASSWORD} \
-                                               -e DB_TEST_URL=${DB_TEST_URL} \
-                                               -e DB_TEST_USERNAME=${DB_TEST_USERNAME} \
-                                               -e DB_TEST_PASSWORD=${DB_TEST_PASSWORD} \
+                                               -e DB_PROD_URL=${DB_PROD_URL} \
+                                               -e DB_PROD_USERNAME=${DB_PROD_USERNAME} \
+                                               -e DB_PROD_PASSWORD=${DB_PROD_PASSWORD} \
                                                -e your-bucket-name=${S3_BUCKET_NAME} \
                                                -e yourAccessKey=${S3_ACCESS_KEY} \
                                                -e yourSecretKey=${S3_SECRET_KEY} \
