@@ -27,6 +27,11 @@ class LobbyRepositoryImpl @Inject constructor(
     override fun stopSse() {
         sseApiService.stopSse()
     }
+
+    override suspend fun enterRoom(roomId: Int, password: String): Flow<Result<Boolean>> {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun getRooms(searchText: String, page: Int): Flow<Result<List<Room>>> {
         startSse(searchText,page)
 

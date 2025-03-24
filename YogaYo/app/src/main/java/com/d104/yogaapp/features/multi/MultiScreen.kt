@@ -49,6 +49,7 @@ import com.d104.yogaapp.features.common.CourseCard
 import androidx.compose.ui.platform.LocalDensity
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
+import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
 
 @Composable
 fun MultiScreen(
@@ -75,20 +76,16 @@ fun MultiScreen(
             }
         }
     }
-
+    LaunchedEffect(uiState.enteringRoom) {
+        if (uiState.enteringRoom) {
+            onNavigateMultiPlay(uiState.selectedRoom!!.roomId)
+            viewModel.processIntent(MultiIntent.EnterRoomComplete)
+        }
+    }
     LaunchedEffect(isOverScrolledTop, isOverScrolledBottom) {
         when {
             isOverScrolledTop -> viewModel.processIntent(MultiIntent.PrevPage) // 이전 페이지
             isOverScrolledBottom -> viewModel.processIntent(MultiIntent.NextPage) // 다음 페이지
-        }
-    }
-
-    LaunchedEffect(uiState.selectedRoom) {
-        uiState.selectedRoom?.let { room ->
-            // Room이 선택되면 roomId를 사용하여 네비게이션 실행
-            onNavigateMultiPlay(room.roomId)
-            // 네비게이션 후 선택된 Room 초기화 (선택사항)
-            viewModel.processIntent(MultiIntent.ClearRoom)
         }
     }
     Box(
@@ -156,6 +153,8 @@ fun MultiScreen(
             )
         }
     }
+    // Dialog
+    // 방 생성 다이얼로그
     CreateRoomDialog(
         showDialog = uiState.dialogState == DialogState.CREATING,
         roomTitle = uiState.roomTitle,
@@ -168,6 +167,16 @@ fun MultiScreen(
         onEditCourse = {viewModel.processIntent(MultiIntent.ShowEditDialog)},
         userCourses = uiState.yogaCourses
     )
+    // 방 참가 다이얼로그
+    EnterRoomDialog(
+        selectedRoom = uiState.selectedRoom,
+        showDialog = uiState.dialogState == DialogState.ENTERING,
+        onConfirm = { viewModel.processIntent(MultiIntent.EnterRoom) },
+        onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.ENTERING)) },
+        roomPassword = uiState.roomPassword,
+        onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) }
+    )
+    // 코스 수정 다이얼로그
     if(uiState.dialogState == DialogState.COURSE_EDITING){
         CustomCourseDialog(
             poseList = uiState.selectedCourse!!.poses,
@@ -176,6 +185,7 @@ fun MultiScreen(
                 viewModel.processIntent(MultiIntent.EditCourse(uiState.selectedCourse!!.courseId,courseName, poses))
             }
         )
+        println(uiState.selectedCourse.toString())
     }
 }
 

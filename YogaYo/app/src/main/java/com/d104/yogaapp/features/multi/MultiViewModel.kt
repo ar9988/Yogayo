@@ -7,6 +7,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.usecase.CancelSearchStreamUseCase
+import com.d104.domain.usecase.EnterRoomUseCase
 import com.d104.domain.usecase.GetCourseUseCase
 import com.d104.domain.usecase.GetRoomUseCase
 import com.d104.domain.usecase.UpdateCourseUseCase
@@ -26,7 +27,8 @@ class MultiViewModel @Inject constructor(
     private val cancelSearchStreamUseCase: CancelSearchStreamUseCase,
     private val updateCourseUseCase: UpdateCourseUseCase,
     private val getCourseUseCase: GetCourseUseCase,
-    private val courseJsonParser: CourseJsonParser,
+    courseJsonParser: CourseJsonParser,
+    private val enterRoomUseCase: EnterRoomUseCase
 ) : ViewModel(){
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
@@ -54,11 +56,20 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.SearchCourse -> {
                 searchCourse()
             }
+            is MultiIntent.EnterRoom -> {
+                enterRoom()
+            }
             else -> {}
         }
     }
 
-
+    private fun enterRoom(){
+        viewModelScope.launch {
+            _uiState.value.enteringRoom = true
+            _uiState.value.enteringRoom = false
+            processIntent(MultiIntent.EnterRoomComplete)
+        }
+    }
 
     private fun loadPoses(searchText: String){
         if(searchText == ""){
@@ -85,6 +96,7 @@ class MultiViewModel @Inject constructor(
     }
 
     private fun searchCourse(){
+        getCourseUseCase()
 //        getCourseUseCase.collect{ result ->
 //            result.onSuccess {
 //                _uiState.value.yogaCourses = it

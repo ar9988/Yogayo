@@ -16,7 +16,8 @@ data class MultiState(
     val pageIndex:Int = 0,
     var page: List<Room> = emptyList(),
     var searchedPoses: List<YogaPose> = emptyList(),
-    var yogaCourses: List<UserCourse> = emptyList()
+    var yogaCourses: List<UserCourse> = emptyList(),
+    var enteringRoom: Boolean = false,
 )
 
 enum class DialogState {

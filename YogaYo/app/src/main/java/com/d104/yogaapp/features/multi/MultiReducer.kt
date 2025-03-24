@@ -14,7 +14,8 @@ class MultiReducer @Inject constructor() {
             )
 
             is MultiIntent.SelectRoom -> currentState.copy(
-                dialogState = DialogState.ENTERING
+                dialogState = DialogState.ENTERING,
+                selectedRoom = intent.room
             )
 
             is MultiIntent.UpdateSearchText -> currentState.copy(
@@ -84,6 +85,13 @@ class MultiReducer @Inject constructor() {
 
             is MultiIntent.ShowEditDialog -> currentState.copy(
                 dialogState = DialogState.COURSE_EDITING
+            )
+            is MultiIntent.EnterRoomComplete -> currentState.copy(
+                enteringRoom = false
+            )
+            is MultiIntent.EnterRoom -> currentState.copy(
+                enteringRoom = true,
+                dialogState = DialogState.NONE
             )
         }
     }
