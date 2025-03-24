@@ -39,7 +39,11 @@ public class UserCourseService {
         UserCourse userCourse = new UserCourse();
         userCourse.setUser(user);
         userCourse.setCourseName(request.getCourseName());
-        userCourse.setTutorial(false); // tutorial 필드 필요 없으면 false
+
+//        userCourse.setTutorial(false); // tutorial 필드 필요 없으면 false
+        // tutorial 값이 null인 경우 기본값(false) 처리 or 예외 처리
+        userCourse.setTutorial(request.getTutorial() != null ? request.getTutorial() : false);
+
         userCourse.setCreatedAt(System.currentTimeMillis());
         userCourseRepository.save(userCourse);
 
@@ -97,6 +101,12 @@ public class UserCourseService {
         // 3) 코스명 변경
         userCourse.setCourseName(request.getCourseName());
         userCourse.setModifyAt(System.currentTimeMillis());
+
+        // ② tutorial도 수정 가능하도록
+        //    null이면 기존 tutorial 유지하거나, false로 처리하는 식으로 결정
+        if (request.getTutorial() != null) {
+            userCourse.setTutorial(request.getTutorial());
+        }
 
         // 4) 기존 포즈들 삭제 -> 새로 추가
         userCoursePoseRepository.deleteAllByUserCourseUserCourseId(courseId);

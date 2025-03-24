@@ -12,6 +12,7 @@ public class CreateCourseRequest {
 
     private String courseName; // "내 커스텀 코스"
     private List<PoseInfo> poses; // [{poseId: 1, userOrderIndex: 1}, ...]
+    private Boolean tutorial;
 
     @Getter
     @NoArgsConstructor
