@@ -21,7 +21,7 @@ public class UserCoursePose {
 
     // 해당 코스 포즈는 반드시 하나의 UserCourse에 속함
     @ManyToOne
-    @JoinColumn(name = "course_id", nullable = false)
+    @JoinColumn(name = "user_course_id", nullable = false)
     private UserCourse userCourse;
 
     @Column(name = "user_order_Index")
