@@ -30,5 +30,9 @@ public class UserBadge {
     @Column(columnDefinition = "TINYINT(1)")
     private boolean isNew; // is_new
 
+    private int progress;
+
+    private int highLevel;
+
     private Long createdAt; // created_at
 }

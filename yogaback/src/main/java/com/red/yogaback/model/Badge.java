@@ -1,6 +1,7 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,6 +11,7 @@ import java.util.List;
 @Table(name = "Badge")
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class Badge {
 
     @Id
@@ -25,5 +27,7 @@ public class Badge {
 
     @OneToMany(mappedBy = "badge", fetch = FetchType.LAZY)
     private List<UserBadge> userBadges;
+
+
 
 }
