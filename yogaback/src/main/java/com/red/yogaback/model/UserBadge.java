@@ -9,7 +9,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "UserBadge")
 @Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserBadge {

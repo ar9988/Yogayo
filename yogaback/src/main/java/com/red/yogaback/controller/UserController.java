@@ -21,10 +21,5 @@ public class UserController {
 
     private final BadgeService badgeService;
 
-    @GetMapping("/badge")
-    public ResponseEntity<List<BadgeListRes>> getBadgeList() {
-        Long userId = SecurityUtil.getCurrentMemberId();
-        return ResponseEntity.ok(badgeService.getBadgeList(userId));
-    }
 
 }

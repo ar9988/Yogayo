@@ -27,24 +27,5 @@ public class BadgeService {
 
 
     // 배지 목록 요청
-    public List<BadgeListRes> getBadgeList(Long userId) {
 
-        List<Badge> badges = badgeRepository.findAll();
-        User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
-        List<UserBadge> userBadges = userBadgeRepository.findByUser(user);
-
-        List<BadgeListRes> result = badges.stream().map((badge) -> {
-            boolean hasBadge = userBadges.stream().anyMatch((userBadge) -> badge == userBadge.getBadge());
-
-            return new BadgeListRes(
-                    badge.getBadgeId(),
-                    badge.getBadgeName(),
-                    badge.getBadgeImg(),
-                    badge.getBadgeCondition(),
-                    hasBadge
-            );
-        }).collect(Collectors.toList());
-
-        return result;
-    }
 }
