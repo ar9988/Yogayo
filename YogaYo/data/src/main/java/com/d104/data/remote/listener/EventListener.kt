@@ -5,8 +5,9 @@ import kotlinx.coroutines.flow.StateFlow
 import okhttp3.Response
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
+import javax.inject.Inject
 
-class EventListener : EventSourceListener() {
+class EventListener @Inject constructor(): EventSourceListener() {
     private val _sseEvents = MutableStateFlow<String>("")
     val sseEvents: StateFlow<String> = _sseEvents
     override fun onOpen(eventSource: EventSource, response: Response) {

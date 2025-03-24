@@ -2,6 +2,7 @@ package com.d104.yogaapp.features.multi
 
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
+import com.d104.domain.model.YogaPoseWithOrder
 
 sealed class MultiIntent {
     data class UpdateSearchText(val text:String) : MultiIntent()
@@ -14,5 +15,11 @@ sealed class MultiIntent {
     data object NextPage: MultiIntent()
     data object ClearRoom: MultiIntent()
     data object RoomLoaded: MultiIntent()
-
+    data object ShowEditDialog:MultiIntent()
+    data class UpdateRoomTitle(val title:String) : MultiIntent()
+    data class UpdateRoomPassword(val password:String) : MultiIntent()
+    data class UpdatePoseTitle(val title:String): MultiIntent()
+    data class DismissDialog(val dialogState: DialogState): MultiIntent()
+    data class EditCourse(val courseId:Long,val courseName: String, val poses: List<YogaPoseWithOrder>) : MultiIntent()
+    data object SearchPose:MultiIntent()
 }

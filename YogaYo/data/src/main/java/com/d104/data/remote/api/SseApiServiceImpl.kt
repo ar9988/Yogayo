@@ -6,8 +6,6 @@ import okhttp3.Request
 import okhttp3.sse.EventSource
 import okhttp3.HttpUrl
 import okhttp3.sse.EventSourceListener
-import com.launchdarkly.eventsource.EventSource.Builder
-import kotlinx.coroutines.awaitCancellation
 import okhttp3.sse.EventSources.createFactory
 import javax.inject.Inject
 
@@ -19,7 +17,8 @@ class SseApiServiceImpl @Inject constructor(
 
         val url = HttpUrl.Builder()
             .scheme("http")
-            .host("j12d104.p.ssafy.io:8080")
+            .host("j12d104.p.ssafy.io")
+            .port(8080)
             .addPathSegment("api")
             .addPathSegment("multi")
             .addPathSegment("lobby")

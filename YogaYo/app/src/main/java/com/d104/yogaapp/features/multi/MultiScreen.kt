@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -18,15 +17,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,10 +47,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
 import com.d104.yogaapp.features.common.CourseCard
 import androidx.compose.ui.platform.LocalDensity
+import com.d104.yogaapp.features.common.CustomCourseDialog
+import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 
 @Composable
 fun MultiScreen(
-    onNavigateMultiPlay: (Int)->Unit,
+    onNavigateMultiPlay: (Int) -> Unit,
     viewModel: MultiViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -80,6 +82,7 @@ fun MultiScreen(
             isOverScrolledBottom -> viewModel.processIntent(MultiIntent.NextPage) // 다음 페이지
         }
     }
+
     LaunchedEffect(uiState.selectedRoom) {
         uiState.selectedRoom?.let { room ->
             // Room이 선택되면 roomId를 사용하여 네비게이션 실행
@@ -88,48 +91,91 @@ fun MultiScreen(
             viewModel.processIntent(MultiIntent.ClearRoom)
         }
     }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        OutlinedTextField(
-            value = uiState.searchText,
-            onValueChange = { viewModel.processIntent(MultiIntent.UpdateSearchText(it)) },
-            label = { Text("검색") },
-            placeholder = { Text("검색어를 입력하세요") },
-            trailingIcon = {
-                IconButton(onClick = { viewModel.processIntent(MultiIntent.SearchRoom) }) {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search Button")
-                }
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Search
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = { viewModel.processIntent(MultiIntent.SearchRoom) }
-            ),
-            shape = RoundedCornerShape(50),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFFF7F6FA),
-                focusedContainerColor = Color(0xFFF7F6FA)
-            ),
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
+                .fillMaxSize()
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            OutlinedTextField(
+                value = uiState.roomSearchText,
+                onValueChange = { viewModel.processIntent(MultiIntent.UpdateSearchText(it)) },
+                label = { Text("검색") },
+                placeholder = { Text("검색어를 입력하세요") },
+                trailingIcon = {
+                    IconButton(onClick = { viewModel.processIntent(MultiIntent.SearchRoom) }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search Button"
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Search
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = { viewModel.processIntent(MultiIntent.SearchRoom) }
+                ),
+                shape = RoundedCornerShape(50),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = Color(0xFFF7F6FA),
+                    focusedContainerColor = Color(0xFFF7F6FA)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
 
-        DynamicList(
-            state = scrollState,
-            rooms = uiState.page,
-            onItemClick = { room ->
-                viewModel.processIntent(MultiIntent.SelectRoom(room))
+            DynamicList(
+                state = scrollState,
+                rooms = uiState.page,
+                onItemClick = { room ->
+                    viewModel.processIntent(MultiIntent.SelectRoom(room))
+                }
+            )
+        }
+
+        FloatingActionButton(
+            onClick = {
+                // 방 생성 다이얼로그 표시
+                viewModel.processIntent(MultiIntent.CreateRoom)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "방 만들기"
+            )
+        }
+    }
+    CreateRoomDialog(
+        showDialog = uiState.dialogState == DialogState.CREATING,
+        roomTitle = uiState.roomTitle,
+        roomPassword = uiState.roomPassword,
+        onRoomTitleChange = { viewModel.processIntent(MultiIntent.UpdateRoomTitle(it)) },
+        onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) },
+        onConfirm = { viewModel.processIntent(MultiIntent.CreateRoom) },
+        onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.CREATING)) },
+        onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },
+        onEditCourse = {viewModel.processIntent(MultiIntent.ShowEditDialog)},
+        userCourses = uiState.yogaCourses
+    )
+    if(uiState.dialogState == DialogState.COURSE_EDITING){
+        CustomCourseDialog(
+            poseList = uiState.selectedCourse!!.poses,
+            onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.COURSE_EDITING)) },
+            onSave = { courseName,poses ->
+                viewModel.processIntent(MultiIntent.EditCourse(uiState.selectedCourse!!.courseId,courseName, poses))
             }
         )
-
     }
 }
 
@@ -188,9 +234,12 @@ fun MultiCourseCardHeader(room: Room) {
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(2f)
+                    modifier = Modifier.weight(0.5f)
                 )
-                Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(0.2f)
+                ) {
                     Icon(
                         imageVector = Icons.Default.People,
                         contentDescription = "현재 인원 수"
@@ -201,18 +250,17 @@ fun MultiCourseCardHeader(room: Room) {
                     )
                 }
 
-                Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.weight(0.3f)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "방장"
                     )
                     Text(
                         text = room.userNickName,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .width(100.dp)
-                            .background(Color.LightGray)
-                            .padding(4.dp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
+import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.usecase.CancelSearchStreamUseCase
+import com.d104.domain.usecase.GetCourseUseCase
 import com.d104.domain.usecase.GetRoomUseCase
+import com.d104.domain.usecase.UpdateCourseUseCase
+import com.d104.yogaapp.utils.CourseJsonParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,14 +23,15 @@ import javax.inject.Inject
 class MultiViewModel @Inject constructor(
     private val multiReducer: MultiReducer,
     private val getRoomUseCase : GetRoomUseCase,
-    private val cancelSearchStreamUseCase: CancelSearchStreamUseCase
+    private val cancelSearchStreamUseCase: CancelSearchStreamUseCase,
+    private val updateCourseUseCase: UpdateCourseUseCase,
+    private val getCourseUseCase: GetCourseUseCase,
+    private val courseJsonParser: CourseJsonParser,
 ) : ViewModel(){
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
-    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
-    val rooms: StateFlow<List<Room>> = _rooms.asStateFlow()
-    val tmpPoseInfo = listOf(
+    private val tmpPoseInfo = listOf(
         YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, "나무 자세 설명", "video_url", -1),
         YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, "나무 자세 설명", "video_url", 3),
         YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, "전사 자세 설명", "video_url", 2),
@@ -37,20 +42,39 @@ class MultiViewModel @Inject constructor(
         _uiState.value = newState
         when(intent){
             is MultiIntent.SearchRoom ->{
-                _uiState.value.page = rooms.value
-                loadRooms(newState.searchText,newState.pageIndex)
+                _uiState.value.page = emptyList()
+                loadRooms(newState.roomSearchText,newState.pageIndex)
+            }
+            is MultiIntent.SearchPose -> {
+                loadPoses(newState.poseSearchTitle)
+            }
+            is MultiIntent.EditCourse -> {
+                updateCourse(intent.courseId,intent.courseName,intent.poses)
+            }
+            is MultiIntent.SearchCourse -> {
+                searchCourse()
             }
             else -> {}
         }
     }
 
+
+
+    private fun loadPoses(searchText: String){
+        if(searchText == ""){
+            _uiState.value.searchedPoses = tmpPoseInfo
+        }else{
+            _uiState.value.searchedPoses = tmpPoseInfo
+        }
+    }
+
     // 방 목록 조회 함수
-    fun loadRooms(searchText: String, pageIndex: Int) {
+    private fun loadRooms(searchText: String, pageIndex: Int) {
         cancelSearch()
         searchJob = viewModelScope.launch {
             getRoomUseCase(searchText,pageIndex).collect { result ->
                 result.onSuccess {
-                    _rooms.value = it
+                    _uiState.value.page = it
                     processIntent(MultiIntent.RoomLoaded)
                 }
                 result.onFailure {
@@ -60,7 +84,23 @@ class MultiViewModel @Inject constructor(
         }
     }
 
-    fun cancelSearch() {
+    private fun searchCourse(){
+//        getCourseUseCase.collect{ result ->
+//            result.onSuccess {
+//                _uiState.value.yogaCourses = it
+//                processIntent(MultiIntent.RoomLoaded)
+//            }
+//            result.onFailure {
+//                // 에러 처리
+//            }
+//        }
+    }
+
+    private fun updateCourse(courseId:Long, courseName:String, poses:List<YogaPoseWithOrder>){
+        updateCourseUseCase
+    }
+
+    private fun cancelSearch() {
         searchJob?.cancel()
         cancelSearchStreamUseCase()
     }
@@ -70,13 +110,12 @@ class MultiViewModel @Inject constructor(
         cancelSearch()
     }
 
-    // 상태 초기화 함수
-    fun clearRooms() {
-        _rooms.value = emptyList()
-    }
-
     init {
-        _rooms.value = listOf(
+        searchCourse()
+
+        _uiState.value.yogaCourses = courseJsonParser.loadUserCoursesFromAssets("courseSet.json")
+
+        _uiState.value.page = listOf(
             Room(
                 roomId = 0,
                 userNickName = "We'T",
