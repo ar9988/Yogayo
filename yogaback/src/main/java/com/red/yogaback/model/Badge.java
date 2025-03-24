@@ -8,7 +8,6 @@ import java.util.List;
 @Entity
 @Table(name = "Badge")
 @Getter
-@Setter
 public class Badge {
 
     @Id
@@ -23,4 +22,11 @@ public class Badge {
     // 한 뱃지에 대한 사용자 뱃지 내역
     @OneToMany(mappedBy = "badge")
     private List<UserBadge> userBadges;
+
+    public Badge(Long badgeId, String badgeName, String badgeImg, String badgeCondition) {
+        this.badgeId = badgeId;
+        this.badgeName = badgeName;
+        this.badgeImg = badgeImg;
+        this.badgeCondition = badgeCondition;
+    }
 }

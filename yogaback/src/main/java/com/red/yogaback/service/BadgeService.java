@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -24,29 +25,25 @@ public class BadgeService {
     private final UserBadgeRepository userBadgeRepository;
     private final UserRepository userRepository;
 
-    // 뱃지 목록 요청
+
+    // 배지 목록 요청
     public List<BadgeListRes> getBadgeList(Long userId) {
 
         List<Badge> badges = badgeRepository.findAll();
-        User user = userRepository.findById(userId).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
+        User user = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
         List<UserBadge> userBadges = userBadgeRepository.findByUser(user);
-        ArrayList<BadgeListRes> result = new ArrayList<>();
 
-        for (UserBadge userBadge : userBadges) {
-            Badge badge = userBadge.getBadge();
-            BadgeListRes badgeListRes = new BadgeListRes(badge.getBadgeId(), badge.getBadgeName(), badge.getBadgeImg(), badge.getBadgeCondition(), true);
-            result.add(badgeListRes);
-        }
+        List<BadgeListRes> result = badges.stream().map((badge) -> {
+            boolean hasBadge = userBadges.stream().anyMatch((userBadge) -> badge == userBadge.getBadge());
 
-        for (Badge badge : badges) {
-            for (UserBadge userBadge : userBadges) {
-                if (badge == userBadge.getBadge()) {
-                    break;
-                }
-            }
-            BadgeListRes badgeListRes = new BadgeListRes(badge.getBadgeId(), badge.getBadgeName(), badge.getBadgeImg(), badge.getBadgeCondition(), false);
-            result.add(badgeListRes);
-        }
+            return new BadgeListRes(
+                    badge.getBadgeId(),
+                    badge.getBadgeName(),
+                    badge.getBadgeImg(),
+                    badge.getBadgeCondition(),
+                    hasBadge
+            );
+        }).collect(Collectors.toList());
 
         return result;
     }
