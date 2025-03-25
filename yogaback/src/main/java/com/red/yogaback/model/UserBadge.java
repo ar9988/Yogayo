@@ -1,16 +1,15 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "UserBadge")
 @Getter
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
+@Setter
 public class UserBadge {
 
     @Id
@@ -29,6 +28,10 @@ public class UserBadge {
 
     @Column(columnDefinition = "TINYINT(1)")
     private boolean isNew; // is_new
+
+    private int progress;
+
+    private int highLevel;
 
     private Long createdAt; // created_at
 }

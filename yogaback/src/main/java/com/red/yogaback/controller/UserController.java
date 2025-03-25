@@ -1,13 +1,14 @@
 package com.red.yogaback.controller;
 
 import com.red.yogaback.dto.respond.BadgeListRes;
+import com.red.yogaback.dto.respond.UserInfoRes;
 import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.service.BadgeService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,4 +23,24 @@ public class UserController {
     private final BadgeService badgeService;
 
 
+    @GetMapping("/badge")
+    @Operation(summary = "배지 목록 조회")
+    public ResponseEntity<List<BadgeListRes>> getBadgeList() {
+        Long userId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(badgeService.getBadgeList(userId));
+    }
+
+    @GetMapping("/info")
+    @Operation(summary = "유저 정보 조회")
+    public ResponseEntity<UserInfoRes> getUserInfo() {
+        Long userId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(badgeService.getUserInfo(userId));
+    }
+
+    @GetMapping("/badge/check")
+    @Operation(summary = "새로 달성된 배지 확인")
+    public  ResponseEntity<List<BadgeListRes>> getNewBadge(){
+        Long userId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(badgeService.getNewBadge(userId));
+    }
 }
