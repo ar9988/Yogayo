@@ -5,7 +5,8 @@ data class YogaPose (
     val poseName:String,
     val poseImg:String,
     val poseLevel:Int,
-    val poseDescription: String,
-    val poseVideo: String,
-    val setPoseId:Long
+    val poseDescriptions: List<String>,
+    val poseAnimation: String,
+    val setPoseId:Long,
+    val poseVideo:String,
 )

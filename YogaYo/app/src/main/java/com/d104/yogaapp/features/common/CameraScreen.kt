@@ -46,6 +46,12 @@ import com.d104.yogaapp.R
 import com.google.firebase.perf.util.Timer
 import timber.log.Timber
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
@@ -55,13 +61,15 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
-import androidx.compose.ui.graphics.RectangleShape
+
 
 
 @Composable
@@ -69,7 +77,8 @@ fun YogaPlayScreen(
     timerProgress: Float,
     isPlaying: Boolean,
     onPause: () -> Unit,
-    leftContent: @Composable () -> Unit
+    leftContent: @Composable () -> Unit,
+    onImageCaptured: (Bitmap) -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -83,14 +92,14 @@ fun YogaPlayScreen(
             // 왼쪽 콘텐츠 (GIF) - 40%
             Box(
                 modifier = Modifier
-                    .weight(0.38f)
+                    .weight(0.4f)
                     .background(Color.White)
                     .paint(
                         painterResource(id = R.drawable.bg_double_border),
                         contentScale = ContentScale.FillBounds
                     )
                     .fillMaxHeight()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(end=5.dp,bottom=16.dp)
             ) {
                 leftContent()
             }
@@ -100,13 +109,16 @@ fun YogaPlayScreen(
             // 오른쪽 콘텐츠 (카메라) - 60%
             Box(
                 modifier = Modifier
-                    .weight(0.60f)
+                    .weight(0.58f)
                     .fillMaxHeight()
             ) {
                 // 카메라 프리뷰 - isPlaying 상태 전달
                 CameraPreview(
                     modifier = Modifier.fillMaxSize(),
-                    isPlaying = isPlaying
+                    isPlaying = isPlaying,
+                    onImageCaptured = onImageCaptured,
+                    poseId = 1.toString(),
+                    shouldCapture = if(timerProgress==0.5f) true else false
                 )
 
                 // 일시정지/재생 버튼
@@ -160,21 +172,22 @@ fun YogaPlayScreen(
         }
     }
 }
-
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
-    isPlaying: Boolean = true // 재생 상태 파라미터 추가
+    isPlaying: Boolean = true,
+    poseId: String, // 포즈 식별자 (String으로 통일)
+    onImageCaptured: (Bitmap) -> Unit, // 저장 완료 후 URI 전달
+    shouldCapture: Boolean = false, // 외부에서 캡처 트리거
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    // 카메라 제공자와 Preview UseCase 저장
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var preview by remember { mutableStateOf<Preview?>(null) }
+    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
-    // PreviewView 참조 저장
+    // PreviewView 구성
     val previewView = remember {
         PreviewView(context).apply {
             this.scaleType = PreviewView.ScaleType.FILL_CENTER
@@ -186,7 +199,41 @@ fun CameraPreview(
         }
     }
 
-    // 바인딩 함수를 remember 람다로 저장
+    // 사진 캡처 함수
+    val captureImage = remember(imageCapture, poseId) {
+        {
+            val imageCaptureUseCase = imageCapture
+            if (imageCaptureUseCase != null) {
+                imageCaptureUseCase.takePicture(
+                    ContextCompat.getMainExecutor(context),
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(image: ImageProxy) {
+                            try {
+                                // 이미지 프록시를 비트맵으로 변환
+                                val buffer = image.planes[0].buffer
+                                val bytes = ByteArray(buffer.remaining())
+                                buffer.get(bytes)
+                                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+                                onImageCaptured(bitmap)
+
+                            } catch (e: Exception) {
+                                Timber.e("비트맵 변환 실패", e)
+                            } finally {
+                                image.close()
+                            }
+                        }
+
+                        override fun onError(exception: ImageCaptureException) {
+                            Timber.e("사진 캡처 실패", exception)
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    // 바인딩 함수
     val bindCamera = remember {
         {
             try {
@@ -194,11 +241,16 @@ fun CameraPreview(
                     .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
                     .build()
 
+                imageCapture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
+
                 cameraProvider?.unbindAll()
                 cameraProvider?.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
-                    preview
+                    preview,
+                    imageCapture
                 )
             } catch (e: Exception) {
                 Timber.e("카메라 바인딩 실패", e)
@@ -210,13 +262,11 @@ fun CameraPreview(
     DisposableEffect(Unit) {
         val cameraListener = Runnable {
             try {
-                // 카메라 제공자 및 UseCase 초기화
                 cameraProvider = cameraProviderFuture.get()
                 preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
-                // 초기 상태가 재생 중이면 카메라 바인딩
                 if (isPlaying) {
                     bindCamera()
                 }
@@ -228,7 +278,6 @@ fun CameraPreview(
         cameraProviderFuture.addListener(cameraListener, ContextCompat.getMainExecutor(context))
 
         onDispose {
-            // 컴포넌트가 제거될 때 카메라 언바인딩
             cameraProvider?.unbindAll()
         }
     }
@@ -239,9 +288,15 @@ fun CameraPreview(
             if (isPlaying) {
                 bindCamera()
             } else {
-                // 일시정지 시 카메라 언바인딩
                 cameraProvider?.unbindAll()
             }
+        }
+    }
+
+    // shouldCapture 상태가 true로 변경될 때 사진 캡처
+    LaunchedEffect(shouldCapture) {
+        if (shouldCapture) {
+            captureImage()
         }
     }
 
@@ -251,22 +306,6 @@ fun CameraPreview(
             factory = { previewView },
             modifier = Modifier.fillMaxSize()
         )
-
-//        // 일시정지 상태일 때 오버레이 표시 (선택적)
-//        if (!isPlaying) {
-//            Box(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .background(Color.Black.copy(alpha = 0.5f)),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Icon(
-//                    painter = painterResource(id = R.drawable.ic_pause),
-//                    contentDescription = "일시정지됨",
-//                    tint = Color.White,
-//                    modifier = Modifier.size(64.dp)
-//                )
-//            }
-//        }
     }
 }
+

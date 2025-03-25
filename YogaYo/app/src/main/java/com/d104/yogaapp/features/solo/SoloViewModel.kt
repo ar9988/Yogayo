@@ -37,10 +37,10 @@ class SoloViewModel @Inject constructor(
     
     //임시 포즈 정보들 추후 db연결 후 삭제
     val tmpPoseInfo = listOf(
-        YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, "나무 자세 설명", "video_url", -1),
-        YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, "나무 자세 설명", "video_url", 3),
-        YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, "전사 자세 설명", "video_url", 2),
-        YogaPose(4, "다운독 자세", "https://d5sbbf6usl3xq.cloudfront.net/samasthiti.png", 2, "다운독 자세 설명", "video_url", -1)
+        YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, listOf("나무 자세 설명"), "video_url", -1,""),
+        YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, listOf("나무 자세 설명"), "video_url", 3,""),
+        YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, listOf("전사 자세 설명"), "video_url", 2,""),
+        YogaPose(4, "다운독 자세", "https://d5sbbf6usl3xq.cloudfront.net/samasthiti.png", 2, listOf("다운독 자세 설명"), "video_url", -1,"")
     )
 
     init {
@@ -54,6 +54,8 @@ class SoloViewModel @Inject constructor(
             is SoloIntent.CreateCourse -> createCourse(intent.courseName, intent.poses)
             is SoloIntent.DeleteCourse -> deleteCourse(intent.courseId)
             is SoloIntent.UpdateCourse -> updateCourse(intent.courseId,intent.courseName,intent.poses)
+            is SoloIntent.UpdateCourseTutorial -> updateCourseTutorial(intent.courseId, intent.tutorial)
+
         }
     }
 
@@ -127,6 +129,20 @@ class SoloViewModel @Inject constructor(
     }
     private fun updateCourse(courseId:Long, courseName:String, poses:List<YogaPoseWithOrder>){
 
+    }
+
+    private fun updateCourseTutorial(courseId: Long, tutorial: Boolean) {
+        viewModelScope.launch {
+            try {
+                if(courseId<0)return@launch
+                // 현재 코스 정보 가져오기
+                val course = state.value.courses.find { it.courseId == courseId } ?: return@launch
+
+                loadCourses() // 코스 목록 새로고침
+            } catch (e: Exception) {
+                // 에러 처리
+            }
+        }
     }
 
 }
