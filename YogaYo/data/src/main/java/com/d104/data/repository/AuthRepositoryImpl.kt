@@ -4,6 +4,7 @@ import com.d104.data.mapper.LoginMapper
 import com.d104.data.mapper.SignUpMapper
 import com.d104.data.remote.api.AuthApiService
 import com.d104.data.remote.dto.LoginRequestDto
+import com.d104.data.remote.dto.SignUpRequestDto
 import com.d104.data.utils.ErrorUtils
 import com.d104.domain.model.LoginResult
 import com.d104.domain.model.SignUpResult
@@ -12,6 +13,7 @@ import com.d104.domain.repository.AuthRepository
 import com.d104.domain.repository.DataStoreRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -101,22 +103,29 @@ class AuthRepositoryImpl @Inject constructor(
     ): Flow<Result<SignUpResult>> {
         return flow {
             try {
-                val idRequestBody = id.toRequestBody("text/plain".toMediaTypeOrNull())
-                val passwordRequestBody = password.toRequestBody("text/plain".toMediaTypeOrNull())
-                val nameRequestBody = name.toRequestBody("text/plain".toMediaTypeOrNull())
-                val nickNameRequestBody = nickName.toRequestBody("text/plain".toMediaTypeOrNull())
-
-                // profileUri를 File로 변환 후 MultipartBody.Part로 생성
-                val file = File(profileUri)
-                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-                val profilePart =
-                    MultipartBody.Part.createFormData("userProfile", file.name, requestFile)
+                val profilePart = if (profileUri.isNotBlank()) {
+                    try {
+                        val file = File(profileUri)
+                        if (file.exists() && file.isFile) {
+                            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                            MultipartBody.Part.createFormData("userProfile", file.name, requestFile)
+                        } else {
+                            null
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+                } else {
+                    null
+                }
 
                 val signUpResponseDto = authApi.signup(
-                    userLoginId = idRequestBody,
-                    userPwd = passwordRequestBody,
-                    userName = nameRequestBody,
-                    userNickname = nickNameRequestBody,
+                    signUpRequest = SignUpRequestDto(
+                        id,
+                        password,
+                        name,
+                        nickName
+                    ),
                     userProfile = profilePart
                 )
                 // DTO를 도메인 모델로 변환하여 반환
@@ -124,15 +133,34 @@ class AuthRepositoryImpl @Inject constructor(
                 emit(Result.success(signUpResult))
 
             } catch (e: HttpException) {
-                emit(Result.failure(e))
-                return@flow
+                val errorResult = when (e.code()) {
+                    400 -> {
+                        val errorBody = ErrorUtils.parseHttpError(e)
+                        SignUpResult.Error.BadRequest(
+                            errorBody?.error ?: "옳바르지 않은 입력 형식입니다"
+                        )
+                    }
 
+                    409 -> {
+                        val errorBody = ErrorUtils.parseHttpError(e)
+                        SignUpResult.Error.ConflictUser(
+                            errorBody?.error ?: "이미 사용중인 유저아이디 입니다."
+                        )
+                    }
+
+                    else -> {
+                        // 서버 오류는 통신 실패로 간주
+                        emit(Result.failure(e))
+                        return@flow
+                    }
+                }
+                // 400, 409는 통신은 성공했지만 로그인 실패로 간주
+                emit(Result.success(errorResult))
             } catch (e: IOException) {
-                // 네트워크 오류
+                // 네트워크 오류는 통신 실패로 간주
                 emit(Result.failure(e))
-
             } catch (e: Exception) {
-                // 기타 예외
+                // 기타 예외도 통신 실패로 간주
                 emit(Result.failure(e))
             }
         }

@@ -7,5 +7,4 @@ sealed class LoginIntent {
     data object Login : LoginIntent()
     data object LoginSuccess : LoginIntent()
     data class LoginFailure(val error: String) : LoginIntent()
-    data object NavigateToSignUp : LoginIntent()
 }

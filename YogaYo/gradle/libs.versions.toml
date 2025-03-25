@@ -16,6 +16,7 @@ lifecycleViewmodelKtx = "2.8.7"
 paletteKtx = "1.0.0"
 cameraCore = "1.4.1"
 firebasePerfKtx = "21.0.4"
+protoliteWellKnownTypes = "18.0.0"
 
 
 
@@ -41,6 +42,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 firebase-perf-ktx = { group = "com.google.firebase", name = "firebase-perf-ktx", version.ref = "firebasePerfKtx" }
+protolite-well-known-types = { group = "com.google.firebase", name = "protolite-well-known-types", version.ref = "protoliteWellKnownTypes" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

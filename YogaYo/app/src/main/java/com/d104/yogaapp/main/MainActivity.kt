@@ -46,6 +46,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
+import com.d104.yogaapp.features.multi.play.MultiPlayScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
 import com.d104.yogaapp.features.signup.SignUpScreen
 import com.d104.yogaapp.features.solo.SoloScreen
@@ -75,7 +76,6 @@ class MainActivity : ComponentActivity() {
 fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
-
 
     // 화면 전환 시 바텀바 표시 여부 설정
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
@@ -131,6 +131,15 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                     onNavigateToYogaPlay = {course ->
                         viewModel.processIntent(MainIntent.SelectSoloCourse(course))
                         navController.navigate("solo_yoga_play")
+                    },
+                    onNavigateMultiPlay = {
+                        navController.navigate("multi_yoga_play")
+                    },
+                    onNavigateSoloScreen = {
+                        navController.navigate("main_tabs") {
+                            popUpTo("main_tabs") { inclusive = true }
+                        }
+                        viewModel.processIntent(MainIntent.SelectTab(Tab.MyPage))
                     }
                 )
             }
@@ -155,6 +164,14 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                 }
             }
 
+            composable("multi_yoga_play"){
+                MultiPlayScreen(
+                    onBackPressed ={
+                        navController.popBackStack()
+                    }
+                )
+            }
+
             // 로그인 화면
             composable("login_screen"){
                 LoginScreen(
@@ -175,9 +192,6 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                 SignUpScreen(
                     onBackPressed = {
                         navController.popBackStack()
-                    },
-                    onNavigateToLogin = {
-                        navController.navigate("login_screen")
                     }
                 )
             }
@@ -188,7 +202,9 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 @Composable
 fun MainTabScreen(
     selectedTab: Tab,
-    onNavigateToYogaPlay: (UserCourse) -> Unit
+    onNavigateToYogaPlay: (UserCourse) -> Unit,
+    onNavigateMultiPlay: (Int) -> Unit,
+    onNavigateSoloScreen:() -> Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -198,8 +214,8 @@ fun MainTabScreen(
             Tab.Solo -> SoloScreen(
                 onNavigateToYogaPlay = onNavigateToYogaPlay
                 )
-            Tab.Multi -> MultiScreen()
-            Tab.MyPage -> MyPageScreen()
+            Tab.Multi -> MultiScreen(onNavigateMultiPlay = onNavigateMultiPlay)
+            Tab.MyPage -> MyPageScreen(onNavigateSoloScreen = onNavigateSoloScreen)
         }
     }
 }

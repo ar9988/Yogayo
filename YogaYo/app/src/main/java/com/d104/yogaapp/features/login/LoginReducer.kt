@@ -26,7 +26,6 @@ class LoginReducer  @Inject constructor(){
                 isLoading = false,
                 errorMessage = intent.error
             )
-            is LoginIntent.NavigateToSignUp -> currentState
         }
     }
 }

@@ -177,7 +177,6 @@ fun LoginScreen(
             ) {
                 Text("계정이 없으신가요?")
                 TextButton(onClick = {
-                    viewModel.processIntent(LoginIntent.NavigateToSignUp)
                     onNavigateToSignUp()
                 }) {
                     Text("회원가입", fontWeight = FontWeight.Bold)

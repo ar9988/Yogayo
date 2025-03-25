@@ -59,6 +59,8 @@ dependencies {
     // OkHttp3
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+    implementation("com.launchdarkly:okhttp-eventsource:4.1.1")
+    implementation("com.squareup.okhttp3:okhttp-sse:5.0.0-alpha.14")
 
     // moshi
     implementation("com.squareup.moshi:moshi-kotlin:1.11.0")

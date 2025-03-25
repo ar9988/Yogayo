@@ -62,8 +62,7 @@ import com.d104.yogaapp.R
 @Composable
 fun SignUpScreen(
     viewModel: SignUpViewModel = hiltViewModel(),
-    onBackPressed: () -> Unit,
-    onNavigateToLogin: () -> Unit = {}
+    onBackPressed: () -> Unit
 ){
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -76,7 +75,7 @@ fun SignUpScreen(
 
     LaunchedEffect(uiState.isSignUpSuccessful) {
         if (uiState.isSignUpSuccessful) {
-            onNavigateToLogin()
+            onBackPressed()
         }
     }
 

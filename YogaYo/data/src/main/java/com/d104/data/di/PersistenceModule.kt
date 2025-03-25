@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.d104.data.local.dao.DataStorePreferencesDao
 import com.d104.data.repository.DataStoreRepositoryImpl
 import com.d104.domain.repository.DataStoreRepository
 import dagger.Module
@@ -32,7 +33,7 @@ object PersistenceModule {
 
     @Provides
     @Singleton
-    fun provideDataStoreRepository(dataStore: DataStore<Preferences>): DataStoreRepository {
-        return DataStoreRepositoryImpl(dataStore)
+    fun provideDataStoreRepository(dataStoreDao: DataStorePreferencesDao): DataStoreRepository {
+        return DataStoreRepositoryImpl(dataStoreDao)
     }
 }

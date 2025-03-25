@@ -35,20 +35,11 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun YogaYoTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // darkTheme 파라미터 제거
+    // dynamicColor: Boolean = true, // 필요하다면 이 줄도 제거
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = LightColorScheme // 항상 라이트 모드 색상 사용
 
     MaterialTheme(
         colorScheme = colorScheme,
