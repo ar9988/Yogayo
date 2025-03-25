@@ -8,6 +8,7 @@ import java.util.List;
 @Entity
 @Table(name = "Badge")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder

@@ -7,7 +7,7 @@ import lombok.*;
 @Table(name = "UserCoursePose")
 @Getter
 @Setter
-@NoArgsConstructor()
+@NoArgsConstructor
 public class UserCoursePose {
 
     @Id
