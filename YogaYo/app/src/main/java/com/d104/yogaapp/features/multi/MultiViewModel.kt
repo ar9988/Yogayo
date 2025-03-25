@@ -33,11 +33,11 @@ class MultiViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
-    private val tmpPoseInfo = listOf(
-        YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, "나무 자세 설명", "video_url", -1),
-        YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, "나무 자세 설명", "video_url", 3),
-        YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, "전사 자세 설명", "video_url", 2),
-        YogaPose(4, "다운독 자세", "https://d5sbbf6usl3xq.cloudfront.net/samasthiti.png", 2, "다운독 자세 설명", "video_url", -1)
+    val tmpPoseInfo = listOf(
+        YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, listOf("나무 자세 설명"), "video_url", -1,""),
+        YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, listOf("나무 자세 설명"), "video_url", 3,""),
+        YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, listOf("전사 자세 설명"), "video_url", 2,""),
+        YogaPose(4, "다운독 자세", "https://d5sbbf6usl3xq.cloudfront.net/samasthiti.png", 2, listOf("다운독 자세 설명"), "video_url", -1,"")
     )
     fun processIntent(intent: MultiIntent){
         val newState = multiReducer.reduce(_uiState.value,intent)
@@ -58,6 +58,16 @@ class MultiViewModel @Inject constructor(
             }
             is MultiIntent.EnterRoom -> {
                 enterRoom()
+            }
+            is MultiIntent.PrevPage -> {
+                if(newState.pageIndex>0){
+                    _uiState.value.page = emptyList()
+                    loadRooms(newState.roomSearchText,newState.pageIndex)
+                }
+            }
+            is MultiIntent.NextPage -> {
+                _uiState.value.page = emptyList()
+                loadRooms(newState.roomSearchText,newState.pageIndex)
             }
             else -> {}
         }

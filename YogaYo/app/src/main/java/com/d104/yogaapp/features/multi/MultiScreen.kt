@@ -31,13 +31,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,34 +61,10 @@ fun MultiScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
-    val density = LocalDensity.current
-    // 최상단 오버스크롤 감지 (위로 당김)
-    val isOverScrolledTop by remember(scrollState, density) {
-        derivedStateOf {
-            scrollState.firstVisibleItemIndex == 0 &&
-                    scrollState.firstVisibleItemScrollOffset < with(density) { 16.dp.toPx() }
-        }
-    }
-
-    // 최하단 오버스크롤 감지 (아래로 당김)
-    val isOverScrolledBottom by remember(scrollState, density) {
-        derivedStateOf {
-            with(scrollState.layoutInfo) {
-                visibleItemsInfo.lastOrNull()?.index == totalItemsCount - 1 &&
-                        viewportEndOffset > totalItemsCount * with(density) { 16.dp.toPx() }
-            }
-        }
-    }
     LaunchedEffect(uiState.enteringRoom) {
         if (uiState.enteringRoom) {
             onNavigateMultiPlay(uiState.selectedRoom!!.roomId)
             viewModel.processIntent(MultiIntent.EnterRoomComplete)
-        }
-    }
-    LaunchedEffect(isOverScrolledTop, isOverScrolledBottom) {
-        when {
-            isOverScrolledTop -> viewModel.processIntent(MultiIntent.PrevPage) // 이전 페이지
-            isOverScrolledBottom -> viewModel.processIntent(MultiIntent.NextPage) // 다음 페이지
         }
     }
     Box(
@@ -128,12 +107,14 @@ fun MultiScreen(
                     .padding(bottom = 16.dp)
             )
 
-            DynamicList(
+            RoomList(
                 state = scrollState,
                 rooms = uiState.page,
                 onItemClick = { room ->
                     viewModel.processIntent(MultiIntent.SelectRoom(room))
-                }
+                },
+                onOverScrollTop = { viewModel.processIntent(MultiIntent.PrevPage) },
+                onOverScrollBottom = { viewModel.processIntent(MultiIntent.NextPage) }
             )
         }
 
@@ -190,11 +171,29 @@ fun MultiScreen(
 }
 
 @Composable
-fun DynamicList(
+fun RoomList(
     state: LazyListState,
     rooms: List<Room>,
-    onItemClick: (Room) -> Unit
+    onItemClick: (Room) -> Unit,
+    onOverScrollTop: () -> Unit,
+    onOverScrollBottom: () -> Unit
 ) {
+    val density = LocalDensity.current
+    val overScrollState = remember { mutableStateOf(0f) }
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (state.firstVisibleItemIndex == 0 && available.y > 0) {
+                    overScrollState.value = available.y
+                    onOverScrollTop()
+                } else if (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index == rooms.size - 1 && available.y < 0) {
+                    overScrollState.value = available.y
+                    onOverScrollBottom()
+                }
+                return Offset.Zero
+            }
+        }
+    }
     LazyColumn(
         state = state,
         modifier = Modifier

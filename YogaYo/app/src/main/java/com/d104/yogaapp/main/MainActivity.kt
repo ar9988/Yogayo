@@ -202,7 +202,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 @Composable
 fun MainTabScreen(
     selectedTab: Tab,
-    onNavigateToYogaPlay: (UserCourse) -> Unit
+    onNavigateToYogaPlay: (UserCourse) -> Unit,
     onNavigateMultiPlay: (Int) -> Unit,
     onNavigateSoloScreen:() -> Unit
 ) {

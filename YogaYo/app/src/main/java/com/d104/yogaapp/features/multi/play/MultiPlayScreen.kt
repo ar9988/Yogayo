@@ -90,14 +90,14 @@ fun MultiPlayScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         // 포즈 이름
-                        Text(
-                            text = state.currentPose.poseName,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 12.dp),
-                            textAlign = TextAlign.Center
-                        )
+//                        Text(
+//                            text = state.currentPose.poseName,
+//                            style = MaterialTheme.typography.titleLarge,
+//                            modifier = Modifier
+//                                .align(Alignment.BottomCenter)
+//                                .padding(bottom = 12.dp),
+//                            textAlign = TextAlign.Center
+//                        )
 
                         // GIF 콘텐츠
                         Box(
@@ -106,11 +106,11 @@ fun MultiPlayScreen(
                                 .padding(bottom = 48.dp) // 제목 위 공간 확보
                         ) {
                             // GIF 표시 - isPlaying 상태 전달
-                            GifImage(
-                                url = state.currentPose.poseVideo,
-                                modifier = Modifier.fillMaxSize(),
-                                isPlaying = state.isPlaying
-                            )
+//                            GifImage(
+//                                url = state.currentPose.poseVideo,
+//                                modifier = Modifier.fillMaxSize(),
+//                                isPlaying = state.isPlaying
+//                            )
                         }
                     }
                 }
