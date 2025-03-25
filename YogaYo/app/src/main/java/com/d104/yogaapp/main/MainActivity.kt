@@ -42,6 +42,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.d104.domain.model.UserCourse
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
@@ -78,6 +79,10 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 
     // 화면 전환 시 바텀바 표시 여부 설정
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
+    val currentRoute = currentDestination?.route ?: ""
+
+    // solo_yoga_play 화면에서는 전체 화면 모드 적용
+    val isFullScreen = currentRoute == "solo_yoga_play"
     LaunchedEffect(currentDestination) {
         val shouldShowBottomBar = when (currentDestination?.route) {
             "main_tabs" -> true
@@ -98,7 +103,11 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = if (isFullScreen) {
+            WindowInsets(0, 0, 0, 0) // 전체 화면 모드 (모든 insets 제거)
+        } else {
+            WindowInsets.safeDrawing  // 다른 화면에서는 safeDrawing 유지
+        },
         bottomBar = {
             if (state.showBottomBar) {
                 CustomBottomNavigation(
@@ -119,7 +128,8 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             composable("main_tabs") {
                 MainTabScreen(
                     selectedTab = state.selectedTab,
-                    onNavigateToYogaPlay = {
+                    onNavigateToYogaPlay = {course ->
+                        viewModel.processIntent(MainIntent.SelectSoloCourse(course))
                         navController.navigate("solo_yoga_play")
                     },
                     onNavigateMultiPlay = {
@@ -136,11 +146,22 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 
             // 요가 플레이 화면
             composable("solo_yoga_play") {
-                SoloYogaPlayScreen(
-                    onBackPressed = {
+
+                // 코스 정보가 있는 경우에만 화면 표시
+                state.soloYogaCourse?.let { course ->
+                    SoloYogaPlayScreen(
+                        course = course,
+                        onBackPressed = {
+                            viewModel.processIntent(MainIntent.ClearSoloCourse)
+                            navController.popBackStack()
+                        }
+                    )
+                } ?: run {
+                    // 코스 정보가 없으면 이전 화면으로 돌아가기
+                    LaunchedEffect(Unit) {
                         navController.popBackStack()
                     }
-                )
+                }
             }
 
             composable("multi_yoga_play"){
@@ -181,7 +202,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 @Composable
 fun MainTabScreen(
     selectedTab: Tab,
-    onNavigateToYogaPlay: () -> Unit,
+    onNavigateToYogaPlay: (UserCourse) -> Unit
     onNavigateMultiPlay: (Int) -> Unit,
     onNavigateSoloScreen:() -> Unit
 ) {
@@ -190,7 +211,9 @@ fun MainTabScreen(
         contentAlignment = Alignment.Center
     ) {
         when (selectedTab) {
-            Tab.Solo -> SoloScreen(onNavigateToYogaPlay = onNavigateToYogaPlay)
+            Tab.Solo -> SoloScreen(
+                onNavigateToYogaPlay = onNavigateToYogaPlay
+                )
             Tab.Multi -> MultiScreen(onNavigateMultiPlay = onNavigateMultiPlay)
             Tab.MyPage -> MyPageScreen(onNavigateSoloScreen = onNavigateSoloScreen)
         }

@@ -9,6 +9,12 @@ class MainReducer @Inject constructor() {
                 currentState.copy(selectedTab = intent.tab)
             is MainIntent.SetBottomBarVisibility ->
                 currentState.copy(showBottomBar = intent.visible)
+            is MainIntent.SelectSoloCourse->
+                currentState.copy(soloYogaCourse = intent.course)
+            is MainIntent.ClearSoloCourse->
+//                currentState.copy(soloYogaCourse = null)
+                currentState
+
         }
     }
 }

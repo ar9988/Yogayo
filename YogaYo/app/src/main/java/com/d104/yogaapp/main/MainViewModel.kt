@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.event.AuthEvent
 import com.d104.domain.event.AuthEventManager
+import com.d104.domain.model.UserCourse
 import com.d104.domain.usecase.GetLoginStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -65,4 +66,14 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
+//    // 코스 선택 메서드
+//    private fun selectCourse(course: UserCourse) {
+//        _selectedCourse.value = course
+//    }
+//
+//    // 코스 선택 초기화
+//    fun clearSelectedCourse() {
+//        _selectedCourse.value = null
+//    }
 }
