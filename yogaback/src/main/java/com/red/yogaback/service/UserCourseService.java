@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,9 +26,10 @@ public class UserCourseService {
 
     /**
      * [POST] 커스텀 코스 생성
+     * - 생성 후 UserCourseRes DTO로 반환
      */
     @Transactional
-    public Long createCourse(CreateCourseRequest request) {
+    public UserCourseRes createCourse(CreateCourseRequest request) {
         // 1) JWT 인증 정보에서 userId를 꺼냄
         Long userId = SecurityUtil.getCurrentMemberId();
 
@@ -39,15 +41,13 @@ public class UserCourseService {
         UserCourse userCourse = new UserCourse();
         userCourse.setUser(user);
         userCourse.setCourseName(request.getCourseName());
-
-//        userCourse.setTutorial(false); // tutorial 필드 필요 없으면 false
-        // tutorial 값이 null인 경우 기본값(false) 처리 or 예외 처리
+        // tutorial 값이 null이면 false로 처리
         userCourse.setTutorial(request.getTutorial() != null ? request.getTutorial() : false);
-
         userCourse.setCreatedAt(System.currentTimeMillis());
         userCourseRepository.save(userCourse);
 
-        // 4) 요청 바디의 poses 배열을 순회하며, UserCoursePose 엔티티 생성/저장
+        // 4) UserCoursePose 생성/저장
+        List<UserCoursePose> poseList = new ArrayList<>();
         for (CreateCourseRequest.PoseInfo poseInfo : request.getPoses()) {
             Pose pose = poseRepository.findById(poseInfo.getPoseId())
                     .orElseThrow(() -> new CustomException(ErrorCode.POSE_NOT_FOUND));
@@ -57,11 +57,16 @@ public class UserCourseService {
             userCoursePose.setPose(pose);
             userCoursePose.setUserOrderIndex(poseInfo.getUserOrderIndex());
             userCoursePose.setCreatedAt(System.currentTimeMillis());
-
             userCoursePoseRepository.save(userCoursePose);
+
+            poseList.add(userCoursePose);
         }
 
-        return userCourse.getUserCourseId();
+        // 엔티티 객체에도 poseList를 넣어줘야, fromEntity()에서 접근 가능
+        userCourse.setUserCoursePoses(poseList);
+
+        // 5) 생성된 코스 정보를 DTO로 변환하여 반환
+        return UserCourseRes.fromEntity(userCourse);
     }
 
     /**
@@ -71,10 +76,7 @@ public class UserCourseService {
     public List<UserCourseRes> getUserCourses() {
         Long userId = SecurityUtil.getCurrentMemberId();
 
-        // userId가 일치하는 코스만 가져오기
         List<UserCourse> userCourses = userCourseRepository.findByUserUserId(userId);
-
-        // Entity -> DTO 변환
         return userCourses.stream()
                 .map(UserCourseRes::fromEntity)
                 .collect(Collectors.toList());
@@ -82,35 +84,32 @@ public class UserCourseService {
 
     /**
      * [PUT] 특정 코스 수정
-     * - courseName 변경
-     * - poses 재설정(기존 UserCoursePose 모두 삭제 후 새로 추가)
+     * - 수정 후 UserCourseRes DTO로 반환
      */
     @Transactional
-    public void updateCourse(Long courseId, CreateCourseRequest request) {
+    public UserCourseRes updateCourse(Long courseId, CreateCourseRequest request) {
         Long userId = SecurityUtil.getCurrentMemberId();
 
-        // 1) 해당 코스 존재 여부 확인
         UserCourse userCourse = userCourseRepository.findById(courseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
-        // 2) 본인 코스인지 확인
         if (!userCourse.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.ACCES_DENIED);
         }
 
-        // 3) 코스명 변경
+        // 코스명 변경
         userCourse.setCourseName(request.getCourseName());
         userCourse.setModifyAt(System.currentTimeMillis());
 
-        // ② tutorial도 수정 가능하도록
-        //    null이면 기존 tutorial 유지하거나, false로 처리하는 식으로 결정
+        // tutorial 갱신 (null이면 기존 값 유지)
         if (request.getTutorial() != null) {
             userCourse.setTutorial(request.getTutorial());
         }
 
-        // 4) 기존 포즈들 삭제 -> 새로 추가
+        // 기존 포즈들 삭제 -> 새로 추가
         userCoursePoseRepository.deleteAllByUserCourseUserCourseId(courseId);
 
+        List<UserCoursePose> poseList = new ArrayList<>();
         for (CreateCourseRequest.PoseInfo poseInfo : request.getPoses()) {
             Pose pose = poseRepository.findById(poseInfo.getPoseId())
                     .orElseThrow(() -> new CustomException(ErrorCode.POSE_NOT_FOUND));
@@ -120,30 +119,37 @@ public class UserCourseService {
             userCoursePose.setPose(pose);
             userCoursePose.setUserOrderIndex(poseInfo.getUserOrderIndex());
             userCoursePose.setCreatedAt(System.currentTimeMillis());
-
             userCoursePoseRepository.save(userCoursePose);
+
+            poseList.add(userCoursePose);
         }
+
+        userCourse.setUserCoursePoses(poseList);
+
+        // 수정된 코스 정보를 DTO로 변환
+        return UserCourseRes.fromEntity(userCourse);
     }
 
     /**
      * [DELETE] 특정 코스 삭제
+     * - 성공 시 true 반환
      */
     @Transactional
-    public void deleteCourse(Long courseId) {
+    public boolean deleteCourse(Long courseId) {
         Long userId = SecurityUtil.getCurrentMemberId();
 
         UserCourse userCourse = userCourseRepository.findById(courseId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
 
-        // 본인 코스가 아니면 삭제 불가
         if (!userCourse.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorCode.ACCES_DENIED);
         }
 
-        // 연관된 UserCoursePose 삭제 (또는 Cascade 설정 사용)
+        // 연관된 UserCoursePose 삭제
         userCoursePoseRepository.deleteAllByUserCourseUserCourseId(courseId);
 
-        // 최종적으로 UserCourse 삭제
+        // UserCourse 삭제
         userCourseRepository.delete(userCourse);
+        return true;
     }
 }
