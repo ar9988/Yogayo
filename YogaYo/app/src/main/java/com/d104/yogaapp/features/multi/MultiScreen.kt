@@ -56,7 +56,7 @@ import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
 
 @Composable
 fun MultiScreen(
-    onNavigateMultiPlay: (Int) -> Unit,
+    onNavigateMultiPlay: (Long) -> Unit,
     viewModel: MultiViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()

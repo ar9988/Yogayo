@@ -78,7 +78,8 @@ fun YogaPlayScreen(
     isPlaying: Boolean,
     onPause: () -> Unit,
     leftContent: @Composable () -> Unit,
-    onImageCaptured: (Bitmap) -> Unit = {}
+    onImageCaptured: (Bitmap) -> Unit = {},
+    isMultiPlay:Boolean = false
 ) {
     Box(
         modifier = Modifier

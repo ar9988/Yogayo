@@ -21,7 +21,7 @@ sealed class MultiIntent {
     data class UpdatePoseTitle(val title:String): MultiIntent()
     data class DismissDialog(val dialogState: DialogState): MultiIntent()
     data class EditCourse(val courseId:Long,val courseName: String, val poses: List<YogaPoseWithOrder>) : MultiIntent()
-    data object SearchPose:MultiIntent()
     data object EnterRoom: MultiIntent()
     data object EnterRoomComplete: MultiIntent()
+    data class EnterRoomFail(val message:String) : MultiIntent()
 }

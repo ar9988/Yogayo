@@ -17,6 +17,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,7 +35,7 @@ class MultiViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
-    val tmpPoseInfo = listOf(
+    private val tmpPoseInfo = listOf(
         YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, listOf("나무 자세 설명"), "video_url", -1,""),
         YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, listOf("나무 자세 설명"), "video_url", 3,""),
         YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, listOf("전사 자세 설명"), "video_url", 2,""),
@@ -46,9 +48,6 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.SearchRoom ->{
                 _uiState.value.page = emptyList()
                 loadRooms(newState.roomSearchText,newState.pageIndex)
-            }
-            is MultiIntent.SearchPose -> {
-                loadPoses(newState.poseSearchTitle)
             }
             is MultiIntent.EditCourse -> {
                 updateCourse(intent.courseId,intent.courseName,intent.poses)
@@ -69,23 +68,28 @@ class MultiViewModel @Inject constructor(
                 _uiState.value.page = emptyList()
                 loadRooms(newState.roomSearchText,newState.pageIndex)
             }
+            is MultiIntent.SelectRoom -> {
+                processIntent(MultiIntent.UpdateRoomPassword(""))
+            }
+            is MultiIntent.CreateRoom -> {
+                processIntent(MultiIntent.UpdateRoomTitle(""))
+                processIntent(MultiIntent.UpdateRoomPassword(""))
+            }
             else -> {}
         }
     }
 
     private fun enterRoom(){
         viewModelScope.launch {
-            _uiState.value.enteringRoom = true
-            _uiState.value.enteringRoom = false
-            processIntent(MultiIntent.EnterRoomComplete)
-        }
-    }
+            enterRoomUseCase(uiState.value.selectedRoom!!.roomId, uiState.value.roomPassword).collect{ result->
+                result.onSuccess {
+                    processIntent(MultiIntent.EnterRoomComplete)
+                }
+                result.onFailure {
+                    processIntent(MultiIntent.EnterRoomFail(it.message ?: "방 입장에 실패했습니다."))
+                }
+            }
 
-    private fun loadPoses(searchText: String){
-        if(searchText == ""){
-            _uiState.value.searchedPoses = tmpPoseInfo
-        }else{
-            _uiState.value.searchedPoses = tmpPoseInfo
         }
     }
 
@@ -95,7 +99,7 @@ class MultiViewModel @Inject constructor(
         searchJob = viewModelScope.launch {
             getRoomUseCase(searchText,pageIndex).collect { result ->
                 result.onSuccess {
-                    _uiState.value.page = it
+                    _uiState.update { currentState -> currentState.copy(page = it) }
                     processIntent(MultiIntent.RoomLoaded)
                 }
                 result.onFailure {

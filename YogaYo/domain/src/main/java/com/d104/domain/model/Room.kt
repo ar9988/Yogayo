@@ -1,7 +1,7 @@
 package com.d104.domain.model
 
 data class Room(
-    val roomId : Int,
+    val roomId : Long,
     val userNickName: String,
     val roomMax: Int,
     val roomCount: Int,

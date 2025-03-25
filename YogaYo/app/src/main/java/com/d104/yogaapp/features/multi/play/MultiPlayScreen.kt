@@ -1,7 +1,6 @@
 package com.d104.yogaapp.features.multi.play
 
 import com.d104.yogaapp.features.solo.play.SoloYogaPlayIntent
-import com.d104.yogaapp.features.solo.play.SoloYogaPlayViewModel
 import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
@@ -40,92 +39,71 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.GifImage
 import com.d104.yogaapp.utils.PermissionChecker
 import com.d104.yogaapp.features.common.RotateScreen
+import com.d104.yogaapp.features.common.YogaAnimationScreen
 import com.d104.yogaapp.features.common.YogaPlayScreen
 
 
 @Composable
 fun MultiPlayScreen(
-    viewModel: SoloYogaPlayViewModel = hiltViewModel(),
+    viewModel: MultiPlayViewModel = hiltViewModel(),
     onBackPressed: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
 //    // 화면 설정 (가로 모드, 전체 화면)
     RotateScreen(context)
-
-    // 권한 요청 launcher를 여기서 정의 (Composable 함수 레벨)
+//
+//    // 권한 요청 launcher를 여기서 정의 (Composable 함수 레벨)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        viewModel.processIntent(SoloYogaPlayIntent.UpdateCameraPermission(isGranted))
+        viewModel.processIntent(MultiPlayIntent.UpdateCameraPermission(isGranted))
     }
-
+//
     // 카메라 권한 확인
     PermissionChecker.CheckPermission(
         permission = Manifest.permission.CAMERA,
         onPermissionResult = { isGranted ->
             // 권한 상태 변경 시 ViewModel에 알림
-            viewModel.processIntent(SoloYogaPlayIntent.UpdateCameraPermission(isGranted))
+            viewModel.processIntent(MultiPlayIntent.UpdateCameraPermission(isGranted))
         }
     )
-
-    // 뒤로가기 처리
+//
+//    // 뒤로가기 처리
     BackHandler {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         onBackPressed()
     }
-
-    // 권한에 따른 UI 표시
-    if (state.cameraPermissionGranted) {
+//
+//    // 권한에 따른 UI 표시
+    if (uiState.cameraPermissionGranted) {
         // 권한이 있는 경우 요가 플레이 화면 표시
         Box(modifier = Modifier.fillMaxSize()) {
             YogaPlayScreen(
-                timerProgress = state.timerProgress,
-                isPlaying = state.isPlaying,
-                onPause = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
+                isMultiPlay = true,
+                timerProgress = uiState.timerProgress,
+                isPlaying = uiState.isPlaying,
+                onPause = { viewModel.processIntent(MultiPlayIntent.TogglePlayPause) },
                 leftContent = {
-                    Box(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // 포즈 이름
-//                        Text(
-//                            text = state.currentPose.poseName,
-//                            style = MaterialTheme.typography.titleLarge,
-//                            modifier = Modifier
-//                                .align(Alignment.BottomCenter)
-//                                .padding(bottom = 12.dp),
-//                            textAlign = TextAlign.Center
-//                        )
-
-                        // GIF 콘텐츠
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(bottom = 48.dp) // 제목 위 공간 확보
-                        ) {
-                            // GIF 표시 - isPlaying 상태 전달
-//                            GifImage(
-//                                url = state.currentPose.poseVideo,
-//                                modifier = Modifier.fillMaxSize(),
-//                                isPlaying = state.isPlaying
-//                            )
-                        }
-                    }
+                    YogaAnimationScreen(
+                        pose = uiState.currentPose,
+                        accuracy = uiState.currentAccuracy,
+                        isPlaying = uiState.isPlaying
+                    )
+                },
+                onImageCaptured = { bitmap ->
+                    viewModel.processIntent(MultiPlayIntent.CaptureImage(bitmap))
                 }
-            )
+                )
 
             // 일시정지 오버레이 표시
-            if (!state.isPlaying) {
-                PauseOverlay(
-                    onResume = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
-                    onRestart = { viewModel.processIntent(SoloYogaPlayIntent.RestartCurrentPose) },
-                    onSkip = {
-                        viewModel.processIntent(SoloYogaPlayIntent.SkipPose)
-                    },
+            if (!uiState.menuClicked) {
+                MenuOverlay(
+                    onResume = { viewModel.processIntent(MultiPlayIntent.ClickMenu) },
                     onExit = {
-                        viewModel.processIntent(SoloYogaPlayIntent.Exit)
+                        viewModel.processIntent(MultiPlayIntent.ExitRoom)
                         val activity = context as? Activity
                         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                         onBackPressed()
@@ -167,10 +145,8 @@ fun MultiPlayScreen(
 }
 
 @Composable
-fun PauseOverlay(
+fun MenuOverlay(
     onResume: () -> Unit,
-    onRestart: () -> Unit,
-    onSkip: () -> Unit,
     onExit: () -> Unit
 ) {
     Box(
@@ -186,26 +162,12 @@ fun PauseOverlay(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 재생 버튼
+            // 계속하기 버튼
             PauseActionButton(
                 icon = R.drawable.ic_resume,
                 text = "계속하기",
                 onClick = onResume
             )
-
-            // 다시 시작 버튼
-            PauseActionButton(
-                icon = R.drawable.ic_restart,
-                text = "다시 시작",
-                onClick = onRestart
-            )
-
-            PauseActionButton(
-                icon = R.drawable.ic_skip,
-                text = "건너뛰기",
-                onClick = onSkip
-            )
-
             // 나가기 버튼
             PauseActionButton(
                 icon = R.drawable.ic_exit,

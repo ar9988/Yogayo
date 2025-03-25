@@ -1,6 +1,7 @@
 package com.d104.data.di
 
 import com.d104.data.remote.api.AuthApiService
+import com.d104.data.remote.api.MultiApiService
 import com.d104.data.remote.api.SseApiService
 import com.d104.data.remote.api.SseApiServiceImpl
 import com.d104.data.remote.api.UserApiService
@@ -89,6 +90,12 @@ object NetworkModule {
     @Singleton
     fun provideSseApiService(okHttpClient: OkHttpClient): SseApiService {
         return SseApiServiceImpl(okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMultiApiService(@Named("YogaYo") retrofit: Retrofit): MultiApiService {
+        return retrofit.create(MultiApiService::class.java)
     }
 
 }

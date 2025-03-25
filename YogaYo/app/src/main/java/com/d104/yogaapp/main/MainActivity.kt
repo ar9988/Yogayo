@@ -203,7 +203,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 fun MainTabScreen(
     selectedTab: Tab,
     onNavigateToYogaPlay: (UserCourse) -> Unit,
-    onNavigateMultiPlay: (Int) -> Unit,
+    onNavigateMultiPlay: (Long) -> Unit,
     onNavigateSoloScreen:() -> Unit
 ) {
     Box(
