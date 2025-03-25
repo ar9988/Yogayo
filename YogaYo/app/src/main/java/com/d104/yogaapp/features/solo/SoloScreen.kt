@@ -1,36 +1,25 @@
 package com.d104.yogaapp.features.solo
 
-import android.graphics.Paint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
@@ -39,7 +28,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,69 +46,66 @@ import com.d104.yogaapp.ui.theme.PrimaryColor
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.motionEventSpy
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.d104.domain.model.YogaPose
-import com.d104.domain.model.YogaPoseInCourse
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.yogaapp.features.common.CourseCard
 import com.d104.yogaapp.features.common.CustomCourseDialog
-import com.d104.yogaapp.ui.theme.Neutral70
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Collections
 
 
 @Composable
 fun SoloScreen(
-    viewModel: SoloViewModel = hiltViewModel()
-    ,onNavigateToYogaPlay: () -> Unit) {
+    viewModel: SoloViewModel = hiltViewModel(),
+    onNavigateToYogaPlay: (UserCourse) -> Unit
+) {
     val state by viewModel.state.collectAsState()
+    var selectedCourse by remember { mutableStateOf<UserCourse?>(null) }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-//    LaunchedEffect(state.courses.size) {
-//        if (state.courses.isNotEmpty()) {
-//            // 코스가 추가되었을 때 스크롤을 아래로 내림
-//            coroutineScope.launch {
-//                listState.animateScrollToItem(state.courses.size - 1 + 1) // +1은 "코스 추가하기" 버튼 때문
-//            }
-//        }
-//    }
-
-
+    // 코스 시작 다이얼로그 표시
+    selectedCourse?.let { course ->
+        YogaCourseStartDialog(
+            course = course,
+            onDismiss = { selectedCourse = null },
+            onConfirm = { updatedCourse ->
+                // 튜토리얼 상태가 변경되었으면 코스 업데이트
+                if (updatedCourse.tutorial != course.tutorial) {
+                    viewModel.handleIntent(
+                        SoloIntent.UpdateCourseTutorial(
+                            updatedCourse.courseId,
+                            updatedCourse.tutorial
+                        )
+                    )
+                }
+                selectedCourse = null
+                onNavigateToYogaPlay(updatedCourse)
+            }
+        )
+    }
 
     if (state.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -141,7 +126,7 @@ fun SoloScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp) // 간격 조정
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
                     Box(
@@ -164,10 +149,10 @@ fun SoloScreen(
                 items(state.courses) { course ->
                     if(course.courseId<0){
                         CourseCard(
-                            header = {SoloCourseCardHeader(course)},
+                            header = { SoloCourseCardHeader(course) },
                             poseList = course.poses,
                             course = course,
-                            onClick = {onNavigateToYogaPlay()},
+                            onClick = { selectedCourse = course }, // 다이얼로그 표시용 코스 선택
                             onUpdateCourse = { courseName, poses ->
                                 viewModel.handleIntent(
                                     SoloIntent.UpdateCourse(
@@ -177,13 +162,12 @@ fun SoloScreen(
                                     )
                                 )
                             },
-
                         )
-                    }else {
+                    } else {
                         SwipeableCourseDismissBox(
                             course = course,
                             poseList = viewModel.tmpPoseInfo,
-                            onClick = { onNavigateToYogaPlay() },
+                            onClick = { selectedCourse = course }, // 다이얼로그 표시용 코스 선택
                             onUpdateCourse = { courseName, poses ->
                                 viewModel.handleIntent(
                                     SoloIntent.UpdateCourse(
@@ -287,6 +271,98 @@ fun SoloCourseCardHeader(course: UserCourse){
                     color = Color.Gray,
                     style = MaterialTheme.typography.bodyLarge
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun YogaCourseStartDialog(
+    course: UserCourse,
+    onDismiss: () -> Unit,
+    onConfirm: (UserCourse) -> Unit // 변경된 코스 객체를 전달하는 콜백
+) {
+    // 튜토리얼 상태를 관리할 변수
+    var isTutorial by remember { mutableStateOf(course.tutorial) }
+
+    // 코스 객체를 복사하여 튜토리얼 상태가 변경된 버전을 생성
+    val updatedCourse = remember(isTutorial) {
+        course.copy(tutorial = isTutorial)
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                // 코스 시작 메시지
+                Text(
+                    text = "${course.courseName}을 시작 하시겠습니까?",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                // 튜토리얼 체크박스 - 이제 상호작용 가능
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "튜토리얼 보기",
+                    )
+                    Checkbox(
+                        checked = isTutorial,
+                        onCheckedChange = { isTutorial = it },
+                        enabled = true,
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = PrimaryColor,          // 체크됐을 때 배경 색상
+                            checkmarkColor = Color.White,      // 체크마크 색상
+                        )
+
+                    )
+                }
+
+                // 버튼 행
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor
+                        )
+                    ) {
+                        Text(text = "취소",fontSize = 14.sp )
+                    }
+
+                    Button(
+                        onClick = {
+                            // 업데이트된 코스 정보로 확인 처리
+                            onConfirm(updatedCourse)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(32.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryColor
+                        )
+                    ) {
+                        Text(text = "확인", fontSize = 14.sp)
+                    }
+                }
             }
         }
     }
