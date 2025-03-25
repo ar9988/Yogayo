@@ -75,6 +75,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.2")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation ("com.airbnb.android:lottie-compose:6.1.0")
+
 
     // Preferences DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
@@ -113,6 +115,11 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.4.0-alpha02")
     implementation("androidx.camera:camera-lifecycle:1.4.0-alpha02")
     implementation ("androidx.camera:camera-view:1.4.0-alpha02")
+
+    //ExpPlayer
+    implementation ("androidx.media3:media3-exoplayer:1.2.0")
+    implementation ("androidx.media3:media3-ui:1.2.0")
+    implementation ("androidx.media3:media3-common:1.2.0")
 
 
 
