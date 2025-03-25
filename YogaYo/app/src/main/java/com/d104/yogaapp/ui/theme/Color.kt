@@ -26,3 +26,6 @@ val Neutral10 = Color(0xFFF8F9FA)
 val LightGreen = Color(0xFF4CAF50)
 val Yellow = Color(0xFFFFC107)
 val Red = Color(0xFFF44336)
+
+val PastelGreen = Color(0xFFAFFC97)
+val PastelRed = Color(0xFFD84040)
