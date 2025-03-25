@@ -12,6 +12,7 @@ import com.red.yogaback.repository.UserRecordRepository;
 import com.red.yogaback.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -136,6 +138,34 @@ class BadgeServiceTest {
         assertThat(result.getExConDays()).isEqualTo(3L);
         assertThat(result.getExDays()).isEqualTo(5L);
         assertThat(result.getRoomWin()).isEqualTo(2L);
+    }
+
+    @Test
+    void 레벨1_배지부여_테스트(){
+        // given
+        User user = User.builder()
+                .userId(1L)
+                .userNickname("test")
+                 .build();
+        Badge badge = Badge.builder()
+                .badgeId(6L)
+                .badgeName("요가의 달인")
+                .build();
+        when(badgeRepository.findById(6L)).thenReturn(Optional.of(badge));
+        when(userBadgeRepository.findByUserAndBadge(user, badge)).thenReturn(null);
+
+        // when
+        badgeService.assignBadge(user, 6L, 1,1);
+
+        // then
+        ArgumentCaptor<UserBadge> captor = ArgumentCaptor.forClass(UserBadge.class);
+        verify(userBadgeRepository).save(captor.capture());
+
+        UserBadge savedBadge = captor.getValue();
+        assertEquals(user, savedBadge.getUser());
+        assertEquals(badge, savedBadge.getBadge());
+        assertEquals(1, savedBadge.getHighLevel());
+        assertEquals(1, savedBadge.getProgress());
     }
 
 }
