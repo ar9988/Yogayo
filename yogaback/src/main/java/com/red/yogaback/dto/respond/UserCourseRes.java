@@ -19,7 +19,9 @@ public class UserCourseRes {
     private boolean tutorial;
     private Long createdAt;
     private Long modifyAt;
-    private List<UserCoursePoseRes> poses;
+
+    // ★ userCoursePoseRes 대신, pose 정보만 담을 List<PoseRes>
+    private List<PoseRes> poses;
 
     public static UserCourseRes fromEntity(UserCourse entity) {
         return UserCourseRes.builder()
@@ -28,9 +30,20 @@ public class UserCourseRes {
                 .tutorial(entity.isTutorial())
                 .createdAt(entity.getCreatedAt())
                 .modifyAt(entity.getModifyAt())
+
+                // userCoursePose 목록 -> userOrderIndex 순으로 정렬 -> PoseRes 변환
                 .poses(
-                        entity.getUserCoursePoses().stream()
-                                .map(UserCoursePoseRes::fromEntity)
+                        entity.getUserCoursePoses() == null
+                                ? null
+                                : entity.getUserCoursePoses().stream()
+                                // userOrderIndex 순서대로 정렬
+                                .sorted((a, b) -> {
+                                    Long idxA = a.getUserOrderIndex() != null ? a.getUserOrderIndex() : 0L;
+                                    Long idxB = b.getUserOrderIndex() != null ? b.getUserOrderIndex() : 0L;
+                                    return idxA.compareTo(idxB);
+                                })
+                                // PoseRes로 변환
+                                .map(ucp -> PoseRes.fromEntity(ucp.getPose()))
                                 .collect(Collectors.toList())
                 )
                 .build();

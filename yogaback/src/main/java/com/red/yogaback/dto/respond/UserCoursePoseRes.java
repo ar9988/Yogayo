@@ -12,14 +12,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserCoursePoseRes {
     private Long userCoursePoseId;
-    private Long poseId;
+    private PoseRes pose;            // ← 여기서 poseId 대신 PoseRes 전체를 가짐
     private Long userOrderIndex;
     private Long createdAt;
 
     public static UserCoursePoseRes fromEntity(UserCoursePose entity) {
         return UserCoursePoseRes.builder()
                 .userCoursePoseId(entity.getUserCoursePoseId())
-                .poseId(entity.getPose().getPoseId())
+                // PoseRes 전체를 반환 -> poseName, poseDescription 등 모든 필드 포함
+                .pose(PoseRes.fromEntity(entity.getPose()))
                 .userOrderIndex(entity.getUserOrderIndex())
                 .createdAt(entity.getCreatedAt())
                 .build();

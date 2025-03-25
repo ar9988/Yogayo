@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -21,12 +20,13 @@ public class UserCourseController {
 
     /**
      * [POST] 커스텀 코스 생성
+     * - 생성된 코스 정보를 JSON으로 반환
      */
     @PostMapping("/course")
-    public ResponseEntity<?> createCourse(@RequestBody CreateCourseRequest request) {
-        Long userCourseId = userCourseService.createCourse(request);
-        // JSON 형태로 응답
-        return ResponseEntity.ok(Collections.singletonMap("userCourseId", userCourseId));
+    public ResponseEntity<UserCourseRes> createCourse(@RequestBody CreateCourseRequest request) {
+        // createCourse가 UserCourseRes를 반환하도록 변경
+        UserCourseRes createdCourse = userCourseService.createCourse(request);
+        return ResponseEntity.ok(createdCourse);
     }
 
     /**
@@ -40,20 +40,22 @@ public class UserCourseController {
 
     /**
      * [PUT] 특정 코스 수정
+     * - 수정된 코스 정보를 JSON으로 반환
      */
     @PutMapping("/course/{courseId}")
-    public ResponseEntity<?> updateCourse(@PathVariable Long courseId,
-                                          @RequestBody CreateCourseRequest request) {
-        userCourseService.updateCourse(courseId, request);
-        return ResponseEntity.ok(Collections.singletonMap("updatedCourseId", courseId));
+    public ResponseEntity<UserCourseRes> updateCourse(@PathVariable Long courseId,
+                                                      @RequestBody CreateCourseRequest request) {
+        UserCourseRes updatedCourse = userCourseService.updateCourse(courseId, request);
+        return ResponseEntity.ok(updatedCourse);
     }
 
     /**
      * [DELETE] 특정 코스 삭제
+     * - true/false만 반환
      */
     @DeleteMapping("/course/{courseId}")
-    public ResponseEntity<?> deleteCourse(@PathVariable Long courseId) {
-        userCourseService.deleteCourse(courseId);
-        return ResponseEntity.ok(Collections.singletonMap("deletedCourseId", courseId));
+    public ResponseEntity<Boolean> deleteCourse(@PathVariable Long courseId) {
+        boolean result = userCourseService.deleteCourse(courseId);
+        return ResponseEntity.ok(result);
     }
 }
