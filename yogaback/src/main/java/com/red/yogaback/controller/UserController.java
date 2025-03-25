@@ -1,6 +1,7 @@
 package com.red.yogaback.controller;
 
 import com.red.yogaback.dto.respond.BadgeListRes;
+import com.red.yogaback.dto.respond.UserInfoRes;
 import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.service.BadgeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +23,8 @@ public class UserController {
 
     private final BadgeService badgeService;
 
+
+
     @GetMapping("/badge")
     @Operation(summary = "배지 목록 조회")
     public ResponseEntity<List<BadgeListRes>> getBadgeList() {
@@ -29,4 +32,10 @@ public class UserController {
         return ResponseEntity.ok(badgeService.getBadgeList(userId));
     }
 
+    @GetMapping("/info")
+    @Operation(summary = "유저 정보 조회")
+    private ResponseEntity<UserInfoRes> getUserInfo() {
+        Long userId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(badgeService.getUserInfo(userId));
+    }
 }

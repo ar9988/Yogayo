@@ -1,7 +1,9 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import java.util.List;
 @Table(name = "Room")
 @Getter
 @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Room {
 
     @Id
