@@ -148,7 +148,7 @@ class BadgeServiceTest {
         when(userBadgeRepository.findByUserAndBadge(user, badge)).thenReturn(null);
 
         // when
-        badgeService.assignBadge(user, 6L, 1,1);
+        badgeService.assignBadge(user, BadgeType.YOGA_ACCURACY, 1,1);
 
         // then
         ArgumentCaptor<UserBadge> captor = ArgumentCaptor.forClass(UserBadge.class);
@@ -185,8 +185,10 @@ class BadgeServiceTest {
 
         // 주어진 유저가 가지고 있는 배지 반환
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userBadgeRepository.findByUser(user)).thenReturn(Collections.singletonList(userBadge));
+        when(userBadgeRepository.findNewBadgesWithDetails(user)).thenReturn(Collections.singletonList(userBadge));
 
+        // saveAll 메소드 모킹 (어떤 리스트가 와도 그대로 반환)
+        when(userBadgeRepository.saveAll(anyList())).thenAnswer(invocation -> { List<UserBadge> savedBadges = invocation.getArgument(0); return savedBadges; });
 
         // 배지 디테일 설정
         BadgeDetail badgeDetail = BadgeDetail.builder()
@@ -208,7 +210,7 @@ class BadgeServiceTest {
         assertEquals("Test Badge", result.get(0).getBadgeName());
         assertFalse(userBadge.isNew());
 
-        verify(userBadgeRepository,times(1)).save(userBadge);
+        verify(userBadgeRepository,times(1)).saveAll(anyList());
 
     }
 
