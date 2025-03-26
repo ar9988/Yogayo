@@ -41,6 +41,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,6 +73,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,6 +101,7 @@ import kotlin.math.roundToInt
 @Composable
 fun CustomCourseDialog(
     originalCourseName:String = "",
+    isLoading:Boolean = false,
     poseInCourse:List<YogaPoseInCourse> = emptyList(),
     poseList: List<YogaPose>,
     onDismiss: () -> Unit,
@@ -108,7 +111,6 @@ fun CustomCourseDialog(
     // 상태 관리
     var courseName by remember { mutableStateOf(originalCourseName) }
     var searchQuery by remember { mutableStateOf("") }
-    val allPoses = remember { poseList}
 
     val selectedPoses = remember { poseInCourse.toMutableStateList() }
     val coroutineScope = rememberCoroutineScope()
@@ -122,11 +124,11 @@ fun CustomCourseDialog(
 
 
     // 검색 결과 필터링
-    val filteredPoses = remember(searchQuery, allPoses) {
+    val filteredPoses = remember(searchQuery, poseList) {
         if (searchQuery.isEmpty()) {
-            allPoses
+            poseList
         } else {
-            allPoses.filter { it.poseName.contains(searchQuery, ignoreCase = true) }
+            poseList.filter { it.poseName.contains(searchQuery, ignoreCase = true) }
         }
     }
 
@@ -315,37 +317,54 @@ fun CustomCourseDialog(
                     )
 
                     // 요가 포즈 그리드
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp),
-                    ) {
-                        items(filteredPoses) { pose ->
-                            YogaPoseCard(
-                                pose = pose,
-                                onClick = {
-                                    if(selectedPoses.size>=10){
-                                        Toast.makeText(context, "자세는 10개까지 가능합니다", Toast.LENGTH_SHORT).show()
-                                    }else{
-                                        val uniqueId = "${pose.poseId}-${System.currentTimeMillis()}"
-                                        val newOrderIndex = selectedPoses.size // 새 항목은 맨 뒤에 추가
-                                        selectedPoses.add(YogaPoseInCourse(uniqueID = uniqueId, pose = pose))
-                                        Timber.d("Added new pose: ${pose.poseName} with orderIndex $newOrderIndex")
-                                        Timber.d("${selectedPoses.toList()}")
-                                        coroutineScope.launch {
-                                            delay(50)
-                                            dragAndDropListState.lazyListState.scrollToItem(
-                                                selectedPoses.size
+                    if (isLoading) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+
+                    }else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp),
+                        ) {
+                            items(filteredPoses) { pose ->
+                                YogaPoseCard(
+                                    pose = pose,
+                                    onClick = {
+                                        if (selectedPoses.size >= 10) {
+                                            Toast.makeText(
+                                                context,
+                                                "자세는 10개까지 가능합니다",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            val uniqueId =
+                                                "${pose.poseId}-${System.currentTimeMillis()}"
+                                            val newOrderIndex = selectedPoses.size // 새 항목은 맨 뒤에 추가
+                                            selectedPoses.add(
+                                                YogaPoseInCourse(
+                                                    uniqueID = uniqueId,
+                                                    pose = pose
+                                                )
                                             )
+                                            Timber.d("Added new pose: ${pose.poseName} with orderIndex $newOrderIndex")
+                                            Timber.d("${selectedPoses.toList()}")
+                                            coroutineScope.launch {
+                                                delay(50)
+                                                dragAndDropListState.lazyListState.scrollToItem(
+                                                    selectedPoses.size
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                            )
+                                )
 
+                            }
                         }
                     }
 
@@ -460,8 +479,15 @@ fun YogaPoseCard(
                 ) {
                 Text(
                     text = pose.poseName,
-                    textAlign = TextAlign.Center,
-                    fontSize = 16.sp
+                    textAlign = TextAlign.Start,
+                    fontSize = when {
+                        pose.poseName.length > 10 -> 12.sp
+                        pose.poseName.length > 8 -> 14.sp
+                        else -> 16.sp
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
 
                 // 난이도 표시

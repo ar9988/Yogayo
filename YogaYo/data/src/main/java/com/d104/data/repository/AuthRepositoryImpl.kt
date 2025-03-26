@@ -30,7 +30,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val signUpMapper: SignUpMapper
 ) : AuthRepository {
     override suspend fun refreshAccessToken(refreshToken: String): String {
-        TODO("Not yet implemented")
+        return ""
     }
 
 

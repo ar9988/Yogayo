@@ -8,7 +8,7 @@ import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.usecase.CancelSearchStreamUseCase
 import com.d104.domain.usecase.EnterRoomUseCase
-import com.d104.domain.usecase.GetCourseUseCase
+import com.d104.domain.usecase.GetUserCourseUseCase
 import com.d104.domain.usecase.GetRoomUseCase
 import com.d104.domain.usecase.UpdateCourseUseCase
 import com.d104.yogaapp.utils.CourseJsonParser
@@ -26,7 +26,7 @@ class MultiViewModel @Inject constructor(
     private val getRoomUseCase : GetRoomUseCase,
     private val cancelSearchStreamUseCase: CancelSearchStreamUseCase,
     private val updateCourseUseCase: UpdateCourseUseCase,
-    private val getCourseUseCase: GetCourseUseCase,
+    private val getCourseUseCase: GetUserCourseUseCase,
     courseJsonParser: CourseJsonParser,
     private val enterRoomUseCase: EnterRoomUseCase
 ) : ViewModel(){
@@ -106,7 +106,7 @@ class MultiViewModel @Inject constructor(
     }
 
     private fun searchCourse(){
-        getCourseUseCase()
+//        getCourseUseCase()
 //        getCourseUseCase.collect{ result ->
 //            result.onSuccess {
 //                _uiState.value.yogaCourses = it
