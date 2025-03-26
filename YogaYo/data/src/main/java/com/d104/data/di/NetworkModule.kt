@@ -4,6 +4,8 @@ import com.d104.data.remote.api.AuthApiService
 import com.d104.data.remote.api.SseApiService
 import com.d104.data.remote.api.SseApiServiceImpl
 import com.d104.data.remote.api.UserApiService
+import com.d104.data.remote.api.UserCourseApiService
+import com.d104.data.remote.api.YogaPoseApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
 import com.squareup.moshi.Moshi
@@ -22,7 +24,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://j12d104.p.ssafy.io:8080/"
+    private const val BASE_URL = "https://j12d104.p.ssafy.io/"
 
     @Provides
     @Singleton
@@ -89,6 +91,18 @@ object NetworkModule {
     @Singleton
     fun provideSseApiService(okHttpClient: OkHttpClient): SseApiService {
         return SseApiServiceImpl(okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideYogaPoseApiService(@Named("YogaYo") retrofit: Retrofit): YogaPoseApiService {
+        return retrofit.create(YogaPoseApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserCourseApiService(@Named("YogaYo") retrofit: Retrofit): UserCourseApiService {
+        return retrofit.create(UserCourseApiService::class.java)
     }
 
 }
