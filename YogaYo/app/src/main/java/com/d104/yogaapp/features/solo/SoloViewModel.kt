@@ -45,15 +45,7 @@ class SoloViewModel @Inject constructor(
     private var defaultCourse : List<UserCourse> = emptyList()
     private var isDefaultCourseLoaded = false
 
-
-
-    //임시 포즈 정보들 추후 db연결 후 삭제
-    val tmpPoseInfo = listOf(
-        YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, listOf("나무 자세 설명"), "video_url", -1,""),
-        YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, listOf("나무 자세 설명"), "video_url", 3,""),
-        YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, listOf("전사 자세 설명"), "video_url", 2,""),
-        YogaPose(4, "다운독 자세", "https://d5sbbf6usl3xq.cloudfront.net/samasthiti.png", 2, listOf("다운독 자세 설명"), "video_url", -1,"")
-    )
+    
 
     init {
         // 병렬로 초기 데이터 로드
@@ -96,6 +88,14 @@ class SoloViewModel @Inject constructor(
                         isLoading = false,
                         error = "기본 코스를 불러오는데 실패했습니다: ${e.message}"
                     )
+                }
+            }
+        }
+        viewModelScope.launch {
+            getLoginStatusUseCase().collectLatest { isLogin ->
+                _state.update { it.copy(isLogin = isLogin) }
+                if (isDefaultCourseLoaded) { // 기본 코스가 로드된 후에만 loadCourses() 호출
+                    loadCourses()
                 }
             }
         }
