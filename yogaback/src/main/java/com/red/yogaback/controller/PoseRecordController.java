@@ -7,8 +7,10 @@ import com.red.yogaback.service.PoseRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,24 +25,24 @@ public class PoseRecordController {
 
     /**
      * POST /api/yoga/history/{poseId}
-     * - 요가 기록 저장
-     * - poseId: 경로, userId: JWT
-     * - 방기록 ID(roomRecordId), 랭킹(ranking)은 요청 바디에서 null 가능
+     * - 요가 포즈 기록 저장
+     * - poseId는 경로, userId는 JWT에서 추출
+     * - 요청 본문은 멀티파트 형식으로, JSON 부분은 "poseRecordRequest",
+     *   이미지 파일은 "recordImg"로 전달 (파일은 선택사항)
      */
-    @PostMapping("/{poseId}")
+    @PostMapping(value = "/{poseId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "요가 포즈 기록 저장")
     public ResponseEntity<PoseRecordRes> createPoseRecord(
             @PathVariable Long poseId,
-            @RequestBody PoseRecordRequest request
-    ) {
-        PoseRecord created = poseRecordService.createPoseRecord(poseId, request);
+            @RequestPart("poseRecordRequest") PoseRecordRequest request,
+            @RequestPart(value = "recordImg", required = false) MultipartFile recordImg) {
+        PoseRecord created = poseRecordService.createPoseRecord(poseId, request, recordImg);
         return ResponseEntity.ok(PoseRecordRes.fromEntity(created));
     }
 
     /**
      * GET /api/yoga/history/{poseId}
      * - 특정 요가 포즈 기록 조회 (현재 사용자 기준)
-     * - poseId: 경로, userId: JWT
      */
     @GetMapping("/{poseId}")
     @Operation(summary = "특정 요가 포즈 기록 조회")
@@ -55,7 +57,6 @@ public class PoseRecordController {
     /**
      * GET /api/yoga/history
      * - 현재 사용자 기준, 모든 요가 포즈 기록 조회
-     * - userId: JWT
      */
     @GetMapping
     @Operation(summary = "전체 요가 포즈 기록 조회")
