@@ -87,6 +87,21 @@ fun SoloScreen(
     val coroutineScope = rememberCoroutineScope()
 
     // 코스 시작 다이얼로그 표시
+    if(state.showAddCourseDialog){
+        CustomCourseDialog(
+            poseList = state.yogaPoses,
+            isLoading = state.yogaPoseLoading,
+            onDismiss = { viewModel.handleIntent(SoloIntent.HideAddCourseDialog) },
+            onSave = { courseName,poses ->
+                viewModel.handleIntent(SoloIntent.CreateCourse(courseName, poses))
+                viewModel.handleIntent(SoloIntent.HideAddCourseDialog)
+                coroutineScope.launch {
+                    delay(300)
+                    listState.animateScrollToItem(state.courses.size)
+                }
+            }
+        )
+    }
     selectedCourse?.let { course ->
         YogaCourseStartDialog(
             course = course,
@@ -96,7 +111,7 @@ fun SoloScreen(
                 if (updatedCourse.tutorial != course.tutorial) {
                     viewModel.handleIntent(
                         SoloIntent.UpdateCourseTutorial(
-                            updatedCourse.courseId,
+                            updatedCourse,
                             updatedCourse.tutorial
                         )
                     )
@@ -146,13 +161,16 @@ fun SoloScreen(
                     }
                 }
 
-                items(state.courses) { course ->
-                    if(course.courseId<0){
+                items(
+                    items = state.courses,
+                    key = { course -> course.courseId }
+                ) { course ->
+                    if(course.courseId < 0) {
                         CourseCard(
                             header = { SoloCourseCardHeader(course) },
-                            poseList = course.poses,
+                            poseList = state.yogaPoses,
                             course = course,
-                            onClick = { selectedCourse = course }, // 다이얼로그 표시용 코스 선택
+                            onClick = { selectedCourse = course },
                             onUpdateCourse = { courseName, poses ->
                                 viewModel.handleIntent(
                                     SoloIntent.UpdateCourse(
@@ -166,8 +184,8 @@ fun SoloScreen(
                     } else {
                         SwipeableCourseDismissBox(
                             course = course,
-                            poseList = viewModel.tmpPoseInfo,
-                            onClick = { selectedCourse = course }, // 다이얼로그 표시용 코스 선택
+                            poseList = state.yogaPoses,
+                            onClick = { selectedCourse = course },
                             onUpdateCourse = { courseName, poses ->
                                 viewModel.handleIntent(
                                     SoloIntent.UpdateCourse(
@@ -184,17 +202,10 @@ fun SoloScreen(
                     }
                 }
 
-                if (state.courses.size <= 8) {
+                if (state.isLogin&&state.courses.size <= 8) {
                     item {
                         AddCourseButton(
-                            poseList = viewModel.tmpPoseInfo,
-                            onSaveNewCourse = { courseName, poses ->
-                                viewModel.handleIntent(SoloIntent.CreateCourse(courseName, poses))
-                                coroutineScope.launch {
-                                    delay(100)
-                                    listState.animateScrollToItem(state.courses.size)
-                                }
-                            }
+                            onClick = {viewModel.handleIntent(SoloIntent.ShowAddCourseDialog)}
                         )
                     }
                 }
@@ -380,19 +391,18 @@ fun SwipeableCourseDismissBox(
     onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit,
     onDeleteCourse: (UserCourse) -> Unit
 ) {
-    // 코스 ID가 0 이상인 경우에만 스와이프 삭제 기능 활성화
     val canDelete = course.courseId >= 0
+    val isRemoved = remember(course.courseId) { mutableStateOf(false) }
 
-    // 삭제 상태 관리
-    var isRemoved by remember { mutableStateOf(false) }
+    // 애니메이션 완료 추적
+    val animationCompleted = remember(course.courseId) { mutableStateOf(false) }
 
-    // 스와이프 상태 설정
     val dismissState = rememberSwipeToDismissBoxState(
         initialValue = SwipeToDismissBoxValue.Settled,
-        positionalThreshold = { totalDistance -> totalDistance * 0.4f }, // 40% 이상 스와이프 시 동작
+        positionalThreshold = { totalDistance -> totalDistance * 0.6f },
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.EndToStart && canDelete) {
-                isRemoved = true
+                isRemoved.value = true
                 true
             } else {
                 false
@@ -400,44 +410,41 @@ fun SwipeableCourseDismissBox(
         }
     )
 
-    // 삭제 애니메이션 후 실제 삭제 호출
-    LaunchedEffect(isRemoved) {
-        if (isRemoved) {
-            delay(300) // 애니메이션 시간 동안 대기
+    // 애니메이션 완료 감지 및 삭제 처리
+    LaunchedEffect(isRemoved.value) {
+        if (isRemoved.value) {
+            // 애니메이션 시간만큼 대기
+            delay(300)
+            // 애니메이션 완료 플래그 설정
+            animationCompleted.value = true
+            // 실제 삭제 실행
             onDeleteCourse(course)
         }
     }
-    if(!isRemoved) {
+
+    // 애니메이션 완료 전에만 렌더링
+    if (!animationCompleted.value) {
         AnimatedVisibility(
-            visible = !isRemoved,
-            exit = fadeOut(
-                animationSpec = tween(
-                    durationMillis = 300,
-                )
-            ) + shrinkHorizontally(
-                animationSpec = tween(
-                    durationMillis = 300,
-                ),
-                shrinkTowards = Alignment.Start
-            )
+            visible = !isRemoved.value,
+            exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
+                    shrinkHorizontally(animationSpec = tween(durationMillis = 300), shrinkTowards = Alignment.Start)
         ) {
             SwipeToDismissBox(
                 state = dismissState,
-                enableDismissFromStartToEnd = false, // 오른쪽에서 왼쪽으로 스와이프만 허용
-                enableDismissFromEndToStart = canDelete, // ID가 0 이상인 경우만 삭제 활성화
+                enableDismissFromStartToEnd = false,
+                enableDismissFromEndToStart = canDelete,
                 backgroundContent = {
                     SwipeDismissBoxBackground(dismissState)
                 },
                 content = {
                     CourseCard(
-                        header = {SoloCourseCardHeader(course)},
+                        header = { SoloCourseCardHeader(course) },
                         poseList = poseList,
                         course = course,
                         onClick = onClick,
                         onUpdateCourse = onUpdateCourse
                     )
                 },
-                modifier = Modifier.padding(vertical = 8.dp)
             )
         }
     }
@@ -528,26 +535,12 @@ fun PoseItem(pose: YogaPose) {
 
 @Composable
 fun AddCourseButton(
-    poseList:List<YogaPose>,
-    onSaveNewCourse: (String, List<YogaPoseWithOrder>) -> Unit,
+    onClick: () -> Unit
 ) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    // 대화 상자가 표시되어야 하는 경우
-    if (showDialog) {
-        CustomCourseDialog(
-            poseList = poseList,
-            onDismiss = { showDialog = false },
-            onSave = { courseName,poses ->
-                onSaveNewCourse(courseName,poses)
-                showDialog = false
-            }
-        )
-    }
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { showDialog = true },
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
