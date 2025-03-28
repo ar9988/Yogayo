@@ -49,7 +49,7 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.multi.play.MultiPlayScreen
-import com.d104.yogaapp.features.multi.result.LeaderboardScreen
+import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
 import com.d104.yogaapp.features.mypage.recorddetail.DetailRecordScreen
 import com.d104.yogaapp.features.signup.SignUpScreen
@@ -173,25 +173,11 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                     }
                 }
             }
-            // 멀티 요가 결과 화면
-            composable("multi_result"){
-                LeaderboardScreen(
-                    onBackPressed = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
             // 멀티 요가 플레이 화면
             composable("multi_yoga_play"){
                 MultiPlayScreen(
                     onBackPressed ={
-                        navController.navigate("main_tabs"){
-                            popUpTo("main_tabs")
-                        }
-                    },
-                    onNavigateToResult = {
-                        navController.navigate("multi_result")
+                        navController.popBackStack()
                     }
                 )
             }

@@ -16,6 +16,36 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.ExitRoom -> currentState.copy(
                 menuClicked = !currentState.menuClicked
             )
+            is MultiPlayIntent.BackPressed -> {
+                val previousState = when {
+                    currentState.gameState.ordinal > 0 -> {
+                        GameState.entries[currentState.gameState.ordinal - 1]
+                    }
+                    else -> currentState.gameState
+                }
+                currentState.copy(gameState = previousState)
+            }
+            is MultiPlayIntent.ClickPose -> {
+                val nextState = when {
+                    currentState.gameState.ordinal < GameState.entries.size - 1 -> {
+                        GameState.entries[currentState.gameState.ordinal + 1]
+                    }
+                    else -> currentState.gameState
+                }
+                currentState.copy(
+                    gameState = nextState,
+                    selectedPoseId = intent.poseId
+                )
+            }
+            is MultiPlayIntent.ClickNext -> {
+                val nextState = when {
+                    currentState.gameState.ordinal < GameState.entries.size - 1 -> {
+                        GameState.entries[currentState.gameState.ordinal + 1]
+                    }
+                    else -> currentState.gameState
+                }
+                currentState.copy(gameState = nextState)
+            }
             else -> currentState
         }
     }

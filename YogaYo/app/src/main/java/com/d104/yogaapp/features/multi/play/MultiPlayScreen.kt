@@ -36,20 +36,24 @@ import com.d104.yogaapp.features.multi.play.components.MenuOverlay
 import com.d104.yogaapp.features.multi.play.components.MultiYogaPlayScreen
 import com.d104.yogaapp.features.multi.play.components.RoundResultScreen
 import com.d104.yogaapp.features.multi.play.components.WaitingScreen
+import com.d104.yogaapp.features.multi.play.result.DetailScreen
+import com.d104.yogaapp.features.multi.play.result.GalleryScreen
+import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
 
 
 @Composable
 fun MultiPlayScreen(
     viewModel: MultiPlayViewModel = hiltViewModel(),
-    onBackPressed: () -> Unit,
-    onNavigateToResult: () -> Unit
+    onBackPressed: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
 //    // 화면 설정 (가로 모드, 전체 화면)
-    RotateScreen(context)
-//
+    if (uiState.gameState == GameState.Playing || uiState.gameState == GameState.Waiting || uiState.gameState == GameState.RoundResult) {
+        // 요가 플레이 중이거나 가이드 중일 때만 가로 모드로 설정
+        RotateScreen(context)
+    }
 //    // 권한 요청 launcher를 여기서 정의 (Composable 함수 레벨)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -71,19 +75,47 @@ fun MultiPlayScreen(
             }
         }
     }
-    LaunchedEffect(uiState.gameState==GameState.GameResult) {
-        onNavigateToResult()
-    }
 //
 //    // 뒤로가기 처리
     BackHandler {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        onBackPressed()
+        if(uiState.gameState == GameState.Waiting){
+            viewModel.processIntent(MultiPlayIntent.ExitRoom)
+            onBackPressed()
+        } else if (uiState.gameState == GameState.Playing||uiState.gameState == GameState.RoundResult){
+            viewModel.processIntent(MultiPlayIntent.ClickMenu)
+        } else if (uiState.gameState == GameState.GameResult){
+            onBackPressed()
+        }
+        else {
+            viewModel.processIntent(MultiPlayIntent.BackPressed)
+        }
     }
-//
-//    // 권한에 따른 UI 표시
-    if (uiState.cameraPermissionGranted) {
+    if (uiState.gameState == GameState.GameResult) {
+        LeaderboardScreen(
+            onNextClick = {
+            viewModel.processIntent(MultiPlayIntent.ClickNext)
+        })
+    } else if (uiState.gameState == GameState.Gallery) {
+        GalleryScreen(
+            onItemClick = {
+                viewModel.processIntent(MultiPlayIntent.ClickPose(it))
+            },
+            onCheckClick = {
+                onBackPressed()
+            }
+        )
+    } else if (uiState.gameState == GameState.Detail){
+        DetailScreen(
+            onBackButtonClick = {
+                viewModel.processIntent(MultiPlayIntent.BackPressed)
+            },
+            poseName = "나무 자세"
+        )
+    }
+    // 권한에 따른 UI 표시
+    else if (uiState.cameraPermissionGranted) {
         // 권한이 있는 경우 요가 플레이 화면 표시
         Box(modifier = Modifier.fillMaxSize()) {
             MultiYogaPlayScreen(

@@ -12,15 +12,16 @@ data class MultiPlayState(
     ),
     val cameraPermissionGranted: Boolean = false,
     val menuClicked: Boolean = false,
-    val isPlaying: Boolean = false,
+    val isPlaying: Boolean = true,
     val timerProgress: Float = 1.0f, // 1.0 = 100% (20초), 0.0 = 0% (0초)
     val isCountingDown: Boolean = false,
     val currentPose: YogaPose = YogaPose(0, "", "", 0, listOf("나무 자세 설명"), "", 0,""),
     val currentAccuracy: Float = 0.0f,
-    val gameState: GameState = GameState.Waiting,
-    val second : Float = 1.0f // 1.0 = 3초, 0.0 = 0초
+    val gameState: GameState = GameState.GameResult,
+    val second : Float = 1.0f, // 1.0 = 3초, 0.0 = 0초
+    val selectedPoseId :Int = 0
 )
 
 enum class GameState {
-    Waiting, Playing, RoundResult, GameResult
+    Waiting, Playing, RoundResult, GameResult, Gallery, Detail
 }

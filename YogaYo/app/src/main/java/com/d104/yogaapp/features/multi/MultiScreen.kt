@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -148,7 +150,7 @@ fun MultiScreen(
         onConfirm = { viewModel.processIntent(MultiIntent.CreateRoom) },
         onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.CREATING)) },
         onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },
-        onEditCourse = {viewModel.processIntent(MultiIntent.ShowEditDialog)},
+        onEditCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
         userCourses = uiState.yogaCourses
     )
     // 방 참가 다이얼로그
@@ -161,12 +163,18 @@ fun MultiScreen(
         onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) }
     )
     // 코스 수정 다이얼로그
-    if(uiState.dialogState == DialogState.COURSE_EDITING){
+    if (uiState.dialogState == DialogState.COURSE_EDITING) {
         CustomCourseDialog(
             poseList = uiState.selectedCourse!!.poses,
             onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.COURSE_EDITING)) },
-            onSave = { courseName,poses ->
-                viewModel.processIntent(MultiIntent.EditCourse(uiState.selectedCourse!!.courseId,courseName, poses))
+            onSave = { courseName, poses ->
+                viewModel.processIntent(
+                    MultiIntent.EditCourse(
+                        uiState.selectedCourse!!.courseId,
+                        courseName,
+                        poses
+                    )
+                )
             }
         )
         println(uiState.selectedCourse.toString())
@@ -229,7 +237,7 @@ fun MultiCourseCardHeader(room: Room) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -240,14 +248,26 @@ fun MultiCourseCardHeader(room: Room) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = room.roomName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(0.5f)
-                )
+                ) {
+                    if (room.isPassword) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = "비밀번호 필요함",
+                            modifier = Modifier.rotate(90f)
+                        )
+                    }
+                    Text(
+                        text = room.roomName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(0.2f)

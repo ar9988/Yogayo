@@ -1,7 +1,4 @@
-package com.d104.yogaapp.features.multi.result
-import android.app.Activity
-import android.content.pm.ActivityInfo
-import androidx.activity.compose.BackHandler
+package com.d104.yogaapp.features.multi.play.result
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -17,7 +14,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.d104.yogaapp.R
@@ -40,7 +36,7 @@ val leaderboardScores = listOf(
 @Composable
 fun LeaderboardScreen(
     scores: List<PlayerScore> = leaderboardScores,
-    onBackPressed: () -> Boolean
+    onNextClick: () -> Unit
 ) {
     // State to control the visibility of list items for animation
     var visibleItems by remember { mutableIntStateOf(0) }
@@ -53,11 +49,6 @@ fun LeaderboardScreen(
             delay(300L) // Delay between each item appearing (adjust as needed)
             visibleItems = index + 1
         }
-    }
-    BackHandler {
-        val activity = context as? Activity
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        onBackPressed()
     }
     Column(
         modifier = Modifier
@@ -94,7 +85,7 @@ fun LeaderboardScreen(
 
         // --- Next Button ---
         Button(
-            onClick = { /* Handle Next button click */ },
+            onClick = { onNextClick() },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFF48FB1) // Pinkish color from image
@@ -116,7 +107,7 @@ fun WinnerSection(winner: PlayerScore) {
         Image(
             painter = painterResource(id = R.drawable.ic_crown), // Replace with your crown drawable
             contentDescription = "Winner Crown",
-            modifier = Modifier.size(80.dp) // Adjust size as needed
+            modifier = Modifier.size(150.dp) // Adjust size as needed
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
