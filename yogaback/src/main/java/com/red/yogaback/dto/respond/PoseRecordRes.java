@@ -23,9 +23,6 @@ public class PoseRecordRes {
     private String recordImg;
     private Long createdAt;
 
-    /**
-     * PoseRecord 엔티티 -> PoseRecordRes 변환
-     */
     public static PoseRecordRes fromEntity(PoseRecord entity) {
         return PoseRecordRes.builder()
                 .poseRecordId(entity.getPoseRecordId())
