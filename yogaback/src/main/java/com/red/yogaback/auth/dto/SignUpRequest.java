@@ -7,7 +7,7 @@ import java.util.Optional;
 @Setter
 @Getter
 @Builder
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SignUpRequest {
     private String userLoginId;
