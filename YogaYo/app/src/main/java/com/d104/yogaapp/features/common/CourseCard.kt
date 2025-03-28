@@ -28,6 +28,7 @@ import com.d104.domain.model.YogaPoseInCourse
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.solo.PosesRowWithArrows
+import com.d104.yogaapp.ui.theme.GrayCardColor
 import com.d104.yogaapp.ui.theme.Neutral70
 
 @Composable
@@ -65,7 +66,7 @@ fun CourseCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF7F6FA)
+            containerColor = GrayCardColor
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp

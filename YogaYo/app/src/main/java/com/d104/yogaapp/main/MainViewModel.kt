@@ -13,7 +13,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
@@ -57,6 +59,9 @@ class MainViewModel @Inject constructor(
     init {
         // AuthEvent를 수집하여 NavigationEvent로 변환
         viewModelScope.launch {
+            getLoginStatusUseCase().collectLatest { isLogin ->
+                _state.update { it.copy(selectedTab = Tab.Solo) }
+            }
             authEventManager.authEvents.collect { authEvent ->
                 when (authEvent) {
                     is AuthEvent.TokenRefreshFailed -> {
@@ -65,6 +70,7 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
+
     }
 
 //    // 코스 선택 메서드

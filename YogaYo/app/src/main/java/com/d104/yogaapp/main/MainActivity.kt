@@ -38,17 +38,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.d104.domain.model.UserCourse
+import com.d104.domain.model.UserRecord
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.multi.play.MultiPlayScreen
 import com.d104.yogaapp.features.multi.result.LeaderboardScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
+import com.d104.yogaapp.features.mypage.recorddetail.DetailRecordScreen
 import com.d104.yogaapp.features.signup.SignUpScreen
 import com.d104.yogaapp.features.solo.SoloScreen
 import com.d104.yogaapp.features.solo.play.SoloYogaPlayScreen
@@ -87,6 +90,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
     LaunchedEffect(currentDestination) {
         val shouldShowBottomBar = when (currentDestination?.route) {
             "main_tabs" -> true
+            "detail_record" -> true
             else -> false
         }
         viewModel.processIntent(MainIntent.SetBottomBarVisibility(shouldShowBottomBar))
@@ -129,7 +133,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             composable("main_tabs") {
                 MainTabScreen(
                     selectedTab = state.selectedTab,
-                    onNavigateToYogaPlay = {course ->
+                    onNavigateToYogaPlay = { course ->
                         viewModel.processIntent(MainIntent.SelectSoloCourse(course))
                         navController.navigate("solo_yoga_play")
                     },
@@ -141,6 +145,11 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                             popUpTo("main_tabs") { inclusive = true }
                         }
                         viewModel.processIntent(MainIntent.SelectTab(Tab.MyPage))
+                    },
+                    onNavigateToDetailRecord = { userRecord ->
+                        viewModel.processIntent(MainIntent.SetUserRecord(userRecord))
+                        navController.navigate("detail_record")
+
                     }
                 )
             }
@@ -210,6 +219,18 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                     }
                 )
             }
+
+            //기록 상세보기
+            composable(
+                route = "detail_record",
+            ) { backStackEntry ->
+                DetailRecordScreen(
+                    userRecord = state.userRecord,
+                    onBackPressed = {
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     }
 }
@@ -219,7 +240,8 @@ fun MainTabScreen(
     selectedTab: Tab,
     onNavigateToYogaPlay: (UserCourse) -> Unit,
     onNavigateMultiPlay: (Long) -> Unit,
-    onNavigateSoloScreen:() -> Unit
+    onNavigateSoloScreen:() -> Unit,
+    onNavigateToDetailRecord:(userRecord:UserRecord)->Unit
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -230,7 +252,13 @@ fun MainTabScreen(
                 onNavigateToYogaPlay = onNavigateToYogaPlay
                 )
             Tab.Multi -> MultiScreen(onNavigateMultiPlay = onNavigateMultiPlay)
-            Tab.MyPage -> MyPageScreen(onNavigateSoloScreen = onNavigateSoloScreen)
+            Tab.MyPage -> MyPageScreen(
+                onNavigateSoloScreen = onNavigateSoloScreen,
+                onNavigateToDetailRecord = {userRecord ->
+
+                    onNavigateToDetailRecord(userRecord)
+                }
+            )
         }
     }
 }
