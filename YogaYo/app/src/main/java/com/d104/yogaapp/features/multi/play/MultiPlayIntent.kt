@@ -1,5 +1,7 @@
 package com.d104.yogaapp.features.multi.play
 
+import android.graphics.Bitmap
+
 sealed class MultiPlayIntent {
     data class UserJoined(val userId: String) : MultiPlayIntent()
     data class UserLeft(val userId: String) : MultiPlayIntent()
@@ -7,7 +9,7 @@ sealed class MultiPlayIntent {
     data class UserNotReady(val userId: String) : MultiPlayIntent()
     data class GameStarted(val userId: String) : MultiPlayIntent()
     data class UpdateCameraPermission(val granted: Boolean) : MultiPlayIntent()
+    data class CaptureImage(val bitmap: Bitmap) : MultiPlayIntent()
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
-    data object TogglePlayPause: MultiPlayIntent()
 }

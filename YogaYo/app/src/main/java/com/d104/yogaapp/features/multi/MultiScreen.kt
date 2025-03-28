@@ -50,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
 import com.d104.yogaapp.features.common.CourseCard
 import androidx.compose.ui.platform.LocalDensity
+import com.d104.domain.model.PeerUser
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
@@ -63,7 +64,9 @@ fun MultiScreen(
     val scrollState = rememberLazyListState()
     LaunchedEffect(uiState.enteringRoom) {
         if (uiState.enteringRoom) {
-            onNavigateMultiPlay(uiState.selectedRoom!!.roomId)
+            onNavigateMultiPlay(
+                uiState.selectedRoom!!.roomId
+            )
             viewModel.processIntent(MultiIntent.EnterRoomComplete)
         }
     }

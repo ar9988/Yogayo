@@ -29,7 +29,7 @@ class MultiPlayViewModel @Inject constructor(
                 if (intent.granted) {
                     // 카메라 권한 허용 시
                 } else {
-                    // 카메라 권한 거부 시
+                    multiPlayReducer.reduce(_uiState.value, MultiPlayIntent.ExitRoom)
                 }
             }
             else -> {}
