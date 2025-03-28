@@ -49,6 +49,7 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.multi.play.MultiPlayScreen
+import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
 import com.d104.yogaapp.features.mypage.recorddetail.DetailRecordScreen
 import com.d104.yogaapp.features.signup.SignUpScreen
@@ -172,7 +173,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                     }
                 }
             }
-
+            // 멀티 요가 플레이 화면
             composable("multi_yoga_play"){
                 MultiPlayScreen(
                     onBackPressed ={
@@ -224,7 +225,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 fun MainTabScreen(
     selectedTab: Tab,
     onNavigateToYogaPlay: (UserCourse) -> Unit,
-    onNavigateMultiPlay: (Int) -> Unit,
+    onNavigateMultiPlay: (Long) -> Unit,
     onNavigateSoloScreen:() -> Unit,
     onNavigateToDetailRecord:(userRecord:UserRecord)->Unit
 ) {

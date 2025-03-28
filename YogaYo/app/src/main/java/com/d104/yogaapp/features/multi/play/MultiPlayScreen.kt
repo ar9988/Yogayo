@@ -1,131 +1,167 @@
 package com.d104.yogaapp.features.multi.play
 
-import com.d104.yogaapp.features.solo.play.SoloYogaPlayIntent
-import com.d104.yogaapp.features.solo.play.SoloYogaPlayViewModel
 import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.yogaapp.R
-import com.d104.yogaapp.features.common.GifImage
-import com.d104.yogaapp.utils.PermissionChecker
 import com.d104.yogaapp.features.common.RotateScreen
-import com.d104.yogaapp.features.common.YogaPlayScreen
+import com.d104.yogaapp.features.common.YogaAnimationScreen
+import com.d104.yogaapp.features.multi.play.components.MenuOverlay
+import com.d104.yogaapp.features.multi.play.components.MultiYogaPlayScreen
+import com.d104.yogaapp.features.multi.play.components.RoundResultScreen
+import com.d104.yogaapp.features.multi.play.components.WaitingScreen
+import com.d104.yogaapp.features.multi.play.result.DetailScreen
+import com.d104.yogaapp.features.multi.play.result.GalleryScreen
+import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
 
 
 @Composable
 fun MultiPlayScreen(
-    viewModel: SoloYogaPlayViewModel = hiltViewModel(),
+    viewModel: MultiPlayViewModel = hiltViewModel(),
     onBackPressed: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
 //    // 화면 설정 (가로 모드, 전체 화면)
-    RotateScreen(context)
-
-    // 권한 요청 launcher를 여기서 정의 (Composable 함수 레벨)
+    if (uiState.gameState == GameState.Playing || uiState.gameState == GameState.Waiting || uiState.gameState == GameState.RoundResult) {
+        // 요가 플레이 중이거나 가이드 중일 때만 가로 모드로 설정
+        RotateScreen(context)
+    }
+//    // 권한 요청 launcher를 여기서 정의 (Composable 함수 레벨)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        viewModel.processIntent(SoloYogaPlayIntent.UpdateCameraPermission(isGranted))
+        viewModel.processIntent(MultiPlayIntent.UpdateCameraPermission(isGranted))
     }
+    // 권한 체크
+    LaunchedEffect(key1 = Unit) {
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                viewModel.processIntent(MultiPlayIntent.UpdateCameraPermission(true))
+            }
 
-    // 카메라 권한 확인
-    PermissionChecker.CheckPermission(
-        permission = Manifest.permission.CAMERA,
-        onPermissionResult = { isGranted ->
-            // 권한 상태 변경 시 ViewModel에 알림
-            viewModel.processIntent(SoloYogaPlayIntent.UpdateCameraPermission(isGranted))
+            else -> {
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
-    )
-
-    // 뒤로가기 처리
+    }
+//
+//    // 뒤로가기 처리
     BackHandler {
         val activity = context as? Activity
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        onBackPressed()
+        if(uiState.gameState == GameState.Waiting){
+            viewModel.processIntent(MultiPlayIntent.ExitRoom)
+            onBackPressed()
+        } else if (uiState.gameState == GameState.Playing||uiState.gameState == GameState.RoundResult){
+            viewModel.processIntent(MultiPlayIntent.ClickMenu)
+        } else if (uiState.gameState == GameState.GameResult){
+            onBackPressed()
+        }
+        else {
+            viewModel.processIntent(MultiPlayIntent.BackPressed)
+        }
     }
-
+    if (uiState.gameState == GameState.GameResult) {
+        LeaderboardScreen(
+            onNextClick = {
+            viewModel.processIntent(MultiPlayIntent.ClickNext)
+        })
+    } else if (uiState.gameState == GameState.Gallery) {
+        GalleryScreen(
+            onItemClick = {
+                viewModel.processIntent(MultiPlayIntent.ClickPose(it))
+            },
+            onCheckClick = {
+                onBackPressed()
+            }
+        )
+    } else if (uiState.gameState == GameState.Detail){
+        DetailScreen(
+            onBackButtonClick = {
+                viewModel.processIntent(MultiPlayIntent.BackPressed)
+            },
+            poseName = "나무 자세"
+        )
+    }
     // 권한에 따른 UI 표시
-    if (state.cameraPermissionGranted) {
+    else if (uiState.cameraPermissionGranted) {
         // 권한이 있는 경우 요가 플레이 화면 표시
         Box(modifier = Modifier.fillMaxSize()) {
-            YogaPlayScreen(
-                timerProgress = state.timerProgress,
-                isPlaying = state.isPlaying,
-                onPause = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
+            MultiYogaPlayScreen(
+                gameState = uiState.gameState,
+                timerProgress = uiState.timerProgress,
+                isPlaying = uiState.isPlaying,
+                isMenuClicked = uiState.menuClicked,
+                onPause = { viewModel.processIntent(MultiPlayIntent.ClickMenu) },
                 leftContent = {
-                    Box(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        // 포즈 이름
-//                        Text(
-//                            text = state.currentPose.poseName,
-//                            style = MaterialTheme.typography.titleLarge,
-//                            modifier = Modifier
-//                                .align(Alignment.BottomCenter)
-//                                .padding(bottom = 12.dp),
-//                            textAlign = TextAlign.Center
-//                        )
-
-                        // GIF 콘텐츠
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(bottom = 48.dp) // 제목 위 공간 확보
-                        ) {
-                            // GIF 표시 - isPlaying 상태 전달
-//                            GifImage(
-//                                url = state.currentPose.poseVideo,
-//                                modifier = Modifier.fillMaxSize(),
-//                                isPlaying = state.isPlaying
-//                            )
+                    when (uiState.gameState) {
+                        GameState.Waiting -> {
+                            WaitingScreen(
+                                userList = uiState.userList
+                            )
                         }
+
+                        GameState.Playing -> {
+                            YogaAnimationScreen(
+                                pose = uiState.currentPose,
+                                accuracy = uiState.currentAccuracy,
+                                isPlaying = uiState.isPlaying
+                            )
+                        }
+
+                        GameState.RoundResult -> {
+                            RoundResultScreen(
+                                resultImage = painterResource(id = R.drawable.ic_crown),
+                                contentDescription = "TODO()"
+                            )
+                        }
+
+                        else -> {}
                     }
-                }
+                },
+                onImageCaptured = { bitmap ->
+                    viewModel.processIntent(MultiPlayIntent.CaptureImage(bitmap))
+                },
+                userList = uiState.userList
             )
 
             // 일시정지 오버레이 표시
-            if (!state.isPlaying) {
-                PauseOverlay(
-                    onResume = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
-                    onRestart = { viewModel.processIntent(SoloYogaPlayIntent.RestartCurrentPose) },
-                    onSkip = {
-                        viewModel.processIntent(SoloYogaPlayIntent.SkipPose)
-                    },
+            if (uiState.menuClicked) {
+                MenuOverlay(
+                    onResume = { viewModel.processIntent(MultiPlayIntent.ClickMenu) },
                     onExit = {
-                        viewModel.processIntent(SoloYogaPlayIntent.Exit)
+                        viewModel.processIntent(MultiPlayIntent.ExitRoom)
                         val activity = context as? Activity
                         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                         onBackPressed()
@@ -165,92 +201,3 @@ fun MultiPlayScreen(
         }
     }
 }
-
-@Composable
-fun PauseOverlay(
-    onResume: () -> Unit,
-    onRestart: () -> Unit,
-    onSkip: () -> Unit,
-    onExit: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.7f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 재생 버튼
-            PauseActionButton(
-                icon = R.drawable.ic_resume,
-                text = "계속하기",
-                onClick = onResume
-            )
-
-            // 다시 시작 버튼
-            PauseActionButton(
-                icon = R.drawable.ic_restart,
-                text = "다시 시작",
-                onClick = onRestart
-            )
-
-            PauseActionButton(
-                icon = R.drawable.ic_skip,
-                text = "건너뛰기",
-                onClick = onSkip
-            )
-
-            // 나가기 버튼
-            PauseActionButton(
-                icon = R.drawable.ic_exit,
-                text = "나가기",
-                onClick = onExit
-            )
-        }
-    }
-}
-
-@Composable
-fun PauseActionButton(
-    icon: Int,
-    text: String,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier
-                .size(64.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
-                )
-                .padding(16.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = icon),
-                contentDescription = text,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = text,
-            color = Color.White,
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-

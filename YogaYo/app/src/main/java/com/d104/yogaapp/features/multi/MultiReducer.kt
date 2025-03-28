@@ -75,10 +75,6 @@ class MultiReducer @Inject constructor() {
                 poseSearchTitle = intent.title
             )
 
-            is MultiIntent.SearchPose -> {
-                currentState
-            }
-
             is MultiIntent.EditCourse -> {
                 currentState
             }
@@ -93,6 +89,11 @@ class MultiReducer @Inject constructor() {
                 enteringRoom = true,
                 dialogState = DialogState.NONE
             )
+
+            is MultiIntent.EnterRoomFail -> currentState.copy(
+                enteringRoom = false
+            )
+
         }
     }
 }
