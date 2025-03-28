@@ -45,7 +45,7 @@ class SoloViewModel @Inject constructor(
     private var defaultCourse : List<UserCourse> = emptyList()
     private var isDefaultCourseLoaded = false
 
-    
+
 
     init {
         // 병렬로 초기 데이터 로드
@@ -262,7 +262,7 @@ class SoloViewModel @Inject constructor(
             val posesWithOrder = course.poses.mapIndexed{index, yogaPose->
                 YogaPoseWithOrder(yogaPose.poseId,index)
             }
-            updateCourseUseCase(course.courseId,course.courseName,posesWithOrder,course.tutorial).collectLatest { result ->
+            updateCourseUseCase(course.courseId,course.courseName,posesWithOrder,tutorial).collectLatest { result ->
                 when {
                     result.isSuccess -> {
                         val modifiedCourse = result.getOrNull()

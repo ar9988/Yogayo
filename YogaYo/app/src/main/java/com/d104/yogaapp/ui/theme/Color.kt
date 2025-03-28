@@ -29,3 +29,4 @@ val Red = Color(0xFFF44336)
 
 val PastelGreen = Color(0xFFAFFC97)
 val PastelRed = Color(0xFFD84040)
+val GrayCardColor = Color(0xFFF7F6FA)
