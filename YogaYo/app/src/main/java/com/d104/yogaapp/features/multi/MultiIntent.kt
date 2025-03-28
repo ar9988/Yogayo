@@ -24,4 +24,6 @@ sealed class MultiIntent {
     data object EnterRoom: MultiIntent()
     data object EnterRoomComplete: MultiIntent()
     data class EnterRoomFail(val message:String) : MultiIntent()
+    data class CreateRoomFail(val message: String) : MultiIntent()
+    data object ClearErrorMessage: MultiIntent()
 }

@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -64,10 +66,18 @@ fun MultiScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
+    val context = LocalContext.current
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            // 토스트 메시지를 표시한 후 errorMessage를 null로 재설정
+            viewModel.processIntent(MultiIntent.ClearErrorMessage)
+        }
+    }
     LaunchedEffect(uiState.enteringRoom) {
         if (uiState.enteringRoom) {
             onNavigateMultiPlay(
-                uiState.selectedRoom!!.roomId
+                uiState.selectedRoom!!
             )
             viewModel.processIntent(MultiIntent.EnterRoomComplete)
         }

@@ -7,6 +7,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.usecase.CancelSearchStreamUseCase
+import com.d104.domain.usecase.CreateRoomUseCase
 import com.d104.domain.usecase.EnterRoomUseCase
 import com.d104.domain.usecase.GetUserCourseUseCase
 import com.d104.domain.usecase.GetRoomUseCase
@@ -30,7 +31,8 @@ class MultiViewModel @Inject constructor(
     private val updateCourseUseCase: UpdateCourseUseCase,
     private val getCourseUseCase: GetUserCourseUseCase,
     courseJsonParser: CourseJsonParser,
-    private val enterRoomUseCase: EnterRoomUseCase
+    private val enterRoomUseCase: EnterRoomUseCase,
+    private val createRoomUseCase: CreateRoomUseCase
 ) : ViewModel(){
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
@@ -74,14 +76,34 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.CreateRoom -> {
                 processIntent(MultiIntent.UpdateRoomTitle(""))
                 processIntent(MultiIntent.UpdateRoomPassword(""))
+                createRoom()
             }
             else -> {}
         }
     }
 
+    private fun createRoom() {
+        viewModelScope.launch {
+            createRoomUseCase(
+                _uiState.value.roomTitle,
+                _uiState.value.roomMax,
+                _uiState.value.isPassword,
+                _uiState.value.roomPassword,
+                _uiState.value.selectedCourse!!.poses
+            ).collect{ result->
+                result.onSuccess {
+                    processIntent(MultiIntent.EnterRoom)
+                }
+                result.onFailure {
+                    processIntent(MultiIntent.CreateRoomFail(it.message ?: "방 생성에 실패했습니다."))
+                }
+            }
+        }
+    }
+
     private fun enterRoom(){
         viewModelScope.launch {
-            enterRoomUseCase(uiState.value.selectedRoom!!.roomId, uiState.value.roomPassword).collect{ result->
+            enterRoomUseCase(uiState.value.selectedRoom!!, uiState.value.roomPassword).collect{ result->
                 result.onSuccess {
                     processIntent(MultiIntent.EnterRoomComplete)
                 }

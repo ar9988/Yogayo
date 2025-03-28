@@ -15,7 +15,7 @@ class MultiReducer @Inject constructor() {
 
             is MultiIntent.SelectRoom -> currentState.copy(
                 dialogState = DialogState.ENTERING,
-                selectedRoom = intent.room
+                selectedRoom = intent.room.roomId
             )
 
             is MultiIntent.UpdateSearchText -> currentState.copy(
@@ -91,9 +91,17 @@ class MultiReducer @Inject constructor() {
             )
 
             is MultiIntent.EnterRoomFail -> currentState.copy(
-                enteringRoom = false
+                enteringRoom = false,
+                errorMessage = intent.message
             )
 
+            is MultiIntent.CreateRoomFail -> currentState.copy(
+                errorMessage = intent.message
+            )
+
+            is MultiIntent.ClearErrorMessage -> currentState.copy(
+                errorMessage = null
+            )
         }
     }
 }

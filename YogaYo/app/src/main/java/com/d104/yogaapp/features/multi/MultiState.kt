@@ -5,7 +5,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 
 data class MultiState(
-    val selectedRoom: Room? = null,
+    val selectedRoom: Long? = null,
     val isLoading: Boolean = false,
     val dialogState: DialogState = DialogState.NONE,
     val poseSearchTitle: String = "",
@@ -18,8 +18,10 @@ data class MultiState(
     var searchedPoses: List<YogaPose> = emptyList(),
     var yogaCourses: List<UserCourse> = emptyList(),
     var enteringRoom: Boolean = false,
+    val roomMax: Int = 2,
+    val isPassword: Boolean = false,
+    val errorMessage: String? = null
 )
-
 enum class DialogState {
     NONE, CREATING, ENTERING, COURSE_EDITING
 }
