@@ -68,18 +68,17 @@ public class BadgeService {
     public UserInfoRes getUserInfo(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new NoSuchElementException("유저를 찾을 수 없습니다."));
-        UserRecord userRecord = userRecordRepository.findByUser(user).orElseThrow(() ->
-                new NoSuchElementException("유저 기록을 찾을 수 없습니다."));
+        UserRecord userRecord = userRecordRepository.findByUser(user).orElse(null);
+        
         UserInfoRes userInfoRes = UserInfoRes.builder()
                 .userId(userId)
                 .userName(user.getUserName())
                 .userNickName(user.getUserNickname())
                 .userProfile(user.getUserProfile())
-                .exConDays(userRecord.getExConDays())
-                .exDays(userRecord.getExDays())
-                .roomWin(userRecord.getRoomWin())
+                .exConDays(userRecord != null ? userRecord.getExConDays() : null)
+                .exDays(userRecord != null ? userRecord.getExDays() : null)
+                .roomWin(userRecord != null ? userRecord.getRoomWin() : null)
                 .build();
-
         return userInfoRes;
     }
 
