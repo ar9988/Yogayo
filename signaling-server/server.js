@@ -9,30 +9,35 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'views'))); //나중에 삭제하기기
+app.use(express.static(path.join(__dirname, 'views'))); // 나중에 삭제할 예정
 
 // Socket.IO 서버 초기화
 const io = socketIO(server, {
   path: '/socket.io',
   cors: {
-    //모바일도 CORS 설정이 필요한가요?
+    // 모바일 네이티브 앱은 일반적으로 CORS 제약을 받지 않습니다.
     origin: "*", // 실제 배포 시에는 허용 도메인 제한 필요
     methods: ["GET", "POST"]
   }
 });
 
-// 방 관리를 위한 Map
+// 방 관리를 위한 Map (메모리 캐시)
 const rooms = new Map();
 
 // 소켓ID와 사용자 정보를 위한 Map
 // { userId, roomId } 형식으로 저장. roomId는 joinRoom 이벤트에서 갱신합니다.
 const socketToUser = new Map();
 
+// 재연결 유예를 위한 Map (userId -> { roomId, oldSocketId, timeout })
+const pendingReconnections = new Map();
+const RECONNECT_GRACE_PERIOD = 10000; // 10초
+
 /**
  * Placeholder DB 함수들
  */
 async function getRoomFromDB(roomId) {
   console.log("DB에서 room 정보를 불러옵니다:", roomId);
+  // HTTP POST 등으로 방 생성이 이미 되었으므로, DB 또는 별도 API로부터 방 정보를 가져온다고 가정합니다.
   return {
     roomId,
     maxParticipants: 4,       // DB에 저장된 최대 참가자 수
@@ -62,7 +67,6 @@ function verifyJWT(token) {
  * Socket.IO 인증 미들웨어
  * 클라이언트는 handshake.auth.token에 JWT 토큰을 전달해야 하며,
  * 토큰 검증에 성공하면 socket.userId에 저장합니다.
- * roomId 정보는 joinRoom 이벤트에서 설정하므로 여기서는 null로 처리합니다.
  */
 io.use((socket, next) => {
   try {
@@ -75,7 +79,21 @@ io.use((socket, next) => {
       return next(new Error('유효하지 않은 토큰입니다.'));
     }
     socket.userId = payload.userId;
-    socketToUser.set(socket.id, { userId: payload.userId, roomId: null });
+    // 재연결인 경우 처리
+    if (pendingReconnections.has(socket.userId)) {
+      const pending = pendingReconnections.get(socket.userId);
+      clearTimeout(pending.timeout);
+      socketToUser.set(socket.id, { userId: socket.userId, roomId: pending.roomId });
+      const room = rooms.get(pending.roomId);
+      if (room) {
+        room.participants.delete(pending.oldSocketId);
+        room.participants.set(socket.id, socket.userId);
+        console.log(`사용자 ${socket.userId} 재연결됨. 방: ${pending.roomId}`);
+      }
+      pendingReconnections.delete(socket.userId);
+    } else {
+      socketToUser.set(socket.id, { userId: socket.userId, roomId: null });
+    }
     next();
   } catch (err) {
     console.error("인증 미들웨어 에러:", err);
@@ -89,33 +107,18 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('새로운 클라이언트 접속!', socket.id);
 
-  // 방 생성 이벤트
-  socket.on('createRoom', ({ roomId, maxParticipants }) => {
+  // 방 참가 이벤트
+  socket.on('joinRoom', async ({ roomId }) => {
     try {
-      if (rooms.has(roomId)) {
-        socket.emit('error', { message: '이미 존재하는 방입니다.' });
-        return;
-      }
-      rooms.set(roomId, {
-        participants: new Map(), // socketId -> userId 매핑
-        maxParticipants,
-        readyUsers: new Set()
-      });
-      console.log(`방 ${roomId} 생성됨 (최대 인원: ${maxParticipants})`);
-      socket.emit('roomCreated', { roomId });
-    } catch (err) {
-      console.error('방 생성 중 오류:', err);
-      socket.emit('error', { message: '방 생성 중 오류가 발생했습니다.' });
-    }
-  });
-
-  // 방 참가 이벤트 (클라이언트가 보내는 userId 대신 JWT의 userId 사용)
-  socket.on('joinRoom', ({ roomId }) => {
-    try {
-      const room = rooms.get(roomId);
+      let room = rooms.get(roomId);
+      // 메모리에 없으면 DB에서 불러와서 캐싱
       if (!room) {
-        socket.emit('error', { message: '존재하지 않는 방입니다.' });
-        return;
+        room = await getRoomFromDB(roomId);
+        if (!room) {
+          socket.emit('error', { message: '존재하지 않는 방입니다.' });
+          return;
+        }
+        rooms.set(roomId, room);
       }
       if (room.participants.size >= room.maxParticipants) {
         socket.emit('error', { message: '방이 가득 찼습니다.' });
@@ -210,30 +213,36 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 연결 해제 이벤트
+  // 연결 해제 이벤트: 재연결 유예 기간을 두어 상태 복원을 허용합니다.
   socket.on('disconnect', () => {
     try {
       const userInfo = socketToUser.get(socket.id);
       if (!userInfo) return;
 
       const { roomId, userId } = userInfo;
-      const room = rooms.get(roomId);
-      if (room) {
-        room.participants.delete(socket.id);
-        room.readyUsers.delete(userId);
+      const timeout = setTimeout(() => {
+        const room = rooms.get(roomId);
+        if (room) {
+          room.participants.delete(socket.id);
+          room.readyUsers.delete(userId);
 
-        if (room.participants.size === 0) {
-          rooms.delete(roomId);
-          console.log(`방 ${roomId}가 비어 삭제되었습니다.`);
-        } else {
-          console.log(`사용자 ${userId}가 방 ${roomId}에서 나갔습니다. 남은 인원: ${room.participants.size}`);
-          io.to(roomId).emit('userLeft', { 
-            userId,
-            participantCount: room.participants.size 
-          });
+          if (room.participants.size === 0) {
+            rooms.delete(roomId);
+            console.log(`방 ${roomId}가 비어 삭제되었습니다.`);
+          } else {
+            console.log(`사용자 ${userId}가 방 ${roomId}에서 영구적으로 나갔습니다. 남은 인원: ${room.participants.size}`);
+            io.to(roomId).emit('userLeft', { 
+              userId,
+              participantCount: room.participants.size 
+            });
+          }
         }
-      }
-      socketToUser.delete(socket.id);
+        socketToUser.delete(socket.id);
+        pendingReconnections.delete(userId);
+      }, RECONNECT_GRACE_PERIOD);
+
+      pendingReconnections.set(userId, { roomId, oldSocketId: socket.id, timeout });
+      console.log(`사용자 ${userId}의 연결이 끊어졌습니다. ${RECONNECT_GRACE_PERIOD / 1000}초 내 재연결 대기 중...`);
     } catch (err) {
       console.error('연결 해제 처리 중 오류:', err);
     }
@@ -242,11 +251,10 @@ io.on('connection', (socket) => {
   // 에러 처리
   socket.on('error', (error) => {
     console.error('Socket error:', error);
-    // 클라이언트에 재연결 유도 메시지 전송
     socket.emit('reconnectRequired', { message: '연결에 문제가 발생했습니다.' });
   });
 
-  // 연결 상태 모니터링 추가
+  // 연결 상태 모니터링 (ping-pong)
   socket.on('ping', () => {
     socket.emit('pong');
   });
