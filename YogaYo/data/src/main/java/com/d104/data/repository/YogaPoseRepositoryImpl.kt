@@ -4,7 +4,6 @@ import com.d104.data.mapper.YogaPoseMapper
 import com.d104.data.remote.datasource.yogapose.YogaPoseDataSource
 import com.d104.domain.model.YogaPose
 import com.d104.domain.repository.YogaPoseRepository
-import com.neungi.domain.model.ApiResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

@@ -15,6 +15,9 @@ class MainReducer @Inject constructor() {
 //                currentState.copy(soloYogaCourse = null)
                 currentState
 
+            is MainIntent.SetUserRecord -> {
+                currentState.copy(userRecord = intent.userRecord)
+            }
         }
     }
 }

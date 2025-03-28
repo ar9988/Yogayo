@@ -1,12 +1,10 @@
-package com.d104.yogaapp.features.mypage
+package com.d104.yogaapp.features.mypage.recorddetail
 
-import com.d104.domain.model.Badge
+import com.d104.domain.model.BestPoseRecord
 import com.d104.domain.model.UserRecord
 
-data class MyPageState(
+data class DetailRecordState (
     val isLoading: Boolean = false,
-    val isLogoutSuccessful:Boolean = false,
-    val myBadgeList:List<Badge> = emptyList(),
     val userRecord:UserRecord = UserRecord(
         userId = -1,
         userName = "",
@@ -16,4 +14,5 @@ data class MyPageState(
         exConDays = 0,
         roomWin = 0
     ),
+    val bestPoseRecords: List<BestPoseRecord> = emptyList(),
 )
