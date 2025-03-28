@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Client Test</title>
+</head>
+<body>
+  <script>
+    // 서버 주소에 맞게 URL 수정 (예: ws://localhost:8080)
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = () => {
+      console.log('서버와 연결됨');
+      // 서버로 메시지 전송
+      ws.send('Hello, 서버!');
+    };
+    ws.onmessage = (event) => {
+      console.log(`서버로부터 받은 메시지: ${event.data}`);
+    };
+
+    ws.onclose = () => {
+      console.log('서버와 연결 종료');
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket 오류:', error);
+    };
+  </script>
+</body>
+</html>
