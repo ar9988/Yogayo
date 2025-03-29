@@ -13,6 +13,7 @@ sealed class MultiPlayIntent {
     data class CaptureImage(val bitmap: Bitmap) : MultiPlayIntent()
     data class ClickPose(val poseId: Int) : MultiPlayIntent()
     data class InitializeRoom(val room: Room) : MultiPlayIntent()
+    data class ReceiveMessage(val message: String) : MultiPlayIntent()
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()
