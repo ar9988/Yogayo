@@ -15,41 +15,23 @@ app.use(express.static(path.join(__dirname, 'views'))); // 나중에 삭제할 �
 const io = socketIO(server, {
   path: '/socket.io',
   cors: {
-    // 모바일 네이티브 앱은 일반적으로 CORS 제약을 받지 않습니다.
+    // 네이티브 모바일 앱은 일반적으로 CORS 제약을 받지 않습니다.
     origin: "*", // 실제 배포 시에는 허용 도메인 제한 필요
     methods: ["GET", "POST"]
   }
 });
 
-// 방 관리를 위한 Map (메모리 캐시)
+// Ephemeral room 상태를 위한 메모리 저장소
+// HTTP API로 이미 생성된 방은, signaling 서버에서는 해당 roomId로 소켓 룸을 생성하여 메시지 중계에 집중합니다.
 const rooms = new Map();
 
 // 소켓ID와 사용자 정보를 위한 Map
-// { userId, roomId } 형식으로 저장. roomId는 joinRoom 이벤트에서 갱신합니다.
+// { userId, roomId } 형식. roomId는 joinRoom 이벤트에서 업데이트됩니다.
 const socketToUser = new Map();
 
 // 재연결 유예를 위한 Map (userId -> { roomId, oldSocketId, timeout })
 const pendingReconnections = new Map();
 const RECONNECT_GRACE_PERIOD = 10000; // 10초
-
-/**
- * Placeholder DB 함수들
- */
-async function getRoomFromDB(roomId) {
-  console.log("DB에서 room 정보를 불러옵니다:", roomId);
-  // HTTP POST 등으로 방 생성이 이미 되었으므로, DB 또는 별도 API로부터 방 정보를 가져온다고 가정합니다.
-  return {
-    roomId,
-    maxParticipants: 4,       // DB에 저장된 최대 참가자 수
-    yogaCourse: 'default',    // 예시 yogaCourse 값
-    participants: new Map()    // socketId -> userId 매핑
-  };
-}
-
-async function updateRoomParticipantsInDB(roomId, participants) {
-  console.log("DB에 참가자 정보 업데이트:", roomId, participants);
-  return Promise.resolve();
-}
 
 /**
  * JWT 검증 함수 (your_jwt_secret는 실제 비밀 키로 대체)
@@ -67,6 +49,7 @@ function verifyJWT(token) {
  * Socket.IO 인증 미들웨어
  * 클라이언트는 handshake.auth.token에 JWT 토큰을 전달해야 하며,
  * 토큰 검증에 성공하면 socket.userId에 저장합니다.
+ * 재연결 시 pendingReconnections에서 이전 상태를 복원합니다.
  */
 io.use((socket, next) => {
   try {
@@ -79,7 +62,21 @@ io.use((socket, next) => {
       return next(new Error('유효하지 않은 토큰입니다.'));
     }
     socket.userId = payload.userId;
-    // 재연결인 경우 처리
+    
+    // 추가: 기존 활성 연결 체크 및 중복 연결 제거
+    for (const [id, userInfo] of socketToUser.entries()) {
+      if (userInfo.userId === socket.userId && id !== socket.id) {
+        const existingSocket = io.sockets.sockets.get(id);
+        if (existingSocket) {
+          existingSocket.emit('duplicateConnection', { message: '새로운 연결이 확인되어 이전 연결을 종료합니다.' });
+          existingSocket.disconnect();
+          socketToUser.delete(id);
+          console.log(`중복 연결 제거: 사용자 ${socket.userId}의 이전 소켓 ${id} 제거됨.`);
+        }
+      }
+    }
+    
+    // 재연결 처리: pendingReconnections에 기록되어 있으면 재연결 로직 실행
     if (pendingReconnections.has(socket.userId)) {
       const pending = pendingReconnections.get(socket.userId);
       clearTimeout(pending.timeout);
@@ -101,6 +98,7 @@ io.use((socket, next) => {
   }
 });
 
+
 /**
  * Socket.IO 이벤트 처리
  */
@@ -108,29 +106,25 @@ io.on('connection', (socket) => {
   console.log('새로운 클라이언트 접속!', socket.id);
 
   // 방 참가 이벤트
-  socket.on('joinRoom', async ({ roomId }) => {
+  socket.on('joinRoom', ({ roomId }) => {
     try {
       let room = rooms.get(roomId);
-      // 메모리에 없으면 DB에서 불러와서 캐싱
+      // 만약 ephemeral room이 없다면 새로 생성 (DB에서 불러오는 대신 HTTP API로 생성된 방을 기준으로 함)
       if (!room) {
-        room = await getRoomFromDB(roomId);
-        if (!room) {
-          socket.emit('error', { message: '존재하지 않는 방입니다.' });
-          return;
-        }
+        room = {
+          participants: new Map(), // socketId -> userId 매핑
+          readyUsers: new Set(),
+          courseStarted: false,    // 코스 시작 여부 플래그
+          maxParticipants: Infinity  // 필요시 제한값 설정
+        };
         rooms.set(roomId, room);
-      }
-      if (room.participants.size >= room.maxParticipants) {
-        socket.emit('error', { message: '방이 가득 찼습니다.' });
-        return;
       }
       if (room.participants.has(socket.id)) {
         socket.emit('error', { message: '이미 방에 참가하였습니다.' });
         return;
       }
-      // JWT에서 가져온 socket.userId 사용
       room.participants.set(socket.id, socket.userId);
-      // joinRoom 이벤트 발생 시 roomId를 업데이트
+      // joinRoom 이벤트 시 roomId 업데이트
       socketToUser.set(socket.id, { userId: socket.userId, roomId });
       
       socket.join(roomId);
@@ -161,9 +155,12 @@ io.on('connection', (socket) => {
       }
       room.readyUsers.add(userId);
       
+      // 모든 참가자가 준비되면 courseStarted 플래그를 설정하고, 'allReady' 및 'courseStarted' 이벤트를 발송합니다.
       if (room.readyUsers.size === room.participants.size) {
+        room.courseStarted = true;
         console.log(`모든 참가자 (${room.participants.size}) 준비 완료. 방: ${roomId}`);
         io.to(roomId).emit('allReady');
+        io.to(roomId).emit('courseStarted'); // 클라이언트는 이 이벤트를 받고 이후 ICE 후보나 Heartbeat만 처리하도록 전환할 수 있음.
       } else {
         console.log(`사용자 ${userId}가 준비 완료. 현재 준비 인원: ${room.readyUsers.size}`);
         io.to(roomId).emit('userReady', { 
@@ -177,7 +174,22 @@ io.on('connection', (socket) => {
     }
   });
 
-  // WebRTC 시그널링 이벤트
+  // Heartbeat 이벤트 (코스 시작 후 연결 상태 모니터링용)
+  socket.on('heartbeat', () => {
+    try {
+      const userInfo = socketToUser.get(socket.id);
+      if (!userInfo || !userInfo.roomId) {
+        return;
+      }
+      // 단순 heartbeat 신호를 룸 내 다른 참가자에게 전달합니다.
+      socket.to(userInfo.roomId).emit('heartbeat', { userId: userInfo.userId });
+    } catch (err) {
+      console.error('Heartbeat 처리 중 오류:', err);
+      socket.emit('error', { message: 'Heartbeat 처리 중 오류가 발생했습니다.' });
+    }
+  });
+
+  // WebRTC 시그널링 이벤트 (코스 시작 전후 동일하게 ICE 후보 및 기타 signaling 메시지 중계)
   socket.on('signal', ({ signal }) => {
     try {
       const userInfo = socketToUser.get(socket.id);
@@ -203,6 +215,8 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: '방 정보가 없습니다.' });
         return;
       }
+      // 코스가 시작된 상태에서는 ICE 후보 변화에 따라 연결 재설정을 위한 로직을 추가할 수 있습니다.
+      // 예를 들어, 클라이언트 측에서 ICE 후보 변화가 감지되면 'iceCandidate' 이벤트를 받고, 재연결 절차를 시작할 수 있습니다.
       socket.to(userInfo.roomId).emit('iceCandidate', {
         userId: userInfo.userId,
         candidate
@@ -251,6 +265,7 @@ io.on('connection', (socket) => {
   // 에러 처리
   socket.on('error', (error) => {
     console.error('Socket error:', error);
+    // 재연결 유도 메시지 전송
     socket.emit('reconnectRequired', { message: '연결에 문제가 발생했습니다.' });
   });
 
