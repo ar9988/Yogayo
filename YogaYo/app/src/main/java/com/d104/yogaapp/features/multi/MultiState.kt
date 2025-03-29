@@ -18,8 +18,10 @@ data class MultiState(
     var searchedPoses: List<YogaPose> = emptyList(),
     var yogaCourses: List<UserCourse> = emptyList(),
     var enteringRoom: Boolean = false,
+    val roomMax: Int = 2,
+    val isPassword: Boolean = false,
+    val errorMessage: String? = null
 )
-
 enum class DialogState {
     NONE, CREATING, ENTERING, COURSE_EDITING
 }

@@ -1,14 +1,20 @@
 package com.d104.data.repository
 
+import com.d104.data.mapper.CreateRoomMapper
 import com.d104.data.mapper.EnterRoomMapper
+import com.d104.data.mapper.PoseMapper
 import com.d104.data.mapper.RoomMapper
+import com.d104.data.mapper.YogaPoseMapper
 import com.d104.data.remote.api.MultiApiService
 import com.d104.data.remote.api.SseApiService
 import com.d104.data.remote.dto.EnterRoomRequestDto
 import com.d104.data.remote.listener.EventListener
 import com.d104.data.utils.ErrorUtils
+import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.EnterResult
 import com.d104.domain.model.Room
+import com.d104.domain.model.YogaPose
+import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.repository.LobbyRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -22,7 +28,9 @@ class LobbyRepositoryImpl @Inject constructor(
     private val eventListener: EventListener,
     private val multiApiService: MultiApiService,
     private val roomMapper: RoomMapper,
-    private val enterRoomMapper: EnterRoomMapper
+    private val createRoomMapper: CreateRoomMapper,
+    private val enterRoomMapper: EnterRoomMapper,
+    private val poseMapper: PoseMapper
 ) : LobbyRepository {
 //    private val eventListener: EventListener = EventListener()
     private fun startSse(searchText: String, page: Int) {
@@ -52,6 +60,44 @@ class LobbyRepositoryImpl @Inject constructor(
                         EnterResult.Error.Unauthorized("Unknown Error")
                     }
                 }
+                emit(Result.success(errorResult))
+            }
+        }
+    }
+
+    override suspend fun createRoom(
+        roomName: String,
+        roomMax: Int,
+        isPassword: Boolean,
+        password: String,
+        poses: List<YogaPose>
+    ): Flow<Result<CreateRoomResult>> {
+        try {
+            val createRoomResponseDto = multiApiService.createRoom(
+                roomName,
+                roomMax,
+                isPassword,
+                password,
+                poseMapper.map(poses)
+            )
+            val createRoomResult = createRoomMapper.map(createRoomResponseDto)
+            return flow {
+                emit(Result.success(createRoomResult))
+            }
+        } catch (e: HttpException) {
+            val errorResult = when (e.code()){
+                400 -> {
+                    val errorBody = ErrorUtils.parseHttpError(e)
+                    CreateRoomResult.Error.BadRequest(errorBody?.message ?: "Bad Request")
+                }
+                401 -> {
+                    CreateRoomResult.Error.Unauthorized("Unauthorized")
+                }
+                else ->{
+                    CreateRoomResult.Error.Unauthorized("Unknown Error")
+                }
+            }
+            return flow {
                 emit(Result.success(errorResult))
             }
         }

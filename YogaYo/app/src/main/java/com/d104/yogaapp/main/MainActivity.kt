@@ -43,6 +43,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.UserRecord
 import com.d104.yogaapp.R
@@ -138,6 +139,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                         navController.navigate("solo_yoga_play")
                     },
                     onNavigateMultiPlay = {
+                        viewModel.processIntent(MainIntent.SelectRoom(it))
                         navController.navigate("multi_yoga_play")
                     },
                     onNavigateSoloScreen = {
@@ -176,6 +178,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             // 멀티 요가 플레이 화면
             composable("multi_yoga_play"){
                 MultiPlayScreen(
+                    room = state.room!!,
                     onBackPressed ={
                         navController.popBackStack()
                     }
@@ -225,7 +228,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
 fun MainTabScreen(
     selectedTab: Tab,
     onNavigateToYogaPlay: (UserCourse) -> Unit,
-    onNavigateMultiPlay: (Long) -> Unit,
+    onNavigateMultiPlay: (Room) -> Unit,
     onNavigateSoloScreen:() -> Unit,
     onNavigateToDetailRecord:(userRecord:UserRecord)->Unit
 ) {
@@ -237,7 +240,9 @@ fun MainTabScreen(
             Tab.Solo -> SoloScreen(
                 onNavigateToYogaPlay = onNavigateToYogaPlay
                 )
-            Tab.Multi -> MultiScreen(onNavigateMultiPlay = onNavigateMultiPlay)
+            Tab.Multi -> MultiScreen(
+                onNavigateMultiPlay = onNavigateMultiPlay
+            )
             Tab.MyPage -> MyPageScreen(
                 onNavigateSoloScreen = onNavigateSoloScreen,
                 onNavigateToDetailRecord = {userRecord ->

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.d104.domain.model.Room
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.RotateScreen
 import com.d104.yogaapp.features.common.YogaAnimationScreen
@@ -44,11 +45,18 @@ import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
 @Composable
 fun MultiPlayScreen(
     viewModel: MultiPlayViewModel = hiltViewModel(),
+    room: Room,
     onBackPressed: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    LaunchedEffect(room) {
+        // Check prevents re-initializing if already set (e.g., during recomposition)
+        if (uiState.currentRoom == null || uiState.currentRoom?.roomId != room.roomId) {
+            viewModel.processIntent(MultiPlayIntent.InitializeRoom(room))
+        }
+    }
 //    // 화면 설정 (가로 모드, 전체 화면)
     if (uiState.gameState == GameState.Playing || uiState.gameState == GameState.Waiting || uiState.gameState == GameState.RoundResult) {
         // 요가 플레이 중이거나 가이드 중일 때만 가로 모드로 설정

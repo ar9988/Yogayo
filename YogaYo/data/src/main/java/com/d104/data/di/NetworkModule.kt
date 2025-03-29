@@ -112,4 +112,5 @@ object NetworkModule {
         return retrofit.create(MultiApiService::class.java)
     }
 
+
 }

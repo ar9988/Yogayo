@@ -37,7 +37,7 @@ class MultiPlayViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        CloseWebSocketUseCase()
+        closeWebSocketUseCase()
         super.onCleared()
     }
 

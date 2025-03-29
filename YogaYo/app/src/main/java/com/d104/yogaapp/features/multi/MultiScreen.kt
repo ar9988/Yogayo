@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,22 +54,29 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
 import com.d104.yogaapp.features.common.CourseCard
 import androidx.compose.ui.platform.LocalDensity
-import com.d104.domain.model.PeerUser
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
 
 @Composable
 fun MultiScreen(
-    onNavigateMultiPlay: (Long) -> Unit,
+    onNavigateMultiPlay: (Room) -> Unit,
     viewModel: MultiViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
+    val context = LocalContext.current
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            // 토스트 메시지를 표시한 후 errorMessage를 null로 재설정
+            viewModel.processIntent(MultiIntent.ClearErrorMessage)
+        }
+    }
     LaunchedEffect(uiState.enteringRoom) {
         if (uiState.enteringRoom) {
             onNavigateMultiPlay(
-                uiState.selectedRoom!!.roomId
+                uiState.selectedRoom!!
             )
             viewModel.processIntent(MultiIntent.EnterRoomComplete)
         }
@@ -221,8 +230,8 @@ fun RoomList(
                         room
                     )
                 },
-                poseList = room.course.poses,
-                course = room.course,
+                poseList = room.userCourse.poses,
+                course = room.userCourse,
                 onClick = onClickRemembered,
                 showEditButton = false
             )
@@ -292,7 +301,7 @@ fun MultiCourseCardHeader(room: Room) {
                         contentDescription = "방장"
                     )
                     Text(
-                        text = room.userNickName,
+                        text = room.userNickname,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -311,7 +320,7 @@ fun MultiCourseCardHeader(room: Room) {
                 )
 
                 // 각 포즈당 3분으로 계산
-                val durationMinutes = room.course.poses.size * 3
+                val durationMinutes = room.userCourse.poses.size * 3
                 Text(
                     text = "${durationMinutes}분",
                     color = Color.Gray,

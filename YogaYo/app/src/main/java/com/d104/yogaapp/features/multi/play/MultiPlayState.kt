@@ -1,6 +1,7 @@
 package com.d104.yogaapp.features.multi.play
 
 import com.d104.domain.model.PeerUser
+import com.d104.domain.model.Room
 import com.d104.domain.model.YogaPose
 
 data class MultiPlayState(
@@ -19,7 +20,8 @@ data class MultiPlayState(
     val currentAccuracy: Float = 0.0f,
     val gameState: GameState = GameState.GameResult,
     val second : Float = 1.0f, // 1.0 = 3초, 0.0 = 0초
-    val selectedPoseId :Int = 0
+    val selectedPoseId :Int = 0,
+    val currentRoom: Room? = null,
 )
 
 enum class GameState {
