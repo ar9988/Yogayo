@@ -6,6 +6,8 @@ import com.d104.data.remote.api.SseApiService
 import com.d104.data.remote.api.SseApiServiceImpl
 import com.d104.data.remote.api.UserApiService
 import com.d104.data.remote.api.UserCourseApiService
+import com.d104.data.remote.api.WebSocketService
+import com.d104.data.remote.api.WebSocketServiceImpl
 import com.d104.data.remote.api.YogaPoseApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
@@ -112,5 +114,9 @@ object NetworkModule {
         return retrofit.create(MultiApiService::class.java)
     }
 
-
+    @Provides
+    @Singleton
+    fun provideWebSocketService(okHttpClient: OkHttpClient): WebSocketService {
+        return WebSocketServiceImpl(okHttpClient)
+    }
 }
