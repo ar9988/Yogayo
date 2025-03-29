@@ -1,5 +1,6 @@
 package com.d104.data.remote.dto
 
+import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPoseWithOrder
 
 data class CreateRoomRequestDto(
@@ -8,5 +9,5 @@ data class CreateRoomRequestDto(
     val isPassword: Boolean,
     val password: String,
     val courseName: String,
-    val poses: List<YogaPoseWithOrder>
+    val userCourse: UserCourse
 )

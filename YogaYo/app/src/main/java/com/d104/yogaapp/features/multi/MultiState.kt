@@ -5,7 +5,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 
 data class MultiState(
-    val selectedRoom: Long? = null,
+    val selectedRoom: Room? = null,
     val isLoading: Boolean = false,
     val dialogState: DialogState = DialogState.NONE,
     val poseSearchTitle: String = "",

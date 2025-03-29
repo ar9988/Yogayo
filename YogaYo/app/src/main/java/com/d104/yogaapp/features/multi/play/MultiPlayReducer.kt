@@ -46,6 +46,9 @@ class MultiPlayReducer @Inject constructor() {
                 }
                 currentState.copy(gameState = nextState)
             }
+            is MultiPlayIntent.InitializeRoom -> currentState.copy(
+                currentRoom = intent.room
+            )
             else -> currentState
         }
     }

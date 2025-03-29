@@ -1,5 +1,6 @@
 package com.d104.yogaapp.main
 
+import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.UserRecord
 
@@ -16,6 +17,7 @@ data class MainState(
         exConDays = 0,
         roomWin = 0
     ),
+    val room: Room? = null
 )
 enum class Tab{
     Solo, Multi, MyPage

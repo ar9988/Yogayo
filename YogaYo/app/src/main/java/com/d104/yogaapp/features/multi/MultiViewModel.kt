@@ -2,6 +2,7 @@ package com.d104.yogaapp.features.multi
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
@@ -18,7 +19,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -92,6 +92,7 @@ class MultiViewModel @Inject constructor(
                 _uiState.value.selectedCourse!!.poses
             ).collect{ result->
                 result.onSuccess {
+                    processIntent(MultiIntent.SelectRoom((it as CreateRoomResult.Success).room))
                     processIntent(MultiIntent.EnterRoom)
                 }
                 result.onFailure {
@@ -103,7 +104,7 @@ class MultiViewModel @Inject constructor(
 
     private fun enterRoom(){
         viewModelScope.launch {
-            enterRoomUseCase(uiState.value.selectedRoom!!, uiState.value.roomPassword).collect{ result->
+            enterRoomUseCase(uiState.value.selectedRoom!!.roomId, uiState.value.roomPassword).collect{ result->
                 result.onSuccess {
                     processIntent(MultiIntent.EnterRoomComplete)
                 }
@@ -166,12 +167,12 @@ class MultiViewModel @Inject constructor(
         _uiState.value.page = listOf(
             Room(
                 roomId = 0,
-                userNickName = "We'T",
+                userNickname = "We'T",
                 roomMax = 6,
                 roomCount = 4,
                 roomName = "요가 할래?",
                 isPassword = true,
-                course = UserCourse(
+                userCourse = UserCourse(
                     courseId = 1,
                     courseName = "Test Course",
                     tutorial = false,
@@ -180,12 +181,12 @@ class MultiViewModel @Inject constructor(
             ),
             Room(
                 roomId = 0,
-                userNickName = "TestNickName",
+                userNickname = "TestNickName",
                 roomMax = 6,
                 roomCount = 1,
                 roomName = "Test Room Name",
                 isPassword = false,
-                course = UserCourse(
+                userCourse = UserCourse(
                     courseId = 1,
                     courseName = "Test Course",
                     tutorial = false,
@@ -194,12 +195,12 @@ class MultiViewModel @Inject constructor(
             ),
             Room(
                 roomId = 0,
-                userNickName = "TestNickName",
+                userNickname = "TestNickName",
                 roomMax = 6,
                 roomCount = 1,
                 roomName = "Test Room Name",
                 isPassword = false,
-                course = UserCourse(
+                userCourse = UserCourse(
                     courseId = 1,
                     courseName = "Test Course",
                     tutorial = false,
@@ -208,12 +209,12 @@ class MultiViewModel @Inject constructor(
             ),
             Room(
                 roomId = 0,
-                userNickName = "TestNickName",
+                userNickname = "TestNickName",
                 roomMax = 6,
                 roomCount = 1,
                 roomName = "Test Room Name",
                 isPassword = false,
-                course = UserCourse(
+                userCourse = UserCourse(
                     courseId = 1,
                     courseName = "Test Course",
                     tutorial = false,
@@ -222,12 +223,12 @@ class MultiViewModel @Inject constructor(
             ),
             Room(
                 roomId = 0,
-                userNickName = "TestNickName",
+                userNickname = "TestNickName",
                 roomMax = 6,
                 roomCount = 1,
                 roomName = "Test Room Name",
                 isPassword = false,
-                course = UserCourse(
+                userCourse = UserCourse(
                     courseId = 1,
                     courseName = "Test Course",
                     tutorial = false,
