@@ -19,7 +19,7 @@ import javax.inject.Inject
 class MultiPlayViewModel @Inject constructor(
     private val multiPlayReducer: MultiPlayReducer,
     private val connectWebSocketUseCase: ConnectWebSocketUseCase,
-    private val closeWebSocketUseCase: CloseWebSocketUseCase
+    private val closeWebSocketUseCase: CloseWebSocketUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()

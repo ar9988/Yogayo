@@ -49,6 +49,9 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.InitializeRoom -> currentState.copy(
                 currentRoom = intent.room
             )
+            is MultiPlayIntent.ReceiveMessage -> {
+                currentState
+            }
             else -> currentState
         }
     }

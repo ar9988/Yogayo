@@ -10,4 +10,5 @@ interface WebSocketRepository {
     suspend fun connect(topic: String) : Flow<String>
     fun disconnect()
     fun send(destination:String, message: String) : Boolean
+    fun getCurrentRoomId(): String
 }

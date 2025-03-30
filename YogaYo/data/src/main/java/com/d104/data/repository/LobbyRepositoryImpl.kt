@@ -7,7 +7,7 @@ import com.d104.data.mapper.RoomMapper
 import com.d104.data.remote.api.MultiApiService
 import com.d104.data.remote.api.SseApiService
 import com.d104.data.remote.dto.EnterRoomRequestDto
-import com.d104.data.remote.utils.EventListener
+import com.d104.data.remote.listener.EventListener
 import com.d104.data.utils.ErrorUtils
 import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.EnterResult

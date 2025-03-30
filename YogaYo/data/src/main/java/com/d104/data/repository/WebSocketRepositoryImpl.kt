@@ -218,6 +218,10 @@ class WebSocketRepositoryImpl @Inject constructor(
         return success
     }
 
+    override fun getCurrentRoomId(): String {
+        return currentRoomId ?: ""
+    }
+
     override fun disconnect() {
         Log.d("StompRepo", "Disconnect requested by client.")
         handleDisconnect("Client request")

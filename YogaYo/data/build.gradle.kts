@@ -77,6 +77,9 @@ dependencies {
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
+    // WebRTC
+    implementation("io.getstream:stream-webrtc-android:1.1.3")
+
 }
 
 kapt {
