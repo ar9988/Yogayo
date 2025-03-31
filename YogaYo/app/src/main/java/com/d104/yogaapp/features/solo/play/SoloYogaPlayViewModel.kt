@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.YogaHistory
 import com.d104.domain.model.YogaPose
+import com.d104.domain.usecase.PostYogaPoseHistoryUseCase
 import com.d104.yogaapp.utils.ImageDownloader
 import com.d104.yogaapp.utils.ImageStorageManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -27,7 +29,8 @@ import javax.inject.Inject
 class SoloYogaPlayViewModel @Inject constructor(
     private val reducer: SoloYogaPlayReducer,
     private val imageStorageManager: ImageStorageManager,
-    private val imageDownloader: ImageDownloader
+    private val imageDownloader: ImageDownloader,
+    private val postYogaPoseHistoryUseCase: PostYogaPoseHistoryUseCase
     ) : ViewModel() {
 
 
@@ -73,6 +76,7 @@ class SoloYogaPlayViewModel @Inject constructor(
                 handlePlayPauseChange(newState.isPlaying)
             }
             is SoloYogaPlayIntent.GoToNextPose -> {
+
                 Timber.d("current pose id : ${currentPose.value.poseId}")
 
             }
@@ -128,6 +132,8 @@ class SoloYogaPlayViewModel @Inject constructor(
             }
             SoloYogaPlayIntent.ResetDownloadState -> {
             }
+
+            is SoloYogaPlayIntent.SetLoginState -> {}
         }
     }
 
@@ -160,6 +166,20 @@ class SoloYogaPlayViewModel @Inject constructor(
 
             // 타이머 종료 후 다음 동작으로 자동 전환
             if (state.value.timerProgress <= 0f) {
+                if(state.value.isLogin&&!state.value.userCourse.tutorial){
+                    val currentidx = state.value.currentPoseIndex
+                    Timber.d("history:${state.value.poseHistories}")
+                    viewModelScope.launch {
+                        postYogaPoseHistoryUseCase(
+                            poseId = state.value.poseHistories[currentidx].poseId,
+                            accuracy = state.value.poseHistories[currentidx].accuracy,
+                            poseTime = state.value.poseHistories[currentidx].poseTime,
+                            imgUri = state.value.poseHistories[currentidx].recordImg
+                        ).collectLatest {
+                            Timber.d("historyresult:${it}")
+                        }
+                    }
+                }
                 processIntent(SoloYogaPlayIntent.GoToNextPose)
             }
         }
@@ -220,6 +240,9 @@ class SoloYogaPlayViewModel @Inject constructor(
 
         // 상태 업데이트
         _state.value = currentState.copy(poseHistories = updatedHistories)
+        if(state.value.isLogin){
+
+        }
 
         // 로그 출력 (디버깅용)
         Timber.d("포즈 히스토리 업데이트: 인덱스=$currentIndex, 포즈ID=${pose.poseId}, 이미지=$imageUri")

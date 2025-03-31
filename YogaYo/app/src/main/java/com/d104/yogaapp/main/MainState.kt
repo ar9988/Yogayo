@@ -16,6 +16,7 @@ data class MainState(
         exConDays = 0,
         roomWin = 0
     ),
+    val isLogin:Boolean = false
 )
 enum class Tab{
     Solo, Multi, MyPage

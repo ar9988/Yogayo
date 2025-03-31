@@ -149,8 +149,8 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                     onNavigateToDetailRecord = { userRecord ->
                         viewModel.processIntent(MainIntent.SetUserRecord(userRecord))
                         navController.navigate("detail_record")
-
-                    }
+                    },
+                    isLogin = state.isLogin
                 )
             }
 
@@ -164,7 +164,8 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                         onBackPressed = {
                             viewModel.processIntent(MainIntent.ClearSoloCourse)
                             navController.popBackStack()
-                        }
+                        },
+                        isLogin = state.isLogin
                     )
                 } ?: run {
                     // 코스 정보가 없으면 이전 화면으로 돌아가기
@@ -227,7 +228,8 @@ fun MainTabScreen(
     onNavigateToYogaPlay: (UserCourse) -> Unit,
     onNavigateMultiPlay: (Long) -> Unit,
     onNavigateSoloScreen:() -> Unit,
-    onNavigateToDetailRecord:(userRecord:UserRecord)->Unit
+    onNavigateToDetailRecord:(userRecord:UserRecord)->Unit,
+    isLogin:Boolean = false
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -235,6 +237,7 @@ fun MainTabScreen(
     ) {
         when (selectedTab) {
             Tab.Solo -> SoloScreen(
+                isLogin = isLogin,
                 onNavigateToYogaPlay = onNavigateToYogaPlay
                 )
             Tab.Multi -> MultiScreen(onNavigateMultiPlay = onNavigateMultiPlay)

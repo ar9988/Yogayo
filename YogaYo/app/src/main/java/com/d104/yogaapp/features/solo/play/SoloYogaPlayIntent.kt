@@ -16,6 +16,7 @@ sealed class SoloYogaPlayIntent {
     object StartCountdown : SoloYogaPlayIntent()
     object FinishCountdown : SoloYogaPlayIntent()
     object ResetDownloadState: SoloYogaPlayIntent()
+    data class SetLoginState(val isLogin:Boolean):SoloYogaPlayIntent()
     data class UpdateTimerProgress(val progress: Float) : SoloYogaPlayIntent()
     data class UpdateCameraPermission(val granted: Boolean) : SoloYogaPlayIntent()
     data class InitializeWithCourse(val course: UserCourse) : SoloYogaPlayIntent()

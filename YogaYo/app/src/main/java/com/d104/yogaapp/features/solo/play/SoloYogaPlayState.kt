@@ -14,7 +14,8 @@ data class SoloYogaPlayState(
     val currentAccuracy: Float = 0.71f,
     val isCountingDown: Boolean = false,
     val poseHistories:MutableList<YogaHistory> = mutableListOf(),
-    val downloadState: DownloadState = DownloadState.Default
+    val downloadState: DownloadState = DownloadState.Default,
+    val isLogin:Boolean = false
 
 )
 sealed class DownloadState {

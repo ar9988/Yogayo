@@ -78,6 +78,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SoloScreen(
     viewModel: SoloViewModel = hiltViewModel(),
+    isLogin:Boolean = false,
     onNavigateToYogaPlay: (UserCourse) -> Unit
 ) {
     val state by viewModel.state.collectAsState()

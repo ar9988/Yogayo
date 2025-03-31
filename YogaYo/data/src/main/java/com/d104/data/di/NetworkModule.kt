@@ -7,6 +7,7 @@ import com.d104.data.remote.api.SseApiServiceImpl
 import com.d104.data.remote.api.UserApiService
 import com.d104.data.remote.api.UserCourseApiService
 import com.d104.data.remote.api.YogaPoseApiService
+import com.d104.data.remote.api.YogaPoseHistoryApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
 import com.squareup.moshi.Moshi
@@ -110,6 +111,13 @@ object NetworkModule {
     @Singleton
     fun provideMultiApiService(@Named("YogaYo") retrofit: Retrofit): MultiApiService {
         return retrofit.create(MultiApiService::class.java)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideYogaPoseHistoryApiService(@Named("YogaYo") retrofit: Retrofit): YogaPoseHistoryApiService {
+        return retrofit.create(YogaPoseHistoryApiService::class.java)
     }
 
 }

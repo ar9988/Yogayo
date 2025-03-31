@@ -60,7 +60,10 @@ class MainViewModel @Inject constructor(
         // AuthEvent를 수집하여 NavigationEvent로 변환
         viewModelScope.launch {
             getLoginStatusUseCase().collectLatest { isLogin ->
-                _state.update { it.copy(selectedTab = Tab.Solo) }
+                _state.update { it.copy(
+                    selectedTab = Tab.Solo,
+                    isLogin = isLogin
+                ) }
             }
             authEventManager.authEvents.collect { authEvent ->
                 when (authEvent) {
