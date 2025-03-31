@@ -1,74 +1,70 @@
- package com.red.yogaback.security.dto;
+package com.red.yogaback.security.dto;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.util.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 
- public class CustomUserDetails implements UserDetails {
-     private Long userId;
-     private Collection<GrantedAuthority> authorities;
+public class CustomUserDetails implements UserDetails {
+    private Long userId;
+    private String userNickName;
+    private String userProfile;
+    private Collection<GrantedAuthority> authorities;
 
-     public CustomUserDetails(Long userId) {
-         this.userId = userId;
- //        this.authorities = createAuthorities(roles);
-     }
+    // 새 생성자: userId, userNickName, userProfile를 함께 설정
+    public CustomUserDetails(Long userId, String userNickName, String userProfile) {
+        this.userId = userId;
+        this.userNickName = userNickName;
+        this.userProfile = userProfile;
+        // 권한 정보는 상황에 따라 추가합니다. 여기서는 기본적으로 빈 리스트로 설정합니다.
+        this.authorities = new ArrayList<>();
+    }
 
-     public Long getUserId() {
-         return userId;
-     }
+    public Long getUserId() {
+        return userId;
+    }
 
-     private Collection<GrantedAuthority> createAuthorities(String roles){
-         Collection<GrantedAuthority> authorities = new ArrayList<>();
+    public String getUserNickName() {
+        return userNickName;
+    }
 
-         for(String role : roles.split(",")){
-             if (!StringUtils.hasText(role)) continue;
-             authorities.add(new SimpleGrantedAuthority(role));
-         }
-         return authorities;
-     }
+    public String getUserProfile() {
+        return userProfile;
+    }
 
-     @Override
-     public Collection<? extends GrantedAuthority> getAuthorities() {
-         return authorities;
-     }
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
+    }
 
-     @Override
-     public String getPassword() {
-         // 비밀번호는 사용하지 않으므로 null 반환
-         return null;
-     }
+    @Override
+    public String getPassword() {
+        return null; // 비밀번호는 사용하지 않음
+    }
 
-     @Override
-     public String getUsername() {
-         // 사용자를 식별할 수 있는 유니크한 값 반환
-         return null;
-     }
+    @Override
+    public String getUsername() {
+        // 필요에 따라 userNickName을 사용자 이름으로 반환하거나, 다른 값을 반환할 수 있습니다.
+        return userNickName;
+    }
 
-     @Override
-     public boolean isAccountNonExpired() {
-         // 계정 만료 여부, 여기서는 항상 true 반환
-         return true;
-     }
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
 
-     @Override
-     public boolean isAccountNonLocked() {
-         // 계정 잠김 여부, 여기서는 항상 true 반환
-         return true;
-     }
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
 
-     @Override
-     public boolean isCredentialsNonExpired() {
-         // 자격 증명 만료 여부, 여기서는 항상 true 반환
-         return true;
-     }
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
 
-     @Override
-     public boolean isEnabled() {
-         // 계정 활성화 여부, 여기서는 항상 true 반환
-         return true;
-     }
- }
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+}
