@@ -1,17 +1,17 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+
 import java.util.List;
 
 @Entity
 @Table(name = "UserCourse")
 @Getter
 @Setter
-@NoArgsConstructor()
+@NoArgsConstructor
+@Builder
+@AllArgsConstructor
 public class UserCourse {
 
     @Id
