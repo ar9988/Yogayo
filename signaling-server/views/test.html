@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC Signaling Test</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div>
+        <h2>WebRTC Signaling Test</h2>
+        <div>
+            <label>Room ID: </label>
+            <input type="text" id="roomId" value="test-room">
+            <label>User ID: </label>
+            <input type="text" id="userId">
+            <button onclick="joinRoom()">Join Room</button>
+        </div>
+        <div>
+            <h3>Connection Status:</h3>
+            <pre id="status"></pre>
+        </div>
+        <div>
+            <h3>Events Log:</h3>
+            <pre id="log"></pre>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+
+        // 로그 출력 함수
+        function addLog(message) {
+            log.textContent += `${new Date().toLocaleTimeString()}: ${message}\n`;
+        }
+
+        // 상태 업데이트 함수
+        function updateStatus(message) {
+            status.textContent = message;
+        }
+
+        function joinRoom() {
+            const roomId = document.getElementById('roomId').value;
+            const userId = document.getElementById('userId').value || `user-${Math.random().toString(36).substr(2, 9)}`;
+            
+            if (!socket) {
+                // Socket.IO 연결
+                socket = io({
+                    path: '/socket.io',
+                    auth: { token: 'test-token' }
+                });
+
+                // 연결 이벤트 리스너
+                socket.on('connect', () => {
+                    addLog('Socket.IO 연결됨');
+                    updateStatus('Connected');
+                    
+                    // 방 참가
+                    socket.emit('joinSignaling', { roomId, userId });
+                });
+
+                // 피어 참가 이벤트
+                socket.on('peerJoined', ({ userId }) => {
+                    addLog(`Peer joined: ${userId}`);
+                    // 실제로는 여기서 WebRTC 연결 시작
+                });
+
+                // 피어 이탈 이벤트
+                socket.on('peerLeft', ({ userId }) => {
+                    addLog(`Peer left: ${userId}`);
+                });
+
+                // 시그널링 이벤트
+                socket.on('signal', ({ userId, signal }) => {
+                    addLog(`Received signal from: ${userId}`);
+                });
+
+                // ICE 후보 이벤트
+                socket.on('iceCandidate', ({ userId, candidate }) => {
+                    addLog(`Received ICE candidate from: ${userId}`);
+                });
+
+                // 에러 이벤트
+                socket.on('signalingError', ({ message }) => {
+                    addLog(`Error: ${message}`);
+                    updateStatus('Error occurred');
+                });
+
+                // 연결 해제 이벤트
+                socket.on('disconnect', () => {
+                    addLog('Socket.IO 연결 해제됨');
+                    updateStatus('Disconnected');
+                });
+            } else {
+                // 이미 연결된 경우 방 재참가
+                socket.emit('joinSignaling', { roomId, userId });
+            }
+        }
+
+        // 테스트용 시그널 전송
+        function sendTestSignal() {
+            if (socket) {
+                socket.emit('signal', { 
+                    signal: { type: 'test', data: 'test data' } 
+                });
+            }
+        }
+    </script>
+</body>
+</html> 
