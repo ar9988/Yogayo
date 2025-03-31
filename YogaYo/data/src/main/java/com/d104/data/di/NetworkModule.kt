@@ -9,6 +9,7 @@ import com.d104.data.remote.api.UserCourseApiService
 import com.d104.data.remote.api.WebSocketService
 import com.d104.data.remote.api.WebSocketServiceImpl
 import com.d104.data.remote.api.YogaPoseApiService
+import com.d104.data.remote.api.YogaPoseHistoryApiService
 import com.d104.data.utils.JwtInterceptor
 import com.d104.data.utils.ZonedDateTimeJsonAdapter
 import com.squareup.moshi.Moshi
@@ -116,7 +117,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideYogaPoseHistoryApiService(@Named("YogaYo") retrofit: Retrofit): YogaPoseHistoryApiService {
+        return retrofit.create(YogaPoseHistoryApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideWebSocketService(okHttpClient: OkHttpClient): WebSocketService {
         return WebSocketServiceImpl(okHttpClient)
     }
+
 }

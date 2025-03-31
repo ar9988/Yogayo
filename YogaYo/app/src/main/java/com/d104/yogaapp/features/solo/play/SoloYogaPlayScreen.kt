@@ -92,10 +92,12 @@ import java.util.Locale
 fun SoloYogaPlayScreen(
     course:UserCourse,
     viewModel: SoloYogaPlayViewModel = hiltViewModel(),
+    isLogin:Boolean = false,
     onBackPressed: () -> Unit
 ) {
 
     LaunchedEffect(key1 = course.courseId) {
+        viewModel.processIntent(SoloYogaPlayIntent.SetLoginState(isLogin))
         viewModel.processIntent(SoloYogaPlayIntent.InitializeWithCourse(course))
     }
 

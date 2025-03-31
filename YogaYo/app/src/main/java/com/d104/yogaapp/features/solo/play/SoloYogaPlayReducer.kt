@@ -129,6 +129,11 @@ class SoloYogaPlayReducer @Inject constructor() {
                 )
 
             }
+            is SoloYogaPlayIntent.SetLoginState -> {
+                state.copy(
+                    isLogin = intent.isLogin
+                )
+            }
         }
     }
 

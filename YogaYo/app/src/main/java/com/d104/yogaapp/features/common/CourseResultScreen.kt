@@ -342,7 +342,7 @@ fun YogaPoseDetailDialog(
                                 .crossfade(true)
                                 .build(),
                             contentDescription = history.poseName,
-                            contentScale = ContentScale.Crop,
+                            contentScale = ContentScale.FillBounds,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
