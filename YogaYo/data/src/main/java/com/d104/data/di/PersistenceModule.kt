@@ -14,6 +14,7 @@ import com.d104.domain.model.RoomPeersMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
+import com.d104.domain.model.UserReadyMessage
 import com.d104.domain.repository.DataStoreRepository
 import dagger.Module
 import dagger.Provides
@@ -66,11 +67,12 @@ object PersistenceModule {
                 subclass(UserJoinedMessage::class) // 사용하는 모든 하위 클래스 등록
                 subclass(UserLeftMessage::class)
                 subclass(RoomPeersMessage::class)
+                subclass(UserReadyMessage::class)
                 // ... 기타 SignalingMessage 하위 클래스들 ...
             }
             // 다른 sealed class 나 interface 에 대한 다형성 설정도 필요하다면 추가
         }
-        // classDiscriminator = "type" // JSON 에 타입 식별자 필드 이름 지정 (선택 사항, 기본값은 "type")
-        // @SerialName 사용 시에는 필요 없을 수 있음
+         // @SerialName 사용 시에는 필요 없을 수 있음
+        classDiscriminator = "_type_"
     }
 }

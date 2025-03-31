@@ -48,10 +48,10 @@ class WebRTCManager @Inject constructor(
 
     // ICE 서버 설정 (Coturn 서버 정보)
     private val iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:YOUR_COTURN_IP:3478").createIceServer(), // 실제 IP로 변경
-        PeerConnection.IceServer.builder("turn:YOUR_COTURN_IP:3478")    // 실제 IP로 변경
-            .setUsername("your_turn_username")        // 설정한 사용자 이름으로 변경
-            .setPassword("your_turn_password")          // 설정한 비밀번호로 변경
+        PeerConnection.IceServer.builder("stun:3.36.70.137P:3478").createIceServer(), // 실제 IP로 변경
+        PeerConnection.IceServer.builder("turn:3.36.70.137:3478")    // 실제 IP로 변경
+            .setUsername("testuser")        // 설정한 사용자 이름으로 변경
+            .setPassword("testkey1")          // 설정한 비밀번호로 변경
             .createIceServer()
     )
 
@@ -148,6 +148,9 @@ class WebRTCManager @Inject constructor(
     }
 
     // --- 시그널링 메시지 처리 ---
+
+
+
 
     fun onOfferReceived(peerId: String, sdp: String) {
         managerScope.launch {

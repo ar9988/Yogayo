@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -52,7 +54,7 @@ fun MultiYogaPlayScreen(
     onImageCaptured: (Bitmap) -> Unit = {},
     gameState: GameState,
     isMenuClicked: Boolean,
-    userList: MutableMap<Int, PeerUser>
+    userList: MutableMap<String, PeerUser>
 ) {
     when (gameState) {
         GameState.RoundResult -> {
@@ -90,7 +92,7 @@ fun MultiYogaPlayScreen(
                                     .fillMaxSize()
                                     .padding(top = 32.dp)
                             ) {
-                                items(userList.size) {
+                                items(userList.keys.toList()) {
                                     Row(
                                         modifier = Modifier.padding(8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
@@ -133,7 +135,7 @@ fun MultiYogaPlayScreen(
                                         )
 
                                         Text(
-                                            text = "${10-it*3} pt",
+                                            text = "${10} pt",
                                             style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier
                                                 .padding(horizontal = 8.dp)

@@ -17,7 +17,7 @@ data class MainState(
         exConDays = 0,
         roomWin = 0
     ),
-    val isLogin:Boolean = false
+    val isLogin:Boolean = false,
     val room: Room? = null
 )
 enum class Tab{

@@ -4,6 +4,7 @@ import android.util.Log
 import com.d104.data.remote.api.WebSocketService
 import com.d104.data.remote.utils.StompUtils
 import com.d104.domain.model.StompErrorException
+import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.utils.StompConnectionState
 import com.d104.domain.repository.WebSocketRepository
 import kotlinx.coroutines.CoroutineScope
@@ -85,15 +86,15 @@ class WebSocketRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun connect(roomId:String): Flow<String> {
+    override suspend fun connect(topic:String): Flow<String> {
         // 0. 이미 동일한 방에 연결되어 있고 Flow가 있다면 즉시 반환
-        if (currentRoomId == roomId && _connectionState.value == StompConnectionState.CONNECTED && messageFlow != null) {
-            Log.d("StompRepo", "Already connected to room $roomId. Returning existing flow.")
+        if (currentRoomId == topic && _connectionState.value == StompConnectionState.CONNECTED && messageFlow != null) {
+            Log.d("StompRepo", "Already connected to room $topic. Returning existing flow.")
             return messageFlow!! // non-null 보장
         }
 
         // 1. 다른 방에 연결되어 있다면 먼저 해제
-        if (_connectionState.value != StompConnectionState.DISCONNECTED && currentRoomId != roomId) {
+        if (_connectionState.value != StompConnectionState.DISCONNECTED && currentRoomId != topic) {
             Log.w("StompRepo", "Switching rooms. Disconnecting from $currentRoomId first.")
             disconnect()
             // disconnect()가 상태를 DISCONNECTED로 변경하므로 잠시 기다리거나 상태 변경을 기다림
@@ -102,9 +103,9 @@ class WebSocketRepositoryImpl @Inject constructor(
 
         // 2. 상태 초기화 및 연결 시작
         _connectionState.value = StompConnectionState.CONNECTING
-        currentRoomId = roomId
-        currentTopic = "/topic/room/$roomId" // 방 ID 기반 토픽 경로 생성 (서버와 협의 필요)
-        currentSubscriptionId = "sub-$roomId-${UUID.randomUUID().toString().take(8)}" // 방별 고유 ID
+        currentRoomId = topic
+        currentTopic = "/topic/room/$topic" // 방 ID 기반 토픽 경로 생성 (서버와 협의 필요)
+        currentSubscriptionId = "sub-$topic-${UUID.randomUUID().toString().take(8)}" // 방별 고유 ID
         messageFlowJob?.cancel() // 이전 Flow 작업 취소
 
         // 3. 메시지를 처리할 Flow 생성 및 공유 설정
@@ -165,12 +166,12 @@ class WebSocketRepositoryImpl @Inject constructor(
             }
 
             // WebSocket 연결 시작
-            Log.d("StompRepo", "Connecting WebSocket to $webSocketUrl for room $roomId")
+            Log.d("StompRepo", "Connecting WebSocket to $webSocketUrl for room $topic")
             webSocketService.connect(webSocketUrl, forwardingListener)
 
             // Flow 종료 시 정리 작업
             awaitClose {
-                Log.d("StompRepo", "ChannelFlow for room $roomId closing.")
+                Log.d("StompRepo", "ChannelFlow for room $topic closing.")
                 // disconnectInternal() 호출은 disconnect() 또는 리스너 콜백에서 처리
             }
         }
@@ -191,15 +192,15 @@ class WebSocketRepositoryImpl @Inject constructor(
                 _connectionState.first { it == StompConnectionState.CONNECTED }
             }
             if (_connectionState.value != StompConnectionState.CONNECTED) {
-                throw Exception("STOMP connection timed out for room $roomId")
+                throw Exception("STOMP connection timed out for room $topic")
             }
         } catch (e: Exception) {
-            Log.e("StompRepo", "Connection failed or timed out for room $roomId", e)
+            Log.e("StompRepo", "Connection failed or timed out for room $topic", e)
             handleConnectionFailure(e)
             throw e // 실패를 호출자에게 알림
         }
 
-        Log.i("StompRepo", "Successfully connected and subscribed to room $roomId. Returning message flow.")
+        Log.i("StompRepo", "Successfully connected and subscribed to room $topic. Returning message flow.")
         return messageFlow!! // 위에서 null 체크/할당 완료
     }
 
@@ -209,7 +210,7 @@ class WebSocketRepositoryImpl @Inject constructor(
             return false
         }
         // '/app/...' 형태의 destination 확인 필요
-        val sendFrame = StompUtils.buildSendFrame(destination, message)
+        val sendFrame = StompUtils.buildSendFrame("app/room/"+destination, message)
         val success = webSocketService.send(sendFrame)
         if (!success) {
             Log.e("StompRepo", "Failed to send message frame to $destination")
@@ -218,8 +219,8 @@ class WebSocketRepositoryImpl @Inject constructor(
         return success
     }
 
-    override fun getCurrentRoomId(): String {
-        return currentRoomId ?: ""
+    override fun getCurrentRoomId(): String? {
+        return currentRoomId
     }
 
     override fun disconnect() {

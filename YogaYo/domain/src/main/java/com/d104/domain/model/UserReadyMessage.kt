@@ -4,9 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-@SerialName("user_joined")
-data class UserJoinedMessage(
+@SerialName("user_ready")
+data class UserReadyMessage(
     val peerId: String,
-    val userNickName: String,
+    val isReady: Boolean,
     override val type: String
 ) : SignalingMessage()

@@ -9,6 +9,7 @@ import com.d104.domain.model.RoomPeersMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
+import com.d104.domain.model.UserReadyMessage
 import com.d104.domain.model.WebRTCConnectionState
 import com.d104.domain.repository.WebRTCRepository
 import com.d104.domain.repository.WebSocketRepository
@@ -100,7 +101,7 @@ class WebRTCRepositoryImpl @Inject constructor(
     }
 
     // 모든 연결된 피어에게 데이터 브로드캐스트
-    override suspend fun sendBroadcastData(data: ByteArray): Result<Unit> {
+    override suspend fun sendBroadcastData(dataType:Int,data: ByteArray): Result<Unit> {
         return try {
             webRTCManager.broadcastData(data)
             Result.success(Unit)
@@ -127,13 +128,14 @@ class WebRTCRepositoryImpl @Inject constructor(
                 is UserJoinedMessage -> {
                     Log.i(TAG, "User joined: ${message.peerId}")
                     // TODO: 새로운 피어에 대해 startConnection() 호출
-                    // startConnection(message.peerId)
+//                    startConnection(message.peerId)
                 }
                 is UserLeftMessage -> {
                     Log.i(TAG, "User left: ${message.peerId}")
                     // TODO: 해당 피어와의 연결 종료
                     disconnect(message.peerId)
                 }
+                else -> Log.w(TAG, "Unhandled signaling message type: ${message::class.simpleName}")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling signaling message", e)
@@ -155,6 +157,15 @@ class WebRTCRepositoryImpl @Inject constructor(
         // webSocketRepository.disconnect()
     }
 
+    override fun initializeWebRTC() {
+        webRTCManager.initialize() // WebRTCManager 초기화 함수 호출
+    }
+
+    override fun observeAllReceivedData(): Flow<Pair<String, ByteArray>> {
+        return webRTCManager.receivedData
+            .map { Pair(it.peerId, it.data) }
+    }
+
     private fun determineSignalingDestination(message: SignalingMessage): String? {
         val roomId = webSocketRepository.getCurrentRoomId() // 현재 방 ID 가져오기
         if (roomId == null) {
@@ -163,22 +174,21 @@ class WebRTCRepositoryImpl @Inject constructor(
         }
 
         // !!! 중요: 이 경로는 실제 백엔드 STOMP @MessageMapping 경로와 일치해야 함 !!!
-        val destinationBase = "/app/signal/$roomId"
-        //todo: destinationBase 를 사용하여 메시지 전송 경로 결정
-
+        val destinationBase = "/app/action/$roomId"
+        return destinationBase
         // 메시지 타입에 따라 수신자 ID 가 필요한 경우 toPeerId 를 경로에 추가
-        return when (message) {
-            is OfferMessage -> "$destinationBase/${message.toPeerId}"
-            is AnswerMessage -> "$destinationBase/${message.toPeerId}"
-            is IceCandidateMessage -> "$destinationBase/${message.toPeerId}"
-            // 다른 타입의 메시지는 특정 대상이 없을 수 있으므로 기본 목적지 사용 (필요 시)
-            // 예를 들어, 방 전체에 보내는 메시지가 있다면 다른 경로 사용
-            else -> {
-                Log.w(TAG, "Cannot determine specific destination for message type: ${message::class.simpleName}, using base destination $destinationBase")
-                // 만약 특정 대상 없이 방 전체나 서버로 보내는 메시지라면 기본 목적지 반환 또는 null 반환
-                null // 혹은 destinationBase 만 반환할 수도 있음 (서버 구현에 따라 다름)
-            }
-        }
+//        return when (message) {
+//            is OfferMessage -> "$destinationBase/${message.toPeerId}"
+//            is AnswerMessage -> "$destinationBase/${message.toPeerId}"
+//            is IceCandidateMessage -> "$destinationBase/${message.toPeerId}"
+//            // 다른 타입의 메시지는 특정 대상이 없을 수 있으므로 기본 목적지 사용 (필요 시)
+//            // 예를 들어, 방 전체에 보내는 메시지가 있다면 다른 경로 사용
+//            else -> {
+//                Log.w(TAG, "Cannot determine specific destination for message type: ${message::class.simpleName}, using base destination $destinationBase")
+//                // 만약 특정 대상 없이 방 전체나 서버로 보내는 메시지라면 기본 목적지 반환 또는 null 반환
+//                null // 혹은 destinationBase 만 반환할 수도 있음 (서버 구현에 따라 다름)
+//            }
+//        }
     }
 
     private fun mapToDomainState(state: PeerConnection.IceConnectionState): WebRTCConnectionState {

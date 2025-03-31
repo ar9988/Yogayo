@@ -18,6 +18,9 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -125,6 +128,12 @@ object NetworkModule {
     @Singleton
     fun provideWebSocketService(okHttpClient: OkHttpClient): WebSocketService {
         return WebSocketServiceImpl(okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCoroutineScope(): CoroutineScope {
+        return CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
 }
