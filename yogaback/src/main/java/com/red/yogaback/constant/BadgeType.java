@@ -1,4 +1,4 @@
-package com.red.yogaback.model;
+package com.red.yogaback.constant;
 
 import lombok.Getter;
 
@@ -19,7 +19,6 @@ public enum BadgeType {
     BadgeType(Long id, String name,  int maxLevel) {
         this.id = id;
         this.name = name;
-
         this.maxLevel = maxLevel;
     }
 }

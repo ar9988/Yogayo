@@ -1,5 +1,6 @@
 package com.red.yogaback.service;
 
+import com.red.yogaback.constant.BadgeType;
 import com.red.yogaback.dto.respond.BadgeListRes;
 import com.red.yogaback.dto.respond.UserInfoRes;
 import com.red.yogaback.model.*;
@@ -19,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

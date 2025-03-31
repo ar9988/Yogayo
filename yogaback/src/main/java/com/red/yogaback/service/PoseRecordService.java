@@ -32,6 +32,7 @@ public class PoseRecordService {
     private final RoomRecordRepository roomRecordRepository;
     private final UserRepository userRepository;
     private final S3FileStorageService s3FileStorageService;
+    private final BadgeService badgeService;
 
     /**
      * [POST] /api/yoga/history/{poseId}
@@ -66,8 +67,9 @@ public class PoseRecordService {
                 .recordImg(recordImgUrl)
                 .createdAt(System.currentTimeMillis())
                 .build();
-
-        return poseRecordRepository.save(poseRecord);
+        PoseRecord savedPoseRecord = poseRecordRepository.save(poseRecord);
+        badgeService.updateUserRecordAndAssignBadges(user);
+        return savedPoseRecord;
     }
 
     /**

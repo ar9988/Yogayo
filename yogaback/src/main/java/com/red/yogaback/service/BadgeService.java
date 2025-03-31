@@ -1,5 +1,6 @@
 package com.red.yogaback.service;
 
+import com.red.yogaback.constant.BadgeType;
 import com.red.yogaback.dto.respond.BadgeListRes;
 import com.red.yogaback.dto.respond.UserInfoRes;
 import com.red.yogaback.model.*;
@@ -8,7 +9,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
