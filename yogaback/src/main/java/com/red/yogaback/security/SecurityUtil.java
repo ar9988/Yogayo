@@ -11,11 +11,25 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class SecurityUtil {
 
     public static Long getCurrentMemberId() {
+        CustomUserDetails userDetails = getCustomUserDetails();
+        return userDetails.getUserId();
+    }
+
+    public static String getCurrentUserNickName() {
+        CustomUserDetails userDetails = getCustomUserDetails();
+        return userDetails.getUserNickName();
+    }
+
+    public static String getCurrentUserProfile() {
+        CustomUserDetails userDetails = getCustomUserDetails();
+        return userDetails.getUserProfile();
+    }
+
+    private static CustomUserDetails getCustomUserDetails() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return userDetails.getUserId();
+        return (CustomUserDetails) authentication.getPrincipal();
     }
 }
