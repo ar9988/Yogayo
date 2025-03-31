@@ -79,7 +79,7 @@ dependencies {
 
     // WebRTC
     implementation("io.getstream:stream-webrtc-android:1.1.3")
-
+//    implementation("org.webrtc:google-webrtc:1.0.32006")
 }
 
 kapt {

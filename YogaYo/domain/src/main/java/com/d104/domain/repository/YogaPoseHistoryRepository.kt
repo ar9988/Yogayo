@@ -1,0 +1,16 @@
+package com.d104.domain.repository
+
+import com.d104.domain.model.YogaHistory
+import com.d104.domain.model.YogaPoseRecord
+import kotlinx.coroutines.flow.Flow
+
+interface YogaPoseHistoryRepository {
+
+    suspend fun postYogaPoseHistory(
+        poseId:Long, roomRecordId:Long?,accuracy:Float,ranking:Int?,poseTime:Float, imgUri:String
+    ): Flow<Result<YogaPoseRecord>>
+
+    suspend fun getYogaBestHistories():Flow<Result<List<YogaPoseRecord>>>
+
+    suspend fun getYogaPoseHistories():Flow<Result<List<YogaPoseRecord>>>
+}
