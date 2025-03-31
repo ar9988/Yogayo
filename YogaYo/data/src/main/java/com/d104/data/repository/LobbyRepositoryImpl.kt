@@ -6,12 +6,14 @@ import com.d104.data.mapper.PoseMapper
 import com.d104.data.mapper.RoomMapper
 import com.d104.data.remote.api.MultiApiService
 import com.d104.data.remote.api.SseApiService
+import com.d104.data.remote.dto.CreateRoomRequestDto
 import com.d104.data.remote.dto.EnterRoomRequestDto
 import com.d104.data.remote.listener.EventListener
 import com.d104.data.utils.ErrorUtils
 import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.EnterResult
 import com.d104.domain.model.Room
+import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.domain.repository.LobbyRepository
 import kotlinx.coroutines.flow.Flow
@@ -68,15 +70,17 @@ class LobbyRepositoryImpl @Inject constructor(
         roomMax: Int,
         isPassword: Boolean,
         password: String,
-        poses: List<YogaPose>
+        userCourse: UserCourse
     ): Flow<Result<CreateRoomResult>> {
         try {
             val createRoomResponseDto = multiApiService.createRoom(
-                roomName,
-                roomMax,
-                isPassword,
-                password,
-                poseMapper.map(poses)
+                CreateRoomRequestDto(
+                    roomName,
+                    roomMax,
+                    isPassword,
+                    password,
+                    userCourse
+                )
             )
             val createRoomResult = createRoomMapper.map(createRoomResponseDto)
             return flow {

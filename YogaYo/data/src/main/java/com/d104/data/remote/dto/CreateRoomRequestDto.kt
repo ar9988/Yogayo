@@ -6,8 +6,7 @@ import com.d104.domain.model.YogaPoseWithOrder
 data class CreateRoomRequestDto(
     val roomName: String,
     val roomMax: Int,
-    val isPassword: Boolean,
+    val hasPassword: Boolean,
     val password: String,
-    val courseName: String,
     val userCourse: UserCourse
 )

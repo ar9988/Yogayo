@@ -5,7 +5,7 @@ import javax.inject.Inject
 class MultiReducer @Inject constructor() {
     fun reduce(currentState: MultiState, intent: MultiIntent): MultiState {
         return when (intent) {
-            is MultiIntent.CreateRoom -> currentState.copy(
+            is MultiIntent.ClickCreateRoomButton -> currentState.copy(
                 dialogState = DialogState.CREATING
             )
 
@@ -97,6 +97,10 @@ class MultiReducer @Inject constructor() {
 
             is MultiIntent.CreateRoomFail -> currentState.copy(
                 errorMessage = intent.message
+            )
+
+            is MultiIntent.CreateRoom -> currentState.copy(
+
             )
 
             is MultiIntent.ClearErrorMessage -> currentState.copy(

@@ -3,6 +3,7 @@ package com.d104.domain.repository
 import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.EnterResult
 import com.d104.domain.model.Room
+import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +17,6 @@ interface LobbyRepository {
         roomMax: Int,
         isPassword: Boolean,
         password: String,
-        poses: List<YogaPose>
+        userCourse: UserCourse
     ): Flow<Result<CreateRoomResult>>
 }

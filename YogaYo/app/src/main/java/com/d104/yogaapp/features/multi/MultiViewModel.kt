@@ -73,9 +73,12 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.SelectRoom -> {
                 processIntent(MultiIntent.UpdateRoomPassword(""))
             }
-            is MultiIntent.CreateRoom -> {
+            is MultiIntent.ClickCreateRoomButton -> {
                 processIntent(MultiIntent.UpdateRoomTitle(""))
                 processIntent(MultiIntent.UpdateRoomPassword(""))
+//                createRoom()
+            }
+            is MultiIntent.CreateRoom ->{
                 createRoom()
             }
             else -> {}
@@ -89,15 +92,31 @@ class MultiViewModel @Inject constructor(
                 _uiState.value.roomMax,
                 _uiState.value.isPassword,
                 _uiState.value.roomPassword,
-                _uiState.value.selectedCourse!!.poses
+                _uiState.value.selectedCourse!!
             ).collect{ result->
-                result.onSuccess {
-                    processIntent(MultiIntent.SelectRoom((it as CreateRoomResult.Success).room))
-                    processIntent(MultiIntent.EnterRoom)
-                }
-                result.onFailure {
-                    processIntent(MultiIntent.CreateRoomFail(it.message ?: "방 생성에 실패했습니다."))
-                }
+                result.fold(
+                    onSuccess = { createRoomResult ->
+                        when (createRoomResult) {
+                            is CreateRoomResult.Success -> {
+                                // 방 생성 성공 처리
+                                processIntent(MultiIntent.SelectRoom(createRoomResult.room))
+                                processIntent(MultiIntent.EnterRoom)
+                            }
+                            is CreateRoomResult.Error.BadRequest -> {
+                                // 잘못된 요청 처리
+                                processIntent(MultiIntent.CreateRoomFail("잘못된 요청: ${createRoomResult.message}"))
+                            }
+                            is CreateRoomResult.Error.Unauthorized -> {
+                                // 인증 실패 처리
+                                processIntent(MultiIntent.CreateRoomFail("인증 실패: ${createRoomResult.message}"))
+                            }
+                        }
+                    },
+                    onFailure = { throwable ->
+                        // 네트워크 오류 또는 예외 처리
+                        processIntent(MultiIntent.CreateRoomFail("오류 발생: ${throwable.message}"))
+                    }
+                )
             }
         }
     }

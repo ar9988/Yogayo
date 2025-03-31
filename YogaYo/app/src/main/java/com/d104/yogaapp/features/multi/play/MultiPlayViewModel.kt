@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.DataChannelMessage
+import com.d104.domain.model.ImageChunkMessage
+import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
 import com.d104.domain.usecase.CloseWebSocketUseCase
@@ -18,7 +20,7 @@ import com.d104.domain.usecase.SendImageUseCase
 import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCMessageUseCase
 import com.d104.domain.utils.StompConnectionState
-import com.squareup.moshi.Json
+import com.d104.yogaapp.utils.base64ToBitmap
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,8 +50,6 @@ class MultiPlayViewModel @Inject constructor(
     private val sendSignalingMessageUseCase: SendSignalingMessageUseCase,
     private val observeWebSocketConnectionStateUseCase:ObserveWebSocketConnectionStateUseCase,
     private val initiateConnectionUseCase: InitiateConnectionUseCase,
-    private val json:Json
-//    private val observe
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
@@ -136,24 +136,13 @@ class MultiPlayViewModel @Inject constructor(
         viewModelScope.launch {
             observeWebRTCMessageUseCase().collect {
                 launch(Dispatchers.IO) { // 또는 Dispatchers.Default
-                    val receivedBytes = it.second // 또는 receivedData.data
-                    val receivedJsonString = receivedBytes.toString(Charsets.UTF_8)
-                    try {
-                        // ByteArray 를 Bitmap 으로 디코딩
-                        val bitmap = BitmapFactory.decodeByteArray(it.second, 0, it.second.size)
-                            DataChannelMessage.serializer(), receivedJsonString)
-                        if (bitmap != null) {
-                            Timber.tag("ViewModel").d("Successfully decoded image from ${it.first}")
-                            // UI 상태 업데이트 (StateFlow 업데이트는 Main 스레드에서 안전)
-                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(bitmap))
-
-                        } else {
-                            Timber.tag("ViewModel")
-                                .e("Failed to decode image data from ${it.first} (decodeByteArray returned null)")
+                    when(it.second){
+                        is ImageChunkMessage -> {
+                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(base64ToBitmap((it.second as ImageChunkMessage).dataBase64)!!))
                         }
-                    } catch (e: Exception) {
-                        Timber.tag("ViewModel").e(e, "Error decoding image from ${it.first}")
-
+                        is ScoreUpdateMessage -> {
+                            processIntent(MultiPlayIntent.UpdateScore(it.first,(it.second as ScoreUpdateMessage)))
+                        }
                     }
                 }
             }

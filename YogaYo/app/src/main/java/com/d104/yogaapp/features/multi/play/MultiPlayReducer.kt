@@ -114,6 +114,29 @@ class MultiPlayReducer @Inject constructor() {
                 )
             }
 
+            is MultiPlayIntent.UpdateScore ->{
+                val score = intent.scoreUpdateMessage.score
+                val userId = intent.id
+                // 기존 사용자 데이터 가져오기
+                val user = currentState.userList[userId]
+
+                if (user != null) {
+                    // 사용자 데이터 업데이트
+                    val updatedUser = user.copy(
+                        roundScore = score
+                    )
+
+                    // 상태 복사 및 업데이트
+                    currentState.copy(
+                        userList = currentState.userList.toMutableMap().apply {
+                            this[userId] = updatedUser
+                        }
+                    )
+                } else {
+                    currentState // 사용자가 없는 경우 상태를 변경하지 않음
+                }
+            }
+
             else -> currentState
         }
     }

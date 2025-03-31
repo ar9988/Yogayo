@@ -10,7 +10,7 @@ sealed class MultiIntent {
     data class SelectRoom(val room: Room) : MultiIntent()
     data object SearchCourse : MultiIntent()
     data class SelectCourse(val course: UserCourse) : MultiIntent()
-    data object CreateRoom : MultiIntent()
+    data object ClickCreateRoomButton : MultiIntent()
     data object PrevPage: MultiIntent()
     data object NextPage: MultiIntent()
     data object ClearRoom: MultiIntent()
@@ -25,5 +25,7 @@ sealed class MultiIntent {
     data object EnterRoomComplete: MultiIntent()
     data class EnterRoomFail(val message:String) : MultiIntent()
     data class CreateRoomFail(val message: String) : MultiIntent()
+    data object CreateRoom : MultiIntent()
+
     data object ClearErrorMessage: MultiIntent()
 }
