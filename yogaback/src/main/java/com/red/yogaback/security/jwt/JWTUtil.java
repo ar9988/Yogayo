@@ -43,6 +43,14 @@ public class JWTUtil {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("memberId", Long.class);
     }
 
+    public String getUserNickName(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userNickName", String.class);
+    }
+
+    public String getUserProfile(String token) {
+        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userProfile", String.class);
+    }
+
     public String getRole(String token) {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("role", String.class);
     }
@@ -58,24 +66,27 @@ public class JWTUtil {
         return false;
     }
 
-    public JWTToken createTokens(Long memberId) {
-        String accessToken = createToken(memberId, accessTokenValidTime);
-        String refreshToken = createToken(memberId, refreshTokenValidTime);
+    // JWT 토큰 생성 시 memberId, userNickName, userProfile 정보를 모두 포함
+    public JWTToken createTokens(Long memberId, String userNickName, String userProfile) {
+        String accessToken = createToken(memberId, userNickName, userProfile, accessTokenValidTime);
+        String refreshToken = createToken(memberId, userNickName, userProfile, refreshTokenValidTime);
         return new JWTToken("Bearer", accessToken, refreshToken);
     }
 
-    public String createAccessToken(Long userId) {
-        return createToken(userId, accessTokenValidTime);
+    public String createAccessToken(Long memberId, String userNickName, String userProfile) {
+        return createToken(memberId, userNickName, userProfile, accessTokenValidTime);
     }
 
-    public String createRefreshToken(Long userId) {
-        return createToken(userId, refreshTokenValidTime);
+    public String createRefreshToken(Long memberId, String userNickName, String userProfile) {
+        return createToken(memberId, userNickName, userProfile, refreshTokenValidTime);
     }
 
-    public String createToken(Long memberId, Long expiredMs) {
-
+    // createToken 메소드를 수정하여 추가 정보를 payload에 포함시킴
+    public String createToken(Long memberId, String userNickName, String userProfile, Long expiredMs) {
         return Jwts.builder()
                 .claim("memberId", memberId)
+                .claim("userNickName", userNickName)
+                .claim("userProfile", userProfile)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
@@ -84,10 +95,11 @@ public class JWTUtil {
 
     public JWTToken refresh(String refreshToken) {
         if (verifyRefreshToken(refreshToken)) {
-            Long userId = getMemberId(refreshToken);
-            String accessToken = createAccessToken(userId);
-
-            return new JWTToken("Bearer", accessToken, createRefreshToken(userId));
+            Long memberId = getMemberId(refreshToken);
+            String userNickName = getUserNickName(refreshToken);
+            String userProfile = getUserProfile(refreshToken);
+            String accessToken = createAccessToken(memberId, userNickName, userProfile);
+            return new JWTToken("Bearer", accessToken, createRefreshToken(memberId, userNickName, userProfile));
         }
         return null;
     }
