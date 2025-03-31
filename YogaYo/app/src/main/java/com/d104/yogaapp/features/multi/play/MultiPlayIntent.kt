@@ -1,6 +1,7 @@
 package com.d104.yogaapp.features.multi.play
 
 import android.graphics.Bitmap
+import com.d104.domain.model.Room
 
 sealed class MultiPlayIntent {
     data class UserJoined(val userId: String) : MultiPlayIntent()
@@ -11,6 +12,8 @@ sealed class MultiPlayIntent {
     data class UpdateCameraPermission(val granted: Boolean) : MultiPlayIntent()
     data class CaptureImage(val bitmap: Bitmap) : MultiPlayIntent()
     data class ClickPose(val poseId: Int) : MultiPlayIntent()
+    data class InitializeRoom(val room: Room) : MultiPlayIntent()
+    data class ReceiveMessage(val message: String) : MultiPlayIntent()
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()

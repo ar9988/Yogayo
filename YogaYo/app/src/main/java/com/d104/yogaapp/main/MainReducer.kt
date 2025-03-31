@@ -18,6 +18,9 @@ class MainReducer @Inject constructor() {
             is MainIntent.SetUserRecord -> {
                 currentState.copy(userRecord = intent.userRecord)
             }
+            is MainIntent.SelectRoom -> {
+                currentState.copy(room = intent.room)
+            }
         }
     }
 }
