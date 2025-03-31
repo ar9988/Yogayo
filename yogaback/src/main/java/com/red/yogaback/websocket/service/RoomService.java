@@ -1,5 +1,5 @@
 package com.red.yogaback.websocket.service;
-
+//방(Room)의 생성, 조회, 삭제를 관리합니다.
 import org.springframework.stereotype.Service;
 
 import java.util.Map;

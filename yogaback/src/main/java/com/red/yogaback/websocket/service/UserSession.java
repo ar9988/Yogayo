@@ -1,10 +1,11 @@
 package com.red.yogaback.websocket.service;
-
-public class UserSession {
-    private String userId;
-    private String roomId;
-    private String userNickName;
-    private String userProfile;
+//사용자 세션에 대한 정보를 담는 단순 데이터 클래스입니다.
+//필드: userId, roomId, userNickName, userProfile
+public final class UserSession {
+    private final String userId;
+    private final String roomId;
+    private final String userNickName;
+    private final String userProfile;
 
     public UserSession(String userId, String roomId, String userNickName, String userProfile) {
         this.userId = userId;
@@ -16,25 +17,16 @@ public class UserSession {
     public String getUserId() {
         return userId;
     }
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+
     public String getRoomId() {
         return roomId;
     }
-    public void setRoomId(String roomId) {
-        this.roomId = roomId;
-    }
+
     public String getUserNickName() {
         return userNickName;
     }
-    public void setUserNickName(String userNickName) {
-        this.userNickName = userNickName;
-    }
+
     public String getUserProfile() {
         return userProfile;
-    }
-    public void setUserProfile(String userProfile) {
-        this.userProfile = userProfile;
     }
 }

@@ -1,5 +1,5 @@
 package com.red.yogaback.websocket.config;
-
+//웹소켓 엔드포인트(/ws) 등록, 메시지 브로커 설정, 그리고 클라이언트 인바운드 채널에 인터셉터(WebSocketAuthChannelInterceptor) 등록
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
