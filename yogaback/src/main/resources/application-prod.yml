@@ -17,6 +17,8 @@ logging:
   level:
     root: INFO
     org.springframework.web: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
     com.red.yogaback: DEBUG
