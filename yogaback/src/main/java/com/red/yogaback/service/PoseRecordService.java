@@ -42,7 +42,7 @@ public class PoseRecordService {
 
     /**
      * [POST] /api/yoga/history/{poseId}
-     * - 새 요가 포즈 기록 생성 및 관련 UserRecord의 lastExerciseDate 업데이트
+     * - 새 요가 포즈 기록 생성 및 관련 UserRecord의 lastExerciseDate, exDays, exConDays 업데이트
      */
     public PoseRecord createPoseRecord(Long poseId, PoseRecordRequest request, MultipartFile recordImg) {
         Long userId = SecurityUtil.getCurrentMemberId();
@@ -75,13 +75,23 @@ public class PoseRecordService {
                 .build();
         PoseRecord savedPoseRecord = poseRecordRepository.save(poseRecord);
 
-        // 새 PoseRecord의 createdAt을 날짜로 변환하여 UserRecord의 lastExerciseDate에 업데이트
+        // 새 PoseRecord의 createdAt을 날짜로 변환하여 UserRecord의 lastExerciseDate, exDays, exConDays 업데이트
         Instant instant = Instant.ofEpochMilli(savedPoseRecord.getCreatedAt());
         LocalDate exerciseDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
         UserRecord userRecord = userRecordRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("UserRecord not found for userId=" + userId));
-        userRecord.setLastExerciseDate(exerciseDate);
-        userRecordRepository.save(userRecord);
+        LocalDate lastDate = userRecord.getLastExerciseDate();
+        if (lastDate == null || !lastDate.equals(exerciseDate)) {
+            // 새로운 운동일이면 exDays 증가
+            userRecord.setExDays(userRecord.getExDays() + 1);
+            // exConDays가 0이면(즉, 아직 운동 기록이 없었다면) 1로 설정
+            if (userRecord.getExConDays() == 0L) {
+                userRecord.setExConDays(1L);
+            }
+            // 마지막 운동 날짜 업데이트
+            userRecord.setLastExerciseDate(exerciseDate);
+            userRecordRepository.save(userRecord);
+        }
 
         badgeService.updateUserRecordAndAssignBadges(user);
         return savedPoseRecord;
