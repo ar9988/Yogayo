@@ -10,7 +10,7 @@ package com.red.yogaback.websocket.config;
 //다른 사용자에게 퇴장 메시지 전송
 
 import com.red.yogaback.websocket.service.Room;
-import com.red.yogaback.websocket.service.RoomService;
+import com.red.yogaback.websocket.service.SocketRoomService;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
     private UserSessionService userSessionService;
 
     @Autowired
-    private RoomService roomService;
+    private SocketRoomService socketRoomService;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -48,11 +48,11 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
         String roomId = userSession.getRoomId();
         String userId = userSession.getUserId();
 
-        Room room = roomService.getRoom(roomId);
+        Room room = socketRoomService.getRoom(roomId);
         if (room != null) {
             room.removeParticipant(sessionId, userId);
             if (room.getParticipantCount() == 0) {
-                roomService.removeRoom(roomId);
+                socketRoomService.removeRoom(roomId);
                 logger.info("Room {} removed as no participants remain", roomId);
             } else {
                 messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",

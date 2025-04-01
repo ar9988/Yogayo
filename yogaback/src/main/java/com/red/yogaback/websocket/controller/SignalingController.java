@@ -8,7 +8,7 @@ import com.red.yogaback.websocket.dto.JoinRoomMessage;
 import com.red.yogaback.websocket.dto.SignalMessage;
 import com.red.yogaback.websocket.dto.IceCandidateMessage;
 import com.red.yogaback.websocket.service.Room;
-import com.red.yogaback.websocket.service.RoomService;
+import com.red.yogaback.websocket.service.SocketRoomService;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,7 @@ public class SignalingController {
     private static final Logger logger = LoggerFactory.getLogger(SignalingController.class);
 
     @Autowired
-    private RoomService roomService;
+    private SocketRoomService socketRoomService;
 
     @Autowired
     private UserSessionService userSessionService;
@@ -49,7 +49,7 @@ public class SignalingController {
     public void joinRoom(@Payload JoinRoomMessage joinRoomMessage, StompHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
         String roomId = joinRoomMessage.getRoomId();
-        Room room = roomService.getRoom(roomId);
+        Room room = socketRoomService.getRoom(roomId);
         if (room == null) {
             messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "존재하지 않는 방입니다.");
             return;
@@ -81,7 +81,7 @@ public class SignalingController {
         if (userSession == null) return;
 
         String roomId = userSession.getRoomId();
-        Room room = roomService.getRoom(roomId);
+        Room room = socketRoomService.getRoom(roomId);
         if (room == null) {
             messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "존재하지 않는 방입니다.");
             return;

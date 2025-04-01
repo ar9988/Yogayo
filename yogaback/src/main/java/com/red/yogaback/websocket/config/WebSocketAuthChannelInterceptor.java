@@ -2,6 +2,8 @@ package com.red.yogaback.websocket.config;
 //클라이언트가 CONNECT 시 JWT 토큰을 헤더에서 추출하여 유효성 검사하고, 클레임(회원번호, 닉네임, 프로필 등)을 세션 속성에 저장합니다.
 import com.red.yogaback.security.jwt.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+
+
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
