@@ -22,7 +22,7 @@ public class UserRecordScheduler {
      * - 만약 lastExerciseDate가 어제 날짜와 일치하면 exConDays를 1 증가
      * - 그렇지 않으면 exConDays를 0으로 초기화
      */
-    @Scheduled(cron = "0 1 0 * * *")
+    @Scheduled(cron = "0 6 17 * * *")
     public void updateConsecutiveExerciseDays() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         List<UserRecord> userRecords = userRecordRepository.findAll();
