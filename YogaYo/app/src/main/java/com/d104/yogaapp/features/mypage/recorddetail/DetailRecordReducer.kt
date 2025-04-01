@@ -6,6 +6,7 @@ class DetailRecordReducer @Inject constructor() {
 
     fun reduce(state:DetailRecordState, intent:DetailRecordIntent):DetailRecordState{
         return when (intent){
+            is DetailRecordIntent.initialize -> DetailRecordState()
             is DetailRecordIntent.SetUserRecord->{
                 state.copy(
                     userRecord = intent.userRecord

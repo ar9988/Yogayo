@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
@@ -80,23 +81,33 @@ fun MyPageScreen(
         }
     }
 
-    LazyColumn(
+    val itemsPerRow = 3
+    val gridSpacing = 8.dp // 그리드 아이템 간 간격
+
+    // --- 전체 화면을 LazyVerticalGrid로 변경 ---
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(itemsPerRow), // 3열 고정
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(4.dp)
+            .background(Color.White),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp), // 그리드 전체 패딩
+        horizontalArrangement = Arrangement.spacedBy(gridSpacing), // 아이템 간 수평 간격
+        verticalArrangement = Arrangement.spacedBy(gridSpacing * 2) // 아이템 간 수직 간격 (수평보다 약간 넓게)
     ) {
-        item {
+        // --- 1. 프로필 섹션 (헤더 - 전체 너비 차지) ---
+        item(span = { GridItemSpan(maxLineSpan) }) { // maxLineSpan: 현재 줄의 최대 스팬 (여기선 3)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                // .padding(16.dp) // contentPadding으로 대체 또는 조정
             ) {
+                // 로그아웃 버튼 (우측 상단)
                 IconButton(
                     onClick = { viewModel.processIntent(MyPageIntent.Logout) },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .size(48.dp)  // IconButton 자체의 크기 증가
+                        .padding(top = 0.dp, end = 0.dp) // 위치 미세 조정
+                        .size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -105,18 +116,18 @@ fun MyPageScreen(
                     )
                 }
 
-                // 프로필 섹션 (중앙)
+                // 프로필 (중앙)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp), // 상단에 약간의 패딩 추가
+                        .padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // 프로필 이미지
                     Box(
                         modifier = Modifier
                             .size(120.dp)
-                            .clip(CircleShape) // 원형 클립 추가
+                            .clip(CircleShape)
                     ) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
@@ -132,9 +143,7 @@ fun MyPageScreen(
                                 .align(Alignment.Center),
                         )
                     }
-
                     Spacer(modifier = Modifier.height(12.dp))
-
                     // 사용자 이름
                     Text(
                         text = uiState.userRecord.userNickName,
@@ -143,125 +152,77 @@ fun MyPageScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            // 프로필 섹션과 다음 섹션 사이 간격
+            // Spacer(modifier = Modifier.height(16.dp)) // verticalArrangement로 대체 또는 유지
         }
 
-
-
-        // Stats Section
-        item {
+        // --- 2. 통계 섹션 (헤더 - 전체 너비 차지) ---
+        item(span = { GridItemSpan(maxLineSpan) }) {
             UserRecordCard(
                 userRecord = uiState.userRecord,
                 showDetailButton = true,
                 onClickDetail = {onNavigateToDetailRecord(uiState.userRecord)}
             )
-            Spacer(modifier = Modifier.height(8.dp))
-
+            // 통계 카드와 다음 섹션 사이 간격
+            // Spacer(modifier = Modifier.height(8.dp)) // verticalArrangement로 대체 또는 유지
         }
 
-        // Badge Section
-        item {
+        // --- 3. 뱃지 섹션 타이틀 (헤더 - 전체 너비 차지) ---
+        item(span = { GridItemSpan(maxLineSpan) }) {
             Box(
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center // 중앙 정렬
             ) {
                 Text(
                     text = "뱃지",
                     fontWeight = FontWeight.Bold,
                     fontSize = 24.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    textAlign =TextAlign.Center
+                    // modifier = Modifier.padding(horizontal = 16.dp), // contentPadding으로 처리됨
+                    textAlign = TextAlign.Center
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
+            // 타이틀과 뱃지 그리드 사이 간격
+            // Spacer(modifier = Modifier.height(12.dp)) // verticalArrangement로 대체 또는 유지
         }
 
-        // Badge Grid
-        item {
-            // 그리드 컨텐츠를 계산하여 고정된 높이로 생성
-            val badgeSize = 100.dp
-            val textHeight = 16.dp
-            val progressHeight = 20.dp // 진행 상태 표시 + 텍스트에 할당된 높이
-            val itemSpacing = 16.dp
-            val itemTotalHeight = badgeSize + textHeight + progressHeight + itemSpacing
-            val numColumns = 3
-            val numRows = ceil(uiState.myBadgeList.size.toFloat() / numColumns).toInt()
-            val gridHeight = itemTotalHeight * numRows
-
-            // 스크롤이 되지 않는 고정 크기의 그리드
-            NonScrollableGrid(
-                badges = uiState.myBadgeList,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(gridHeight)
-                    .padding(horizontal = 16.dp)
-            )
-
-            // 하단 여백 추가
-            Spacer(modifier = Modifier.height(24.dp))
+        // --- 4. 뱃지 그리드 아이템들 ---
+        // LazyVerticalGrid의 items 사용 (NonScrollableGrid 제거)
+        items(uiState.myBadgeList, key = { it.badgeId ?: it.hashCode() }) { badge -> // 안정적인 고유 ID 사용 권장
+            BadgeItem(badge = badge) // BadgeItem 직접 사용
         }
+
+        // --- 5. 하단 추가 여백 (선택 사항) ---
+        // 그리드 마지막 아이템 아래에 공간이 필요하면 추가
+        // item(span = { GridItemSpan(maxLineSpan) }) {
+        //     Spacer(modifier = Modifier.height(16.dp))
+        // }
     }
 }
 
+// NonScrollableGrid 컴포저블은 이제 필요 없으므로 삭제합니다.
+// @Composable fun NonScrollableGrid(...) { ... }
 
 
-@Composable
-fun NonScrollableGrid(
-    badges: List<Badge>,
-    modifier: Modifier = Modifier
-) {
-    // LazyVerticalGrid 대신 일반 Column과 Row로 구현하여 스크롤 없이 표시
-    Column(modifier = modifier) {
-        val itemsPerRow = 3
-
-        for (i in badges.indices step itemsPerRow) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                for (j in 0 until itemsPerRow) {
-                    val index = i + j
-                    if (index < badges.size) {
-                        Box(
-                            modifier = Modifier.weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            BadgeItem(badge = badges[index])
-                        }
-                    } else {
-                        // 빈 공간을 차지하는 Spacer
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-
-            // 각 행 사이 간격 추가
-            if (i + itemsPerRow < badges.size) {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-    }
-}
-
-
+// BadgeItem 컴포저블은 이전과 동일하게 유지합니다.
+// (단, 내부 Modifier.weight(1f) 같은 그리드 배치 관련 코드는 없어야 함)
 @Composable
 fun BadgeItem(badge: Badge) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(4.dp)
-            .height(140.dp)
+        // .padding(4.dp) // Grid의 spacing으로 간격 처리, 필요시 내부 패딩 추가
+        // .height(140.dp) // 높이 고정보다는 내용에 맞게 조절되도록 하는 것이 Grid에 더 적합할 수 있음
+        // 고정 높이가 필요하다면 유지
     ) {
         // 뱃지 이미지
         Box(
-            modifier = Modifier.size(80.dp),
+            modifier = Modifier.size(80.dp), // 크기 유지 또는 조정
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_badge_lv0),
+                 painter = painterResource(id = R.drawable.ic_badge_lv0),
+                // 임시로 badge 종류에 따라 다른 아이콘 표시 예시
+//                painter = painterResource(id = getBadgeResource(badge.badgeId)),
                 contentDescription = badge.badgeName,
                 contentScale = ContentScale.Fit
             )
@@ -280,46 +241,38 @@ fun BadgeItem(badge: Badge) {
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // 다음 레벨 정보 및 진행 상태 표시
+        // 다음 레벨 정보 및 진행 상태 표시 (이전과 동일)
         val nextLevelIndex = badge.highLevel
         val nextLevel = if (nextLevelIndex < badge.badgeDetails.size) {
             badge.badgeDetails[nextLevelIndex]
         } else null
 
         nextLevel?.let { level ->
-            // 현재 진행 상태 표시
             Column(
                 modifier = Modifier.width(80.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
-
-                // 진행 상태 바
                 val progress = (badge.badgeProgress.toFloat() / level.badgeGoal.toFloat())
                     .coerceIn(0f, 1f)
 
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress }, // Compose 1.6+ 권장 람다 사용
                     modifier = Modifier
                         .height(4.dp)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(2.dp)),
-                    color = PrimaryColor, // 프로그레스 바 색상
-                    trackColor = Color.LightGray // 배경 색상
+                    color = PrimaryColor,
+                    trackColor = Color.LightGray
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                // 진행 상태 텍스트 (예: "6/10")
                 Text(
                     text = "${badge.badgeProgress}/${level.badgeGoal}",
                     fontSize = 10.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
                 )
-
-
             }
         } ?: run {
-            // 만약 다음 레벨이 없다면 (최고 레벨에 도달)
             Text(
                 text = "최고 레벨",
                 fontSize = 10.sp,
@@ -329,5 +282,15 @@ fun BadgeItem(badge: Badge) {
         }
     }
 }
+
+//// 임시 함수: 뱃지 ID에 따라 다른 리소스 ID 반환 (실제 로직으로 대체 필요)
+//fun getBadgeResource(badgeId: Long?): Int {
+//    return when (badgeId) {
+//        1L -> R.drawable.ic_badge_lv1 // 예시 리소스 ID
+//        2L -> R.drawable.ic_badge_lv2
+//        // ... 다른 뱃지 ID에 대한 매핑 ...
+//        else -> R.drawable.ic_badge_lv0 // 기본 또는 알 수 없는 뱃지
+//    }
+//}
 
 

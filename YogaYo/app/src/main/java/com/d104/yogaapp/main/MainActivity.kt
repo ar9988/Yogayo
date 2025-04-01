@@ -38,11 +38,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.UserRecord
@@ -50,14 +52,15 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
 import com.d104.yogaapp.features.multi.play.MultiPlayScreen
-import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
 import com.d104.yogaapp.features.mypage.MyPageScreen
+import com.d104.yogaapp.features.mypage.posehistory.PoseHistoryScreen
 import com.d104.yogaapp.features.mypage.recorddetail.DetailRecordScreen
 import com.d104.yogaapp.features.signup.SignUpScreen
 import com.d104.yogaapp.features.solo.SoloScreen
 import com.d104.yogaapp.features.solo.play.SoloYogaPlayScreen
 import com.d104.yogaapp.ui.theme.YogaYoTheme
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 
 
 @AndroidEntryPoint
@@ -81,17 +84,32 @@ class MainActivity : ComponentActivity() {
 fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
 
     // 화면 전환 시 바텀바 표시 여부 설정
     val currentDestination = navController.currentBackStackEntryAsState().value?.destination
-    val currentRoute = currentDestination?.route ?: ""
+
+
+    LaunchedEffect(state.selectedTab) { // 키 확인!
+        Timber.d("Effect triggered: selectedTab=${state.selectedTab}, currentRoute=$currentRoute") // 로그 추가
+        if (currentRoute != null && currentRoute != "main_tabs") {
+            Timber.d("Navigating to main_tabs because currentRoute is not main_tabs") // 로그 추가
+            navController.navigate("main_tabs") {
+                popUpTo(navController.graph.findStartDestination().id)
+                launchSingleTop = true
+            }
+        } else {
+            Timber.d( "Not navigating because currentRoute is main_tabs or null") // 로그 추가
+        }
+    }
 
     // solo_yoga_play 화면에서는 전체 화면 모드 적용
     val isFullScreen = currentRoute == "solo_yoga_play"
     LaunchedEffect(currentDestination) {
         val shouldShowBottomBar = when (currentDestination?.route) {
-            "main_tabs" -> true
-            "detail_record" -> true
+            "main_tabs","detail_record","pose_history/{poseId}" -> true
             else -> false
         }
         viewModel.processIntent(MainIntent.SetBottomBarVisibility(shouldShowBottomBar))
@@ -214,11 +232,26 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             composable(
                 route = "detail_record",
             ) { backStackEntry ->
-                DetailRecordScreen(
-                    userRecord = state.userRecord,
-                    onBackPressed = {
-                        navController.popBackStack()
-                    }
+                state.userRecord?.let {
+                    DetailRecordScreen(
+                        userRecord = it,
+                        onBackPressed = {
+                            navController.popBackStack()
+                        },
+                        onNavigateToPoseHistory = { poseId ->
+                            navController.navigate("pose_history/$poseId")
+                        },
+                    )
+                }
+            }
+
+            composable(
+                route = "pose_history/{poseId}",
+                arguments = listOf(navArgument("poseId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                // poseId는 PoseHistoryViewModel 내부의 SavedStateHandle에서 처리함
+                PoseHistoryScreen(
+                    onBackPressed = { navController.popBackStack() }
                 )
             }
         }

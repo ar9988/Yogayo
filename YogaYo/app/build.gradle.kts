@@ -44,6 +44,7 @@ android {
     buildFeatures {
         compose = true
     }
+    
 }
 
 dependencies {
@@ -120,6 +121,11 @@ dependencies {
     implementation ("androidx.media3:media3-exoplayer:1.2.0")
     implementation ("androidx.media3:media3-ui:1.2.0")
     implementation ("androidx.media3:media3-common:1.2.0")
+
+    //VicoGraph
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
+    implementation("com.patrykandpatrick.vico:core:1.14.0")
 
 
 

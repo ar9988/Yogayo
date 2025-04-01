@@ -8,16 +8,8 @@ data class MainState(
     val selectedTab: Tab = Tab.Solo,
     val showBottomBar: Boolean = true,
     val soloYogaCourse:UserCourse? = null,
-    val userRecord: UserRecord = UserRecord(
-        userId = -1,
-        userName = "",
-        userNickName = "",
-        userProfile = "",
-        exDays = 0,
-        exConDays = 0,
-        roomWin = 0
-    ),
-    val isLogin:Boolean = false
+    val userRecord: UserRecord? = null,
+    val isLogin:Boolean = false,
     val room: Room? = null
 )
 enum class Tab{

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.random.Random
 
 
 @HiltViewModel
@@ -202,7 +203,7 @@ class SoloYogaPlayViewModel @Inject constructor(
         // 현재 상태와 인덱스 가져오기
         val currentState = _state.value
         val currentIndex = currentState.currentPoseIndex
-        val currentAccuracy = currentState.currentAccuracy
+        val currentAccuracy = Random.nextFloat()//currentState.currentAccuracy
 
         // 현재 포즈 히스토리 리스트 복사
         val updatedHistories = currentState.poseHistories.toMutableList()
@@ -252,7 +253,7 @@ class SoloYogaPlayViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(downloadState = DownloadState.Loading)
             try {
-                val success = imageDownloader.saveImageToGallery(imageUri, poseName)
+                val success = imageDownloader.saveImageToGallery(imageUri.toString(), poseName)
                 _state.value = if (success) _state.value.copy(downloadState = DownloadState.Loading) else _state.value.copy(downloadState = DownloadState.Error("저장 실패"))
             } catch (e: Exception) {
                 _state.value = _state.value.copy(downloadState = DownloadState.Error("저장 실패"))

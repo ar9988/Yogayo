@@ -1,7 +1,9 @@
 package com.d104.data.mapper
 
+import com.d104.data.remote.dto.BestPoseHistoryResponseDto
 import com.d104.data.remote.dto.PoseRecordRequest
 import com.d104.data.remote.dto.PoseRecordResponse
+import com.d104.domain.model.BestPoseRecord
 import com.d104.domain.model.YogaPoseRecord
 import javax.inject.Inject
 
@@ -35,5 +37,18 @@ class PoseRecordMapper @Inject constructor() { // Hilt 주입을 위해 @Inject 
 
     fun toRequestList(records: List<YogaPoseRecord>?): List<PoseRecordRequest> {
         return records?.map { toRequest(it) } ?: emptyList()
+    }
+
+    fun toBestPoseRecord(record:BestPoseHistoryResponseDto):BestPoseRecord{
+        return BestPoseRecord(
+            poseId = record.poseId,
+            poseName = record.poseName,
+            poseImg = record.poseImg,
+            bestAccuracy = record.bestAccuracy,
+            bestTime = record.bestTime
+        )
+    }
+    fun toBestPoseRecordList(records:List<BestPoseHistoryResponseDto>?):List<BestPoseRecord>{
+        return records?.map { toBestPoseRecord(it) } ?: emptyList()
     }
 }

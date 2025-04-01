@@ -12,5 +12,6 @@ sealed class MainIntent {
     data class SelectSoloCourse(val course: UserCourse) : MainIntent()
     data class SelectRoom(val room: Room) : MainIntent()
     object ClearSoloCourse:MainIntent()
+    object ClearUserRecord:MainIntent()
 
 }
