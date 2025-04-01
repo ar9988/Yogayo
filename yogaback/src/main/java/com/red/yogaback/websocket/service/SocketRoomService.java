@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class RoomService {
+public class SocketRoomService {
     // roomId -> Room
     private Map<String, Room> rooms = new ConcurrentHashMap<>();
 

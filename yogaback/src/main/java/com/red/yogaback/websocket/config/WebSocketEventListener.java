@@ -10,7 +10,7 @@ package com.red.yogaback.websocket.config;
 //다른 사용자에게 퇴장 메시지 전송
 
 import com.red.yogaback.websocket.service.Room;
-import com.red.yogaback.websocket.service.RoomService;
+import com.red.yogaback.websocket.service.SocketRoomService;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
     private UserSessionService userSessionService;
 
     @Autowired
-    private RoomService roomService;
+    private SocketRoomService roomService;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;

@@ -8,7 +8,7 @@ import com.red.yogaback.websocket.dto.JoinRoomMessage;
 import com.red.yogaback.websocket.dto.SignalMessage;
 import com.red.yogaback.websocket.dto.IceCandidateMessage;
 import com.red.yogaback.websocket.service.Room;
-import com.red.yogaback.websocket.service.RoomService;
+import com.red.yogaback.websocket.service.SocketRoomService;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,7 @@ public class SignalingController {
     private static final Logger logger = LoggerFactory.getLogger(SignalingController.class);
 
     @Autowired
-    private RoomService roomService;
+    private SocketRoomService roomService;
 
     @Autowired
     private UserSessionService userSessionService;
