@@ -1,11 +1,14 @@
 package com.d104.data.repository
 
+import android.util.Log
 import com.d104.data.mapper.CreateRoomMapper
 import com.d104.data.mapper.EnterRoomMapper
 import com.d104.data.mapper.PoseMapper
 import com.d104.data.mapper.RoomMapper
+import com.d104.data.mapper.YogaPoseMapper
 import com.d104.data.remote.api.MultiApiService
 import com.d104.data.remote.api.SseApiService
+import com.d104.data.remote.dto.CourseRequestDto
 import com.d104.data.remote.dto.CreateRoomRequestDto
 import com.d104.data.remote.dto.EnterRoomRequestDto
 import com.d104.data.remote.listener.EventListener
@@ -30,11 +33,11 @@ class LobbyRepositoryImpl @Inject constructor(
     private val roomMapper: RoomMapper,
     private val createRoomMapper: CreateRoomMapper,
     private val enterRoomMapper: EnterRoomMapper,
-    private val poseMapper: PoseMapper
+    private val poseMapper: YogaPoseMapper
 ) : LobbyRepository {
-//    private val eventListener: EventListener = EventListener()
+    //    private val eventListener: EventListener = EventListener()
     private fun startSse(searchText: String, page: Int) {
-        sseApiService.startSse(searchText, 1, eventListener)
+        sseApiService.startSse(searchText, page, eventListener)
     }
 
     override fun stopSse() {
@@ -48,15 +51,17 @@ class LobbyRepositoryImpl @Inject constructor(
                     roomId,
                     password
                 )
-                val signUpResult = enterRoomMapper.map(multiApiService.enterRoom(enterRoomRequestDto))
+                val signUpResult =
+                    enterRoomMapper.map(multiApiService.enterRoom(enterRoomRequestDto))
                 emit(Result.success(signUpResult))
             } catch (e: HttpException) {
-                val errorResult = when (e.code()){
+                val errorResult = when (e.code()) {
                     400 -> {
                         val errorBody = ErrorUtils.parseHttpError(e)
                         EnterResult.Error.BadRequest(errorBody?.message ?: "Bad Request")
                     }
-                    else ->{
+
+                    else -> {
                         EnterResult.Error.Unauthorized("Unknown Error")
                     }
                 }
@@ -73,29 +78,34 @@ class LobbyRepositoryImpl @Inject constructor(
         userCourse: UserCourse
     ): Flow<Result<CreateRoomResult>> {
         try {
-            val createRoomResponseDto = multiApiService.createRoom(
-                CreateRoomRequestDto(
-                    roomName,
-                    roomMax,
-                    isPassword,
-                    password,
-                    userCourse
-                )
+            val createRequestDto = CreateRoomRequestDto(
+                roomName,
+                roomMax,
+                isPassword,
+                password,
+                poseMapper.modelToDto(userCourse.poses)
             )
+            Log.d("Lobby",createRequestDto.toString())
+            val createRoomResponseDto = multiApiService.createRoom(
+                createRequestDto
+            )
+            Log.d("Lobby",createRoomResponseDto.toString())
             val createRoomResult = createRoomMapper.map(createRoomResponseDto)
             return flow {
                 emit(Result.success(createRoomResult))
             }
         } catch (e: HttpException) {
-            val errorResult = when (e.code()){
+            val errorResult = when (e.code()) {
                 400 -> {
                     val errorBody = ErrorUtils.parseHttpError(e)
                     CreateRoomResult.Error.BadRequest(errorBody?.message ?: "Bad Request")
                 }
+
                 401 -> {
                     CreateRoomResult.Error.Unauthorized("Unauthorized")
                 }
-                else ->{
+
+                else -> {
                     CreateRoomResult.Error.Unauthorized("Unknown Error")
                 }
             }
@@ -106,12 +116,13 @@ class LobbyRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getRooms(searchText: String, page: Int): Flow<Result<List<Room>>> {
-        startSse(searchText,page)
+        startSse(searchText, page)
 
         return eventListener.sseEvents.map { event ->
             try {
                 // 이벤트 데이터를 Room 객체로 변환하는 로직 작성
                 val rooms = roomMapper.map(event)
+                println("Event Data: $rooms")
                 Result.success(rooms)
             } catch (e: Exception) {
                 Result.failure(e)

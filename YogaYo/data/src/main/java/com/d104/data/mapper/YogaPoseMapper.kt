@@ -2,6 +2,7 @@ package com.d104.data.mapper
 
 import com.d104.data.remote.dto.YogaPoseDto
 import com.d104.domain.model.YogaPose
+import com.d104.domain.model.YogaPoseWithOrder
 import javax.inject.Inject
 
 class YogaPoseMapper @Inject constructor() {
@@ -40,5 +41,16 @@ class YogaPoseMapper @Inject constructor() {
             setPoseId = domain.setPoseId,
             poseVideo = domain.poseVideo
         )
+    }
+
+    fun modelToDto(modelList:List<YogaPose>): List<YogaPoseWithOrder>{
+        val list = mutableListOf<YogaPoseWithOrder>()
+        modelList.forEachIndexed{ i,yogaPose ->
+            list.add(YogaPoseWithOrder(
+                yogaPose.poseId,
+                i
+            ))
+        }
+        return list
     }
 }

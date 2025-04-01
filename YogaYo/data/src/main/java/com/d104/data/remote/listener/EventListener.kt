@@ -24,6 +24,6 @@ class EventListener @Inject constructor(): EventSourceListener() {
     }
 
     override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-        println("Error occurred: $t")
+        println("SSE Error occurred: $t")
     }
 }

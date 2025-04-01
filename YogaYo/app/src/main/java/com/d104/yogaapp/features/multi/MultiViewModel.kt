@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.CreateRoomResult
@@ -19,8 +20,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -76,7 +79,6 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.ClickCreateRoomButton -> {
                 processIntent(MultiIntent.UpdateRoomTitle(""))
                 processIntent(MultiIntent.UpdateRoomPassword(""))
-//                createRoom()
             }
             is MultiIntent.CreateRoom ->{
                 createRoom()
@@ -88,11 +90,11 @@ class MultiViewModel @Inject constructor(
     private fun createRoom() {
         viewModelScope.launch {
             createRoomUseCase(
-                _uiState.value.roomTitle,
-                _uiState.value.roomMax,
-                _uiState.value.isPassword,
-                _uiState.value.roomPassword,
-                _uiState.value.selectedCourse!!
+                uiState.value.roomTitle,
+                uiState.value.roomMax,
+                uiState.value.isPassword,
+                uiState.value.roomPassword,
+                uiState.value.selectedCourse!!
             ).collect{ result->
                 result.fold(
                     onSuccess = { createRoomResult ->
@@ -140,8 +142,10 @@ class MultiViewModel @Inject constructor(
         cancelSearch()
         searchJob = viewModelScope.launch {
             getRoomUseCase(searchText,pageIndex).collect { result ->
+                Timber.tag("SSE").d(result.toString())
                 result.onSuccess {
-                    _uiState.update { currentState -> currentState.copy(page = it) }
+                    Timber.tag("SSE").d(it.toString())
+                    processIntent(MultiIntent.UpdatePage(it))
                     processIntent(MultiIntent.RoomLoaded)
                 }
                 result.onFailure {
@@ -180,6 +184,7 @@ class MultiViewModel @Inject constructor(
 
     init {
         searchCourse()
+        loadRooms("",uiState.value.pageIndex)
 
         _uiState.value.yogaCourses = courseJsonParser.loadUserCoursesFromAssets("courseSet.json")
 

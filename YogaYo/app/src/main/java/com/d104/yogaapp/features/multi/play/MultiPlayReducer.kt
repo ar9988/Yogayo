@@ -101,6 +101,14 @@ class MultiPlayReducer @Inject constructor() {
                     "game_started" -> currentState.copy(
                         gameState = GameState.Playing
                     )
+                    "round_start" -> currentState.copy(
+                        roundIndex = currentState.roundIndex+1,
+                        gameState = GameState.Playing
+                        //기타 스테이트 처리
+                    )
+                    "round_end" -> currentState.copy(
+                        gameState = GameState.RoundResult
+                    )
                     "game_end" -> currentState.copy(
                         gameState = GameState.GameResult
                     )
@@ -110,7 +118,7 @@ class MultiPlayReducer @Inject constructor() {
 
             is MultiPlayIntent.ReceiveWebRTCImage -> {
                 currentState.copy(
-                    peerImage = intent.bitmap
+                    bitmap = intent.bitmap
                 )
             }
 

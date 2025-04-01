@@ -18,7 +18,8 @@ data class MultiPlayState(
     val second : Float = 1.0f, // 1.0 = 3초, 0.0 = 0초
     val selectedPoseId :Int = 0,
     val currentRoom: Room? = null,
-    val peerImage: Bitmap? = null
+    val bitmap: Bitmap? = null,
+    val roundIndex: Int = 0,
 )
 
 enum class GameState {

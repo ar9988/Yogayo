@@ -8,5 +8,5 @@ import kotlinx.serialization.Serializable
 data class UserJoinedMessage(
     val peerId: String,
     val userNickName: String,
-    override val type: String
+    override val type: String = "user_joined"
 ) : SignalingMessage()

@@ -20,19 +20,13 @@ fun base64ToBitmap(base64String: String): Bitmap? {
     }
 }
 
-fun bitmapToBase64(bitmap: Bitmap): String? {
+fun bitmapToBase64(bitmap: Bitmap): ByteArray? {
     return try {
         // 1. ByteArrayOutputStream 생성
         val outputStream = ByteArrayOutputStream()
 
-        // 2. Bitmap 압축 (JPEG 형식, 100% 품질)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-
         // 3. ByteArray로 변환
-        val byteArray = outputStream.toByteArray()
-
-        // 4. Base64 인코딩
-        Base64.encodeToString(byteArray, Base64.DEFAULT)
+        return outputStream.toByteArray()
     } catch (e: Exception) {
         e.printStackTrace()
         null

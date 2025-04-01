@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import timber.log.Timber
 import javax.inject.Inject
 
 class MultiReducer @Inject constructor() {
@@ -22,9 +23,11 @@ class MultiReducer @Inject constructor() {
                 roomSearchText = intent.text
             )
 
-            is MultiIntent.SelectCourse -> currentState.copy(
-                selectedCourse = intent.course
-            )
+            is MultiIntent.SelectCourse -> {
+                currentState.copy(
+                    selectedCourse = intent.course
+                )
+            }
 
             is MultiIntent.SearchCourse -> currentState
 
@@ -101,6 +104,10 @@ class MultiReducer @Inject constructor() {
 
             is MultiIntent.CreateRoom -> currentState.copy(
 
+            )
+
+            is MultiIntent.UpdatePage -> currentState.copy(
+                page = intent.it
             )
 
             is MultiIntent.ClearErrorMessage -> currentState.copy(

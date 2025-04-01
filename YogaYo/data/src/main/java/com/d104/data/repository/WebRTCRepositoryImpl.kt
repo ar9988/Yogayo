@@ -101,7 +101,7 @@ class WebRTCRepositoryImpl @Inject constructor(
     }
 
     // 모든 연결된 피어에게 데이터 브로드캐스트
-    override suspend fun sendBroadcastData(dataType:Int,data: ByteArray): Result<Unit> {
+    override suspend fun sendBroadcastData(data: ByteArray): Result<Unit> {
         return try {
             webRTCManager.broadcastData(data)
             Result.success(Unit)

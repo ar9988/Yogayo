@@ -8,6 +8,6 @@ import kotlinx.serialization.Serializable
 data class OfferMessage(
     val fromPeerId: String, // 누가 보냈는지
     val toPeerId: String,   // 누구에게 보내는지 (서버가 라우팅 해주면 생략 가능)
-    val sdp: String         // SDP 내용
-    , override val type: String
+    val sdp: String,
+    override val type: String
 ) : SignalingMessage()

@@ -1,31 +1,33 @@
 package com.d104.yogaapp.features.multi.play
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.d104.domain.model.DataChannelMessage
 import com.d104.domain.model.ImageChunkMessage
 import com.d104.domain.model.ScoreUpdateMessage
-import com.d104.domain.model.SignalingMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
 import com.d104.domain.usecase.CloseWebSocketUseCase
 import com.d104.domain.usecase.ConnectWebSocketUseCase
 import com.d104.domain.usecase.HandleSignalingMessage
 import com.d104.domain.usecase.InitializeWebRTCUseCase
 import com.d104.domain.usecase.InitiateConnectionUseCase
+import com.d104.domain.usecase.ObserveChunkImageUseCase
 import com.d104.domain.usecase.ObserveWebRTCMessageUseCase
 import com.d104.domain.usecase.ObserveWebSocketConnectionStateUseCase
+import com.d104.domain.usecase.ProcessChunkImageUseCase
 import com.d104.domain.usecase.SendImageUseCase
 import com.d104.domain.usecase.SendSignalingMessageUseCase
-import com.d104.domain.usecase.SendWebRTCMessageUseCase
+import com.d104.domain.usecase.SendWebRTCUseCase
 import com.d104.domain.utils.StompConnectionState
 import com.d104.yogaapp.utils.base64ToBitmap
+import com.d104.yogaapp.utils.bitmapToBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -45,11 +48,13 @@ class MultiPlayViewModel @Inject constructor(
     private val closeWebRTCUseCase: CloseWebRTCUseCase,
     private val observeWebRTCMessageUseCase: ObserveWebRTCMessageUseCase,
     private val handleSignalingMessage: HandleSignalingMessage,
-    private val sendWebRTCMessageUseCase: SendWebRTCMessageUseCase,
-    private val sendWebRtcImageUseCase: SendImageUseCase,
-    private val sendSignalingMessageUseCase: SendSignalingMessageUseCase,
+    private val sendWebRTCUseCase: SendWebRTCUseCase,
     private val observeWebSocketConnectionStateUseCase:ObserveWebSocketConnectionStateUseCase,
     private val initiateConnectionUseCase: InitiateConnectionUseCase,
+    private val sendSignalingMessageUseCase:SendSignalingMessageUseCase,
+    private val processChunkImageUseCase: ProcessChunkImageUseCase,
+    private val observeChunkImageUseCase: ObserveChunkImageUseCase,
+    private val sendImageUseCase: SendImageUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
@@ -65,7 +70,14 @@ class MultiPlayViewModel @Inject constructor(
                     multiPlayReducer.reduce(_uiState.value, MultiPlayIntent.ExitRoom)
                 }
             }
-
+            is MultiPlayIntent.ReceiveWebSocketMessage ->{
+                if(intent.message.type=="round_end"){
+                    sendScore()
+                }
+                if(intent.message.type=="image"){
+                    sendImage()
+                }
+            }
             else -> {}
         }
     }
@@ -74,6 +86,29 @@ class MultiPlayViewModel @Inject constructor(
         closeWebSocketUseCase()
         closeWebRTCUseCase()
         super.onCleared()
+    }
+
+    private fun sendImage(){
+        viewModelScope.launch {
+            sendImageUseCase(
+                params = SendImageUseCase.Params(
+                    imageBytes = bitmapToBase64(uiState.value.bitmap!!)!!,
+                    targetPeerId = null,
+                    quality = 85
+                )
+            )
+        }
+    }
+
+    private fun sendScore(){
+        viewModelScope.launch {
+            sendWebRTCUseCase(
+                message = ScoreUpdateMessage(
+                    score = uiState.value.second,
+                    time = uiState.value.second
+                )
+            )
+        }
     }
 
     private fun initiateMeshNetwork(){
@@ -138,11 +173,25 @@ class MultiPlayViewModel @Inject constructor(
                 launch(Dispatchers.IO) { // 또는 Dispatchers.Default
                     when(it.second){
                         is ImageChunkMessage -> {
-                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(base64ToBitmap((it.second as ImageChunkMessage).dataBase64)!!))
+                            processChunkImageUseCase((it.second as ImageChunkMessage))
+//                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(base64ToBitmap((it.second as ImageChunkMessage).dataBase64)!!))
                         }
                         is ScoreUpdateMessage -> {
                             processIntent(MultiPlayIntent.UpdateScore(it.first,(it.second as ScoreUpdateMessage)))
                         }
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            observeChunkImageUseCase().collect { it ->
+                withContext(Dispatchers.IO) {
+                    val bitmap = try {
+                        BitmapFactory.decodeByteArray(it, 0, it.size)
+                    } catch (e: Exception) { /* ... */ }
+                    bitmap?.let {
+                        processIntent(MultiPlayIntent.ReceiveWebRTCImage(bitmap as Bitmap))
                     }
                 }
             }

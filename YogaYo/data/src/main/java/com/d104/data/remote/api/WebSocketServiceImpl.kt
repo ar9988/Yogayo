@@ -23,6 +23,11 @@ class WebSocketServiceImpl @Inject constructor(
             .url(url)
             .build()
 
+        // 테스트용
+//        val request = Request.Builder()
+//            .url("wss://socketsbay.com/wss/v2/1/demo/")
+//            .build()
+
         // OkHttpClient를 사용하여 새 웹소켓 생성 및 연결 시작
         // 실제 연결 과정 및 이벤트 처리는 OkHttp 내부와 제공된 listener에서 수행됩니다.
         webSocket = client.newWebSocket(request, listener)

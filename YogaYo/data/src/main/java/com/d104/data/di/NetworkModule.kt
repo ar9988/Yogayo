@@ -24,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -49,6 +50,9 @@ object NetworkModule {
     fun provideOkHttpClient(jwtInterceptor: JwtInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(jwtInterceptor)
+            .connectTimeout(100, TimeUnit.SECONDS)
+            .readTimeout(100,TimeUnit.SECONDS)
+            .writeTimeout(100,TimeUnit.SECONDS)
             .build()
     }
 

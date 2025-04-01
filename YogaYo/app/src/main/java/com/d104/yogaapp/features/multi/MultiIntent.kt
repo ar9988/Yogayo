@@ -25,6 +25,8 @@ sealed class MultiIntent {
     data object EnterRoomComplete: MultiIntent()
     data class EnterRoomFail(val message:String) : MultiIntent()
     data class CreateRoomFail(val message: String) : MultiIntent()
+    data class UpdatePage(val it: List<Room>) : MultiIntent()
+
     data object CreateRoom : MultiIntent()
 
     data object ClearErrorMessage: MultiIntent()

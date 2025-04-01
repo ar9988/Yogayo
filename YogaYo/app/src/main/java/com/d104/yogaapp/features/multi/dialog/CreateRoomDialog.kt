@@ -41,6 +41,7 @@ import androidx.compose.ui.window.Dialog
 import com.d104.domain.model.UserCourse
 import com.d104.yogaapp.features.multi.MultiIntent
 import com.d104.yogaapp.features.solo.PosesRowWithArrows
+import timber.log.Timber
 
 @Composable
 fun CreateRoomDialog(
@@ -171,7 +172,7 @@ fun CreateRoomDialog(
                                     onClick = {
                                         selectedCourse = option
                                         courseExpanded = false
-                                        onCourseSelect(option)
+                                        onCourseSelect(selectedCourse!!)
                                     }
                                 )
                             }
