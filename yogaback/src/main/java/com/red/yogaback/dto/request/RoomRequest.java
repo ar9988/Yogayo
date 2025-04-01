@@ -39,7 +39,6 @@ public class RoomRequest {
         private String poseVideo;
         private long setPoseId;
         private int userOrderIndex;
-
     }
 
 

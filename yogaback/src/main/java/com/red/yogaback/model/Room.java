@@ -29,7 +29,7 @@ public class Room {
     private String roomName;        // room_name
 
     @Column(columnDefinition = "TINYINT(1)")
-    private boolean isPassword;     // is_password
+    private boolean hasPassword;     // is_password
 
     private Long createdAt;         // created_at
     private Long deletedAt;         // deleted_at

@@ -9,10 +9,9 @@ import com.red.yogaback.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
-
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -22,10 +21,10 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final RoomRecordRepository roomRecordRepository;
-//    private final UserCourseCache userCourseCache;
     private final RoomCoursePoseRepository roomCoursePoseRepository;
     private final PoseRepository poseRepository;
-
+    private final SseEmitterService sseEmitterService;
+    Map<Long, List<RoomRequest.PoseDetail>> roomPoseMap = new ConcurrentHashMap<>();
 
     // 방 만들기
     public RoomRequest createRooms(RoomRequest roomReq, Long userId) {
@@ -38,7 +37,7 @@ public class RoomService {
                 .password(roomReq.getPassword())
                 .roomName(roomReq.getRoomName())
                 .roomMax(roomReq.getRoomMax())
-                .isPassword(roomReq.isHasPassword())
+                .hasPassword(roomReq.isHasPassword())
                 .createdAt(System.currentTimeMillis())
                 .roomState(1L)
                 .build();
@@ -68,8 +67,34 @@ public class RoomService {
         roomCoursePoseRepository.saveAll(roomCoursePoses);
         roomReq.setRoomId(savedRoom.getRoomId());
         roomReq.setUserNickname(user.getUserNickname());
+        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
+        sseEmitterService.notifyRoomUpdate(getAllRooms());
         return roomReq;
 
+    }
+
+    // 방 조회 / SSE 연결
+    public List<RoomRequest> getAllRooms() {
+        List<Room> allRooms = roomRepository.findAll();
+        if (allRooms.isEmpty()){
+            return new ArrayList<>();
+        }
+        return allRooms.stream().filter(room ->
+                room.getRoomState() == 1).map(room -> {
+            RoomRequest roomRequest = new RoomRequest();
+            roomRequest.setRoomId(room.getRoomId());
+            roomRequest.setRoomCount(room.getRoomCount());
+            roomRequest.setRoomMax(room.getRoomMax());
+            roomRequest.setUserNickname(room.getCreator().getUserNickname());
+            roomRequest.setRoomName(room.getRoomName());
+            roomRequest.setHasPassword(room.isHasPassword());
+
+            List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
+            roomRequest.setPose(poseDetails);
+
+            return roomRequest;
+
+        }).collect(Collectors.toList());
     }
 
 
