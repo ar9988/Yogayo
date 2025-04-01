@@ -87,7 +87,7 @@ public class RoomService {
             roomRequest.setRoomMax(room.getRoomMax());
             roomRequest.setUserNickname(room.getCreator().getUserNickname());
             roomRequest.setRoomName(room.getRoomName());
-            roomRequest.setHasPassword(room.isHasPassword());
+            roomRequest.setHasPassword(room.getHasPassword());
 
             List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
             roomRequest.setPose(poseDetails);

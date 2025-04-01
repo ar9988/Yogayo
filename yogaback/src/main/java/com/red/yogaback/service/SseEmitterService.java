@@ -1,7 +1,6 @@
 package com.red.yogaback.service;
 
 import com.red.yogaback.dto.request.RoomRequest;
-import com.red.yogaback.model.Room;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
