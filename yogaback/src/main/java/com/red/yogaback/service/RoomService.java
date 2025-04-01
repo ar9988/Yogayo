@@ -7,6 +7,7 @@ import com.red.yogaback.model.RoomCoursePose;
 import com.red.yogaback.model.User;
 import com.red.yogaback.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RoomService {
@@ -24,6 +26,7 @@ public class RoomService {
     private final RoomCoursePoseRepository roomCoursePoseRepository;
     private final PoseRepository poseRepository;
     private final SseEmitterService sseEmitterService;
+
     Map<Long, List<RoomRequest.PoseDetail>> roomPoseMap = new ConcurrentHashMap<>();
 
     // 방 만들기
@@ -55,6 +58,7 @@ public class RoomService {
             poseDetail.setPoseVideo(findPose.getPoseVideo());
             poseDetail.setPoseLevel(findPose.getPoseLevel());
             poseDetail.setSetPoseId(1);
+            poseDetail.setPoseAnimation(findPose.getPoseAnimation());
             RoomCoursePose roomCoursePose = RoomCoursePose.builder()
                     .room(savedRoom)
                     .pose(findPose)
@@ -75,6 +79,7 @@ public class RoomService {
 
     // 방 조회 / SSE 연결
     public List<RoomRequest> getAllRooms() {
+        log.info("현재 방, 포즈: {}", roomPoseMap);
         List<Room> allRooms = roomRepository.findAll();
         if (allRooms.isEmpty()){
             return new ArrayList<>();
@@ -96,6 +101,9 @@ public class RoomService {
 
         }).collect(Collectors.toList());
     }
+
+
+    // 방 입장
 
 
 }
