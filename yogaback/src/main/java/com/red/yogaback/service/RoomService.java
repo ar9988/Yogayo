@@ -22,7 +22,7 @@ public class RoomService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final RoomRecordRepository roomRecordRepository;
-    private final UserCourseCache userCourseCache;
+//    private final UserCourseCache userCourseCache;
     private final RoomCoursePoseRepository roomCoursePoseRepository;
     private final PoseRepository poseRepository;
 
@@ -44,16 +44,22 @@ public class RoomService {
                 .build();
 
         Room savedRoom = roomRepository.save(room);
-        userCourseCache.storeUserCourse(savedRoom.getRoomId(), roomReq.getUserCourse());
+//        userCourseCache.storeUserCourse(savedRoom.getRoomId(), roomReq.getPose());
 
         List<RoomCoursePose> roomCoursePoses = new ArrayList<>();
-        int orderIndex = 1;
-        for (RoomRequest.UserCourseRequest.PoseDetail poseDetail : roomReq.getUserCourse().getPoses()) {
+        for (RoomRequest.PoseDetail poseDetail : roomReq.getPose()) {
             Pose findPose = poseRepository.findById(poseDetail.getPoseId()).orElseThrow(() -> new NoSuchElementException("포즈를 찾을 수 없습니다."));
+            poseDetail.setPoseId(findPose.getPoseId());
+            poseDetail.setPoseName(findPose.getPoseName());
+            poseDetail.setPoseImg(findPose.getPoseImg());
+            poseDetail.setPoseDescription(findPose.getPoseDescription());
+            poseDetail.setPoseVideo(findPose.getPoseVideo());
+            poseDetail.setPoseLevel(findPose.getPoseLevel());
+            poseDetail.setSetPoseId(1);
             RoomCoursePose roomCoursePose = RoomCoursePose.builder()
                     .room(savedRoom)
                     .pose(findPose)
-                    .roomOrderIndex(orderIndex++)
+                    .roomOrderIndex(poseDetail.getUserOrderIndex())
                     .createdAt(System.currentTimeMillis())
                     .build();
             roomCoursePoses.add(roomCoursePose);

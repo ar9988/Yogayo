@@ -16,37 +16,34 @@ import java.util.List;
 public class RoomRequest {
     private Long roomId;
     private int roomMax;
+    private int roomCount;
     private String userNickname;
     private String roomName;
     private String password;
 
     @JsonProperty("hasPassword")
     private boolean hasPassword;
-
-    private UserCourseRequest userCourse;
+    List<PoseDetail> pose;
 
     @Getter
     @Builder
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class UserCourseRequest {
-        private Long courseId;
-        private String courseName;
-        private boolean tutorial;
-        private List<PoseDetail> poses;
+    public static class PoseDetail {
+        private Long poseId;
+        private String poseName;
+        private String poseDescription;
+        private String poseImg;
+        private long poseLevel;
+        private String poseVideo;
+        private long setPoseId;
+        private int userOrderIndex;
 
-        @Getter
-        @Builder
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class PoseDetail {
-            private Long poseId;
-            private String poseName;
-            private String poseDescription;
-            private String poseImg;
-            private int poseLevel;
-            private String poseVideo;
-            private int setPoseId;
-        }
     }
+
+
+
+
+
 }
