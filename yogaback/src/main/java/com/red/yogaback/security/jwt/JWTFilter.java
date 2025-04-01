@@ -23,8 +23,8 @@ import java.io.IOException;
 public class JWTFilter extends OncePerRequestFilter {
 
     private final JWTUtil jwtUtil;
-
     private ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         log.info("Processing JWT authentication...");
@@ -36,9 +36,13 @@ public class JWTFilter extends OncePerRequestFilter {
                 throw new CustomException(ErrorCode.EXPIRED_ACCESS_TOKEN);
             }
 
+            // 토큰에서 추가 정보를 추출합니다.
             Long userId = jwtUtil.getMemberId(token);
+            String userNickName = jwtUtil.getUserNickName(token);
+            String userProfile = jwtUtil.getUserProfile(token);
 
-            CustomUserDetails userDetails = new CustomUserDetails(userId);
+            // 추가 정보를 포함하여 CustomUserDetails 생성
+            CustomUserDetails userDetails = new CustomUserDetails(userId, userNickName, userProfile);
 
             Authentication authToken = new UsernamePasswordAuthenticationToken(
                     userDetails,
@@ -49,7 +53,7 @@ public class JWTFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
             filterChain.doFilter(request, response);
-        }catch (CustomException e) {
+        } catch (CustomException e) {
             setErrorResponse(response, e);
         }
     }
@@ -57,8 +61,7 @@ public class JWTFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getServletPath();
-        log.info("Current path: {}", path); // 로깅 추가 이후 제거
-
+        log.info("Current path: {}", path);
         return path.startsWith("/api/auth/") ||
                 path.startsWith("/swagger-ui/") ||
                 path.startsWith("/v3/api-docs") ||

@@ -1,14 +1,17 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
 import java.util.List;
 
 @Entity
 @Table(name = "Room")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class Room {
 
     @Id
@@ -21,8 +24,8 @@ public class Room {
     private User creator;
 
     private String password;        // password
-    private Long roomMax;           // room_max
-    private Long roomCount;         // room_count
+    private int roomMax;           // room_max
+    private int roomCount;         // room_count
     private String roomName;        // room_name
 
     @Column(columnDefinition = "TINYINT(1)")

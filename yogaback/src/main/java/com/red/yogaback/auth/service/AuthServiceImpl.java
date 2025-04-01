@@ -1,6 +1,5 @@
 package com.red.yogaback.auth.service;
 
-
 import com.red.yogaback.auth.dto.LoginRequest;
 import com.red.yogaback.auth.dto.LoginResponse;
 import com.red.yogaback.auth.dto.SignUpRequest;
@@ -68,7 +67,12 @@ public class AuthServiceImpl implements AuthService {
         boolean matchPassword = passwordEncoder.matches(loginRequest.getPassword(), user.getUserPwd());
 
         if (matchPassword) {
-            JWTToken jwtToken = jwtUtil.createTokens(user.getUserId());
+            // JWT 토큰 생성 시 userId, userNickname, userProfile을 함께 전달
+            JWTToken jwtToken = jwtUtil.createTokens(
+                    user.getUserId(),
+                    user.getUserNickname(),
+                    user.getUserProfile()
+            );
             return LoginResponse.builder()
                     .userId(user.getUserId())
                     .userLoginId(user.getUserLoginId())

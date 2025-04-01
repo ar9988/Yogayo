@@ -1,13 +1,15 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "RoomCoursePose")
 @Getter
 @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class RoomCoursePose {
 
     @Id
@@ -25,7 +27,7 @@ public class RoomCoursePose {
     private Room room;
 
     @Column(name = "room_order_Index")
-    private Long roomOrderIndex; // room_order_Index
+    private int roomOrderIndex; // room_order_Index
 
     private Long createdAt; // created_at
 }

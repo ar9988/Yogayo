@@ -1,20 +1,29 @@
 package com.red.yogaback.dto.respond;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+
+import java.util.List;
+
 @Getter
+@AllArgsConstructor
 public class BadgeListRes {
     private Long badgeId;
     private String badgeName;
-    private String badgeImg;
-    private String badgeCondition;
-    private boolean isAchieved;
+    private int badgeProgress;
+    private int highLevel;
+    private List<BadgeDetailRes> badgeDetails;
 
-    public BadgeListRes(Long badgeId, String badgeName, String badgeImg, String badgeCondition, boolean isAchieved) {
-        this.badgeId = badgeId;
-        this.badgeName = badgeName;
-        this.badgeImg = badgeImg;
-        this.badgeCondition = badgeCondition;
-        this.isAchieved = isAchieved;
+    @Getter
+    @AllArgsConstructor
+    public static class BadgeDetailRes {
+        private Long badgeDetailId;
+        private String badgeDetailName;
+        private String badgeDetailImg;
+        private String badgeDescription;
+        private int badgeGoal;
+        private int badgeLevel;
     }
+
 }
