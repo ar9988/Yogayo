@@ -9,9 +9,11 @@ import com.red.yogaback.model.Pose;
 import com.red.yogaback.model.PoseRecord;
 import com.red.yogaback.model.RoomRecord;
 import com.red.yogaback.model.User;
+import com.red.yogaback.model.UserRecord;
 import com.red.yogaback.repository.PoseRecordRepository;
 import com.red.yogaback.repository.PoseRepository;
 import com.red.yogaback.repository.RoomRecordRepository;
+import com.red.yogaback.repository.UserRecordRepository;
 import com.red.yogaback.repository.UserRepository;
 import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.service.S3FileStorageService;
@@ -20,6 +22,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,12 +36,13 @@ public class PoseRecordService {
     private final PoseRepository poseRepository;
     private final RoomRecordRepository roomRecordRepository;
     private final UserRepository userRepository;
+    private final UserRecordRepository userRecordRepository;
     private final S3FileStorageService s3FileStorageService;
     private final BadgeService badgeService;
 
     /**
      * [POST] /api/yoga/history/{poseId}
-     * - 새 요가 포즈 기록 생성
+     * - 새 요가 포즈 기록 생성 및 관련 UserRecord의 lastExerciseDate 업데이트
      */
     public PoseRecord createPoseRecord(Long poseId, PoseRecordRequest request, MultipartFile recordImg) {
         Long userId = SecurityUtil.getCurrentMemberId();
@@ -68,6 +74,15 @@ public class PoseRecordService {
                 .createdAt(System.currentTimeMillis())
                 .build();
         PoseRecord savedPoseRecord = poseRecordRepository.save(poseRecord);
+
+        // 새 PoseRecord의 createdAt을 날짜로 변환하여 UserRecord의 lastExerciseDate에 업데이트
+        Instant instant = Instant.ofEpochMilli(savedPoseRecord.getCreatedAt());
+        LocalDate exerciseDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+        UserRecord userRecord = userRecordRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("UserRecord not found for userId=" + userId));
+        userRecord.setLastExerciseDate(exerciseDate);
+        userRecordRepository.save(userRecord);
+
         badgeService.updateUserRecordAndAssignBadges(user);
         return savedPoseRecord;
     }
