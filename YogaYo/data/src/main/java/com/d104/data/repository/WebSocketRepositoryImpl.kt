@@ -36,7 +36,7 @@ class WebSocketRepositoryImpl @Inject constructor(
     private val webSocketService: WebSocketService
 ) : WebSocketRepository {
 
-    private val webSocketUrl = "ws://j12d104.p.ssafy.io/ws/chat" // 엔드포인트 확인
+    private val webSocketUrl = "wss://j12d104.p.ssafy.io/ws" // 엔드포인트 확인
     // private val host = "j12d104.p.ssafy.io" // CONNECT 프레임 호스트 확인
 
     // --- 상태 관리 ---
