@@ -88,7 +88,7 @@ public class SignalingController {
                 break;
 
             case "ready":
-                Room room = socketRoomService.getRoom(roomId);
+                room = socketRoomService.getRoom(roomId);
                 if (room == null) {
                     messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "존재하지 않는 방입니다.");
                     return;
