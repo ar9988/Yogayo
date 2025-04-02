@@ -1,7 +1,7 @@
 package com.red.yogaback.websocket.service;
-//방(Room)의 생성, 조회, 삭제를 관리합니다.
-import org.springframework.stereotype.Service;
 
+import org.springframework.stereotype.Service;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,5 +20,10 @@ public class SocketRoomService {
 
     public void removeRoom(String roomId) {
         rooms.remove(roomId);
+    }
+    
+    // 모든 방을 반환하는 메서드
+    public Collection<Room> getAllRooms() {
+        return rooms.values();
     }
 }
