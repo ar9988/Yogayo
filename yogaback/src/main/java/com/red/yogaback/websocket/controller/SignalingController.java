@@ -47,6 +47,7 @@ public class SignalingController {
         return userSession;
     }
 
+    // 통합 엔드포인트: 클라이언트는 "/app/action/{roomId}"로 메시지를 보냅니다.
     @MessageMapping("/action/{roomId}")
     public void handleRoomAction(@DestinationVariable String roomId,
                                  @Payload RoomActionMessage actionMessage,
@@ -82,11 +83,13 @@ public class SignalingController {
                     messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "이미 방에 참가하였습니다.");
                     return;
                 }
+                // WebSocketAuthChannelInterceptor에서 이미 세션 속성에 저장된 값 사용
                 String userId = (String) headerAccessor.getSessionAttributes().get("userId");
                 String userNickName = (String) headerAccessor.getSessionAttributes().get("userNickName");
                 String userProfile = (String) headerAccessor.getSessionAttributes().get("userProfile");
                 room.addParticipant(sessionId, userId);
                 userSessionService.addSession(sessionId, new UserSession(userId, roomId, userNickName, userProfile));
+                // 방 참가 정보를 브로드캐스트 (구독 경로: /topic/room/{roomId})
                 messagingTemplate.convertAndSend("/topic/room/" + roomId, new UserSession(userId, roomId, userNickName, userProfile));
                 logger.info("User {} joined room {}", userId, roomId);
                 break;
