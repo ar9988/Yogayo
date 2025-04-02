@@ -40,23 +40,28 @@ public class SignalingController {
         String sessionId = headerAccessor.getSessionId();
         UserSession userSession = userSessionService.getSession(sessionId);
         if (userSession == null || userSession.getRoomId() == null) {
+            logger.warn("No room information found for session: {}", sessionId);
             messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "방 정보가 없습니다.");
             return null;
         }
         return userSession;
     }
 
-    // 통합 엔드포인트: 클라이언트는 "/app/action/{roomId}"로 메시지를 보냅니다.
     @MessageMapping("/action/{roomId}")
     public void handleRoomAction(@DestinationVariable String roomId,
                                  @Payload RoomActionMessage actionMessage,
                                  StompHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
-        // 유효한 사용자 세션 확인
+        logger.debug("Received action '{}' from session {} for room {}", actionMessage.getAction(), sessionId, roomId);
+
         UserSession userSession = getValidatedUserSession(headerAccessor);
-        if (userSession == null) return;
-        // 경로 변수의 roomId와 세션에 저장된 roomId가 일치하는지 확인
+        if (userSession == null) {
+            logger.warn("User session not validated for session: {}", sessionId);
+            return;
+        }
+
         if (!roomId.equals(userSession.getRoomId())) {
+            logger.warn("Room ID mismatch for session {}: header roomId={}, session roomId={}", sessionId, roomId, userSession.getRoomId());
             messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "요청한 방 정보와 세션의 방 정보가 일치하지 않습니다.");
             return;
         }
@@ -64,44 +69,42 @@ public class SignalingController {
         String action = actionMessage.getAction();
         switch (action) {
             case "enter":
-                // "enter" 액션: JoinRoomMessage DTO를 사용
-                // (경로 변수 roomId를 사용하므로, payload 내 roomId는 무시할 수 있음)
+                logger.debug("Processing 'enter' action for session {}", sessionId);
                 JoinRoomMessage joinMsg = (JoinRoomMessage) actionMessage.getMessage();
                 Room room = socketRoomService.getRoom(roomId);
                 if (room == null) {
+                    logger.warn("Room {} does not exist", roomId);
                     messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "존재하지 않는 방입니다.");
                     return;
                 }
                 if (room.hasParticipant(sessionId)) {
+                    logger.warn("Session {} already joined room {}", sessionId, roomId);
                     messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "이미 방에 참가하였습니다.");
                     return;
                 }
-                // WebSocketAuthChannelInterceptor에서 이미 세션 속성에 저장된 값 사용
                 String userId = (String) headerAccessor.getSessionAttributes().get("userId");
                 String userNickName = (String) headerAccessor.getSessionAttributes().get("userNickName");
                 String userProfile = (String) headerAccessor.getSessionAttributes().get("userProfile");
                 room.addParticipant(sessionId, userId);
                 userSessionService.addSession(sessionId, new UserSession(userId, roomId, userNickName, userProfile));
-                // 방 참가 정보를 브로드캐스트 (구독 경로: /topic/room/{roomId})
                 messagingTemplate.convertAndSend("/topic/room/" + roomId, new UserSession(userId, roomId, userNickName, userProfile));
                 logger.info("User {} joined room {}", userId, roomId);
                 break;
 
             case "ready":
-                Room room = socketRoomService.getRoom(roomId);
+                logger.debug("Processing 'ready' action for session {}", sessionId);
+                room = socketRoomService.getRoom(roomId);
                 if (room == null) {
+                    logger.warn("Room {} does not exist for ready action", roomId);
                     messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "존재하지 않는 방입니다.");
                     return;
                 }
-                // ReadyMessage DTO로 캐스팅
                 ReadyMessage readyMsg = (ReadyMessage) actionMessage.getMessage();
-                // isReady 값에 따라 준비 상태 추가/제거 처리
                 if (readyMsg.isReady()) {
                     room.addReadyUser(userSession.getUserId());
                 } else {
                     room.removeReadyUser(userSession.getUserId());
                 }
-                // 모든 사용자가 준비되었는지 확인
                 if (room.allUsersReady()) {
                     room.setCourseStarted(true);
                     messagingTemplate.convertAndSend("/topic/room/" + roomId + "/allReady", "모든 참가자가 준비 완료되었습니다.");
@@ -115,7 +118,7 @@ public class SignalingController {
                 break;
 
             case "signal":
-                // "signal" 액션: SignalMessage DTO를 사용하여 시그널 처리
+                logger.debug("Processing 'signal' action for session {}", sessionId);
                 SignalMessage signalMsg = (SignalMessage) actionMessage.getMessage();
                 UserSignalDTO signalDto = new UserSignalDTO(
                         userSession.getUserId(),
@@ -128,7 +131,7 @@ public class SignalingController {
                 break;
 
             case "iceCandidate":
-                // "iceCandidate" 액션: IceCandidateMessage DTO를 사용하여 ICE 후보 처리
+                logger.debug("Processing 'iceCandidate' action for session {}", sessionId);
                 IceCandidateMessage candidateMsg = (IceCandidateMessage) actionMessage.getMessage();
                 IceCandidateDTO candidateDto = new IceCandidateDTO(
                         userSession.getUserId(),
@@ -141,15 +144,14 @@ public class SignalingController {
                 break;
 
             case "heartbeat":
-                // "heartbeat" 액션: 추가 payload 없이 단순히 heartbeat 처리
+                logger.debug("Processing 'heartbeat' action for session {}", sessionId);
                 messagingTemplate.convertAndSend("/topic/room/" + roomId + "/heartbeat", userSession.getUserId());
                 logger.debug("Heartbeat received from user {} in room {}", userSession.getUserId(), roomId);
                 break;
 
             default:
-                // 알 수 없는 액션 처리
-                messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "알 수 없는 action입니다.");
                 logger.warn("Unknown action '{}' from session {}", action, sessionId);
+                messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "알 수 없는 action입니다.");
                 break;
         }
     }
