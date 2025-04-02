@@ -25,7 +25,7 @@ public class UserRecordScheduler {
      * - currentExerciseDate가 어제 날짜가 아니라면,
      *      만약 previousExerciseDate도 어제 날짜가 아니라면 exConDays(연속 운동 일수)를 0으로 재설정합니다.
      */
-    @Scheduled(cron = "0 38 15 * * *")
+    @Scheduled(cron = "0 1 00 * * *")
     public void updateConsecutiveExerciseDays() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         List<UserRecord> userRecords = userRecordRepository.findAll();
