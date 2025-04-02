@@ -47,7 +47,6 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
         }
         String roomId = userSession.getRoomId();
         String userId = userSession.getUserId();
-
         Room room = roomService.getRoom(roomId);
         if (room != null) {
             room.removeParticipant(sessionId, userId);
@@ -62,4 +61,5 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
         }
         userSessionService.removeSession(sessionId);
     }
+
 }
