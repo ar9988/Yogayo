@@ -42,7 +42,7 @@ public class PoseRecordService {
 
     /**
      * [POST] /api/yoga/history/{poseId}
-     * - 새 요가 포즈 기록 생성 및 관련 UserRecord의 lastExerciseDate, exDays, exConDays 업데이트
+     * - 새 요가 포즈 기록 생성 및 관련 UserRecord의 운동 날짜 관련 필드를 업데이트합니다.
      */
     public PoseRecord createPoseRecord(Long poseId, PoseRecordRequest request, MultipartFile recordImg) {
         Long userId = SecurityUtil.getCurrentMemberId();
@@ -75,28 +75,44 @@ public class PoseRecordService {
                 .build();
         PoseRecord savedPoseRecord = poseRecordRepository.save(poseRecord);
 
-        // 새 PoseRecord의 createdAt을 날짜로 변환하여 UserRecord의 lastExerciseDate, exDays, exConDays 업데이트
+        // 새 PoseRecord의 createdAt을 LocalDate로 변환 (운동 기록 날짜)
         Instant instant = Instant.ofEpochMilli(savedPoseRecord.getCreatedAt());
-        LocalDate exerciseDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate newExerciseDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+
+        // UserRecord 업데이트 (새로운 운동일 로직 적용)
         UserRecord userRecord = userRecordRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("UserRecord not found for userId=" + userId));
-        LocalDate lastDate = userRecord.getLastExerciseDate();
-        if (lastDate == null || !lastDate.equals(exerciseDate)) {
-            // 새로운 운동일이면 exDays 증가
+
+        if (userRecord.getCurrentExerciseDate() == null) {
+            // 현재 운동 기록이 없다면, 오늘자 운동 기록을 설정하고 운동 일수 및 연속 운동일수를 1로 설정
+            userRecord.setCurrentExerciseDate(newExerciseDate);
+            userRecord.setExDays(1L);
+            userRecord.setExConDays(1L);
+        } else if (userRecord.getCurrentExerciseDate().equals(newExerciseDate)) {
+            // 이미 오늘 운동 기록이 있다면 아무 작업도 하지 않음.
+        } else {
+            // currentExerciseDate와 새 운동일자가 다르다면,
+            // 현재 운동일자를 이전 운동일자로 옮기고, 새 운동일자를 currentExerciseDate로 설정.
+            userRecord.setPreviousExerciseDate(userRecord.getCurrentExerciseDate());
+            userRecord.setCurrentExerciseDate(newExerciseDate);
+            // 총 운동 일수는 +1
             userRecord.setExDays(userRecord.getExDays() + 1);
-            // exConDays가 0이면(즉, 아직 운동 기록이 없었다면) 1로 설정
-            if (userRecord.getExConDays() == 0L) {
+            // 연속 운동일수 처리:
+            // 만약 이전 운동일자가 현재 운동일자의 바로 전날이면 +1, 그렇지 않으면 1로 재설정
+            if (userRecord.getPreviousExerciseDate() != null &&
+                    userRecord.getPreviousExerciseDate().plusDays(1).equals(newExerciseDate)) {
+                userRecord.setExConDays(userRecord.getExConDays() + 1);
+            } else {
                 userRecord.setExConDays(1L);
             }
-            // 마지막 운동 날짜 업데이트
-            userRecord.setLastExerciseDate(exerciseDate);
-            userRecordRepository.save(userRecord);
         }
+        userRecordRepository.save(userRecord);
 
+        // 기존 배지 체크 로직 호출 (필요한 경우)
         badgeService.updateUserRecordAndAssignBadges(user);
+
         return savedPoseRecord;
     }
-
     /**
      * [GET] /api/yoga/history
      * - 전체 요가 포즈 기록 조회 (사용자별)
