@@ -2,6 +2,7 @@ package com.red.yogaback.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "UserRecord")
@@ -21,8 +22,11 @@ public class UserRecord {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    private Long exConDays; // ex_con_days
-    private Long roomWin;   // room_win (예전 group_win에서 변경)
-    private Long exDays;    // ex_days
-    private Long createAt;  // create_at
+    private Long exConDays; // 연속 운동 일수
+    private Long roomWin;   // 방 우승 (예전 group_win에서 변경)
+    private Long exDays;    // 운동 일수
+    private Long createAt;  // 생성 시각 (millis)
+
+    // 최근 운동 날짜 (날짜만 관리)
+    private LocalDate lastExerciseDate;
 }

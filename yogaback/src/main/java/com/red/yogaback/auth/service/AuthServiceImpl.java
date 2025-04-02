@@ -4,7 +4,9 @@ import com.red.yogaback.auth.dto.LoginRequest;
 import com.red.yogaback.auth.dto.LoginResponse;
 import com.red.yogaback.auth.dto.SignUpRequest;
 import com.red.yogaback.model.User;
+import com.red.yogaback.model.UserRecord;
 import com.red.yogaback.repository.UserRepository;
+import com.red.yogaback.repository.UserRecordRepository;
 import com.red.yogaback.security.jwt.JWTToken;
 import com.red.yogaback.security.jwt.JWTUtil;
 import com.red.yogaback.constant.ErrorCode;
@@ -24,6 +26,8 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JWTUtil jwtUtil;
     private final S3FileStorageService s3FileStorageService;
+    // 추가: UserRecordRepository 주입
+    private final UserRecordRepository userRecordRepository;
 
     @Override //회원가입
     public boolean signUp(SignUpRequest signUpRequest, MultipartFile userProfile) {
@@ -44,8 +48,20 @@ public class AuthServiceImpl implements AuthService {
                         .userName(signUpRequest.getUserName())
                         .userNickname(signUpRequest.getUserNickname())
                         .userProfile(userProfileUrl)
+                        .createdAt(System.currentTimeMillis())
                         .build();
                 userRepository.save(user);
+
+                // User 생성 후 기본 값으로 UserRecord 생성
+                UserRecord userRecord = UserRecord.builder()
+                        .user(user)
+                        .exConDays(0L)
+                        .roomWin(0L)
+                        .exDays(0L)
+                        .createAt(System.currentTimeMillis())
+                        .build();
+                userRecordRepository.save(userRecord);
+
                 return true;
             }
         } catch (Exception e) {

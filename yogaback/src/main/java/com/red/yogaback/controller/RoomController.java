@@ -4,12 +4,16 @@ package com.red.yogaback.controller;
 import com.red.yogaback.dto.request.RoomRequest;
 import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.service.RoomService;
+import com.red.yogaback.service.SseEmitterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class RoomController {
 
     private final RoomService roomService;
+    private final SseEmitterService sseEmitterService;
 
     @PostMapping("/lobby")
     @Operation(summary = "방 생성")
@@ -28,6 +33,12 @@ public class RoomController {
         return ResponseEntity.ok(roomService.createRooms(roomReq, userId));
     }
 
+    @GetMapping("/lobby")
+    @Operation(summary = "방 조회 / SSE 연결")
+    public SseEmitter getAllRooms() {
+        List<RoomRequest> allRooms = roomService.getAllRooms();
+        return sseEmitterService.subscribe(allRooms);
+    }
 
 
 }
