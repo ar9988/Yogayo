@@ -1,5 +1,5 @@
 package com.red.yogaback.websocket.config;
-//클라이언트가 CONNECT 시 JWT 토큰을 헤더에서 추출하여 유효성 검사하고, 클레임(회원번호, 닉네임, 프로필 등)을 세션 속성에 저장합니다.
+
 import com.red.yogaback.security.jwt.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,8 +21,12 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketAuthChannelInterceptor.class);
 
+    private final JWTUtil jwtUtil;
+
     @Autowired
-    private JWTUtil jwtUtil;
+    public WebSocketAuthChannelInterceptor(JWTUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -34,7 +38,6 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
                 throw new IllegalArgumentException("인증 토큰이 필요합니다.");
             }
             String token = tokenList.get(0);
-
             try {
                 if (jwtUtil.isExpired(token)) {
                     logger.warn("Expired token for token: {}", token);

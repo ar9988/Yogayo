@@ -1,5 +1,5 @@
 package com.red.yogaback.websocket.service;
-//방 정보를 관리하며, 내부적으로 참가자와 준비한 사용자 목록을 저장합니다.
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +12,12 @@ public class Room {
     // 준비 완료한 사용자 ID 집합
     private final Set<String> readyUsers = new CopyOnWriteArraySet<>();
     private boolean courseStarted = false;
+
+    // 라운드 관련 필드
+    private int currentRound = 0;
+    private int totalRounds = 0;
+    private long roundStartTime = 0L;
+    private long roundDuration = 0L; // 각 라운드 지속 시간 (밀리초)
 
     public Room(String roomId) {
         this.roomId = roomId;
@@ -43,6 +49,10 @@ public class Room {
     public void addReadyUser(String userId) {
         readyUsers.add(userId);
     }
+    
+    public void removeReadyUser(String userId) {
+        readyUsers.remove(userId);
+    }
 
     public int getReadyUserCount() {
         return readyUsers.size();
@@ -58,5 +68,36 @@ public class Room {
 
     public void setCourseStarted(boolean courseStarted) {
         this.courseStarted = courseStarted;
+    }
+
+    // 라운드 관리 메서드
+    public void startCourse(int totalRounds, long roundDuration) {
+        this.totalRounds = totalRounds;
+        this.currentRound = 1;
+        this.roundDuration = roundDuration;
+        this.roundStartTime = System.currentTimeMillis();
+        this.courseStarted = true;
+    }
+
+    // 현재 라운드가 종료되었는지 체크 (예: 라운드 지속시간이 경과되었는지)
+    public boolean isRoundEnded() {
+        long now = System.currentTimeMillis();
+        return (now - roundStartTime) >= roundDuration;
+    }
+
+    // 다음 라운드를 시작 (현재 라운드를 종료 후)
+    public void nextRound() {
+        if (hasNextRound()) {
+            currentRound++;
+            roundStartTime = System.currentTimeMillis();
+        }
+    }
+
+    public boolean hasNextRound() {
+        return currentRound < totalRounds;
+    }
+
+    public int getCurrentRound() {
+        return currentRound;
     }
 }
