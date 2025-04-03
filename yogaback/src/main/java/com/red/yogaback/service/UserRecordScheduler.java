@@ -38,11 +38,9 @@ public class UserRecordScheduler {
             if (record.getCurrentExerciseDate() == null) {
                 continue;
             }
-
             boolean valid = false;
             LocalDate current = record.getCurrentExerciseDate();
             LocalDate previous = record.getPreviousExerciseDate();
-
             if (current.equals(today)) {
                 // 현재 운동 기록이 오늘일 경우, 이전 운동 기록이 어제이거나 null이면 유지
                 if (previous == null || previous.equals(yesterday)) {
@@ -54,7 +52,6 @@ public class UserRecordScheduler {
                     valid = true;
                 }
             }
-
             if (!valid) {
                 record.setExConDays(0L);
                 log.info("User {}: currentExerciseDate={} and previousExerciseDate={} are not a valid consecutive combination. Reset exConDays to 0.",
