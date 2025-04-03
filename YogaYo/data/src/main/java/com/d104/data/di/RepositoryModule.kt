@@ -1,5 +1,7 @@
 package com.d104.data.di
 
+import com.d104.data.local.dao.DataStorePreferencesDao
+import com.d104.data.local.dao.PreferencesDao
 import com.d104.data.repository.AuthRepositoryImpl
 import com.d104.data.repository.ImageReassemblyRepositoryImpl
 import com.d104.data.repository.ImageSenderRepositoryImpl
@@ -69,4 +71,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindImageReassemblyRepository(impl: ImageReassemblyRepositoryImpl): ImageReassemblyRepository
+
+    @Binds
+    @Singleton // DataStorePreferencesDao가 @Singleton이므로 동일하게 적용
+    abstract fun bindPreferencesDao(
+        dataStorePreferencesDaoImpl: DataStorePreferencesDao // 구현체 주입 요청
+    ): PreferencesDao // 인터페이스 반환 타입
 }

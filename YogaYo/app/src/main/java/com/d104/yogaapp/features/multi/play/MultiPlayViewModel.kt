@@ -122,49 +122,59 @@ class MultiPlayViewModel @Inject constructor(
     init {
 
         initializeWebRTCUseCase()
-        viewModelScope.launch {
-            uiState.map { it.currentRoom }.filterNotNull().first().roomId.let {
-                connectWebSocketUseCase(it.toString()).collect { msg ->
-                    handleSignalingMessage(msg)
-                    processIntent(MultiPlayIntent.ReceiveWebSocketMessage(msg))
-                }
-            }
-        }
 
         viewModelScope.launch {
-            // 1. Room ID 가져오기 (기존 방식 유지, 시점 문제 가능성 유의)
-            // 주의: uiState.currentRoom이 초기화 시점에 null이면 first()는 중단될 수 있음.
-            //       roomId를 SavedStateHandle 등으로 받는 것이 더 안정적일 수 있음.
-            val roomId = uiState.map { it.currentRoom }
-                .filterNotNull()
-                .first() // currentRoom이 설정될 때까지 기다림
-                .roomId.toString()
-
-            // 2. WebSocket 연결 상태 관찰 시작
-            observeWebSocketConnectionStateUseCase()
-                .filter { it == StompConnectionState.CONNECTED } // 'Connected' 상태 필터링
-                .onEach {
-                    // 3. 연결 성공 확인 후 "Join" 메시지 전송
-                    Timber.d("WebSocket connected! Sending Join message for room $roomId")
-                    val success = sendSignalingMessageUseCase(roomId,0)
-                    if (!success) {
-                        Timber.e("Failed to send Join message for room $roomId")
-                    }
-                }
-                .launchIn(viewModelScope) // 별도의 코루틴에서 관찰 계속 (첫 연결 시 한 번만 실행되도록 하려면 .first() 후 launch) -> first() 사용이 Join을 한 번만 보내는데 더 명확함
-            // -> first() 사용 방식으로 수정:
-            // connectWebSocketUseCase는 연결 시도 *및* 메시지 Flow 반환을 가정
             try {
+                // 1. Room ID 가져오기 (단 한번만)
+                // 주의: currentRoom이 초기화 시점에 null이면 first()는 중단될 수 있습니다.
+                //       Activity/Fragment로부터 안전하게 전달받는 것이 더 좋습니다 (e.g., SavedStateHandle).
+                val roomId = uiState.map { it.currentRoom }
+                    .filterNotNull() // currentRoom이 null이 아닐 때까지 기다림
+                    .first()        // 첫 번째 non-null 값 사용
+                    .roomId.toString()
+
+                Timber.d("Room ID acquired: $roomId. Setting up WebSocket connection and observation.")
+
+                // 2. 연결 상태 관찰 및 Join 메시지 전송 (연결 시도와 함께 관리)
+                // observeWebSocketConnectionStateUseCase가 connectWebSocketUseCase 내부의 상태를 반영한다고 가정합니다.
+                // 별도의 launch를 사용하여 상태 변화를 감지하고 Join 메시지를 한 번만 보냅니다.
+                launch { // 상태 관찰 및 Join 메시지 전송을 위한 별도 코루틴
+                    observeWebSocketConnectionStateUseCase()
+                        .filter { it == StompConnectionState.CONNECTED } // CONNECTED 상태 필터링
+                        .first() // 첫 번째 CONNECTED 상태가 되면 아래 블록 실행하고 종료
+                        .let {
+                            Timber.i("WebSocket CONNECTED for room $roomId. Sending Join message.")
+                            val success = sendSignalingMessageUseCase(roomId, 0) // Join 메시지 전송
+                            if (!success) {
+                                Timber.e("Failed to send Join message for room $roomId")
+                            }
+                        }
+                    Timber.d("Join message sending logic completed (or state stream ended).")
+                }
+
+                // 3. WebSocket 연결 시작 및 메시지 수집 (connectWebSocketUseCase 호출은 여기서 단 한번!)
+                Timber.d("Calling connectWebSocketUseCase for room $roomId.")
                 connectWebSocketUseCase(roomId).collect { msg ->
-                    if(msg.type=="game_started"){
+                    Timber.v("Received WebSocket message: Type=${msg.type}") // 메시지 수신 로그 추가
+
+                    // game_started 처리
+                    if (msg.type == "game_started") {
+                        Timber.d("Game started message received. Initiating mesh network.")
                         initiateMeshNetwork()
                     }
+
+                    // 시그널링 메시지 처리
                     handleSignalingMessage(msg)
+
+                    // 기타 메시지 처리 (Intent 사용)
                     processIntent(MultiPlayIntent.ReceiveWebSocketMessage(msg))
                 }
+
             } catch (e: Exception) {
-                Timber.e(e, "Error collecting WebSocket messages for room $roomId")
-                // TODO: WebSocket 메시지 수신 중 오류 처리 (예: 재연결 로직 또는 UI 알림)
+                // roomId를 가져오거나, 연결하거나, 메시지 수집 중 발생하는 모든 예외 처리
+                Timber.e(e, "Error during WebSocket setup or message collection for room ${uiState.value.currentRoom?.roomId}")
+                // TODO: 사용자에게 오류 알림 또는 상태 업데이트
+                // processIntent(MultiPlayIntent.ShowError("WebSocket connection failed"))
             }
         }
 

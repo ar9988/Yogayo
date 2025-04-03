@@ -1,6 +1,7 @@
 package com.d104.data.repository
 
 import android.util.Log
+import com.d104.data.local.dao.PreferencesDao
 import com.d104.data.remote.api.WebSocketService
 import com.d104.data.remote.utils.StompUtils
 import com.d104.domain.model.StompErrorException
@@ -33,11 +34,12 @@ import javax.inject.Singleton
 
 @Singleton
 class WebSocketRepositoryImpl @Inject constructor(
-    private val webSocketService: WebSocketService
+    private val webSocketService: WebSocketService,
+    private val datastoreDao: PreferencesDao,
 ) : WebSocketRepository {
 
     private val webSocketUrl = "wss://j12d104.p.ssafy.io/ws" // 엔드포인트 확인
-    // private val host = "j12d104.p.ssafy.io" // CONNECT 프레임 호스트 확인
+    private val host = "j12d104.p.ssafy.io" // CONNECT 프레임 호스트 확인
 
     // --- 상태 관리 ---
     private val _connectionState = MutableStateFlow(StompConnectionState.DISCONNECTED)
@@ -55,68 +57,89 @@ class WebSocketRepositoryImpl @Inject constructor(
 
     private val webSocketListener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d("StompRepo", "WebSocket Opened. Sending STOMP CONNECT...")
-            val connectFrame = StompUtils.buildConnectFrame("j12d104.p.ssafy.io") // 호스트 확인
-            val sent = webSocketService.send(connectFrame)
-            if (!sent) {
-                Log.e("StompRepo", "Failed to send STOMP CONNECT frame.")
-                handleConnectionFailure(Exception("Failed to send CONNECT frame"))
-            }
-            // CONNECTING 상태는 connectAndSubscribe에서 설정
+            // 이 onOpen은 connect 로직에서 직접 호출되지 않습니다.
+            Log.w("StompRepo", "External webSocketListener onOpen called - Unexpected in connect flow.")
         }
-
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            // 메시지 처리는 channelFlow 내부에서 수행됨 (아래 connectAndSubscribe 참고)
-            Log.d("StompRepo", "Raw Frame Received (forwarded to flow): ${text.take(100)}...")
-        }
-
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            Log.w("StompRepo", "WebSocket Closing: Code=$code, Reason=$reason")
-            handleDisconnect("WebSocket Closing")
-        }
-
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            Log.w("StompRepo", "WebSocket Closed: Code=$code, Reason=$reason")
-            handleDisconnect("WebSocket Closed")
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Log.e("StompRepo", "WebSocket Failure: ${t.message}", t)
-            handleConnectionFailure(t)
-        }
+        override fun onMessage(webSocket: WebSocket, text: String) { /* No-op */ }
+        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { handleDisconnect("WebSocket Closing (External Listener)") }
+        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { handleDisconnect("WebSocket Closed (External Listener)") }
+        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) { handleConnectionFailure(t) }
     }
 
-    override suspend fun connect(topic:String): Flow<String> {
-        // 0. 이미 동일한 방에 연결되어 있고 Flow가 있다면 즉시 반환
+    override suspend fun connect(topic: String): Flow<String> {
+        Log.d("StompRepo", "connect() called for topic: $topic") // 함수 호출 확인
+
+        // 0. 이미 연결 상태 확인 (기존 코드 유지)
         if (currentRoomId == topic && _connectionState.value == StompConnectionState.CONNECTED && messageFlow != null) {
             Log.d("StompRepo", "Already connected to room $topic. Returning existing flow.")
-            return messageFlow!! // non-null 보장
+            return messageFlow!!
         }
 
-        // 1. 다른 방에 연결되어 있다면 먼저 해제
+        // 1. 다른 방 연결 해제 (기존 코드 유지)
         if (_connectionState.value != StompConnectionState.DISCONNECTED && currentRoomId != topic) {
             Log.w("StompRepo", "Switching rooms. Disconnecting from $currentRoomId first.")
             disconnect()
-            // disconnect()가 상태를 DISCONNECTED로 변경하므로 잠시 기다리거나 상태 변경을 기다림
-            _connectionState.first { it == StompConnectionState.DISCONNECTED } // 상태 변경 기다림
+            _connectionState.first { it == StompConnectionState.DISCONNECTED }
         }
 
-        // 2. 상태 초기화 및 연결 시작
+        // 2. 상태 초기화 (기존 코드 유지)
         _connectionState.value = StompConnectionState.CONNECTING
         currentRoomId = topic
-        currentTopic = "/topic/room/$topic" // 방 ID 기반 토픽 경로 생성 (서버와 협의 필요)
-        currentSubscriptionId = "sub-$topic-${UUID.randomUUID().toString().take(8)}" // 방별 고유 ID
-        messageFlowJob?.cancel() // 이전 Flow 작업 취소
+        currentTopic = "/topic/room/$topic"
+        currentSubscriptionId = "sub-$topic-${UUID.randomUUID().toString().take(8)}"
+        messageFlowJob?.cancel()
 
-        // 3. 메시지를 처리할 Flow 생성 및 공유 설정
+        Log.d("StompRepo", "Starting channelFlow block...") // channelFlow 시작 확인
+
+        // 3. channelFlow 생성 및 내부 리스너 정의 (핵심 수정 영역)
         val internalFlow = channelFlow<String> {
+            // channelFlow 내부에서 사용할 WebSocket 리스너 정의
             val forwardingListener = object : WebSocketListener() {
-                override fun onOpen(webSocket: WebSocket, response: Response) {
-                    webSocketListener.onOpen(webSocket, response) // CONNECT 프레임 전송 요청
-                }
 
+                // ===== 핵심 수정 메서드: forwardingListener.onOpen =====
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.d("StompRepo", ">>> forwardingListener onOpen CALLED! Preparing to send CONNECT...")
+
+                    // CoroutineScope 내에서 suspend 함수 호출 및 CONNECT 프레임 전송
+                    launch { // channelFlow의 CoroutineScope 사용
+                        Log.d("StompRepo", ">>> launch block entered in onOpen")
+                        var token: String? = null // 토큰 변수 초기화
+                        try {
+                            Log.d("StompRepo", ">>> PRE: Attempting dataStorePreferencesDao.getAccessToken().first()")
+                            token = datastoreDao.getAccessToken().first() // 실제 토큰 가져오기 (suspend 함수)
+                            Log.d("StompRepo", ">>> POST: Token retrieved: ${token != null}")
+
+                            if (token != null) {
+                                Log.d("StompRepo", ">>> Building CONNECT frame with token...")
+                                val connectFrame = StompUtils.buildConnectFrame(host, token) // 실제 토큰 사용
+
+                                Log.d("StompRepo", ">>> Sending CONNECT frame via webSocketService...")
+                                val sent = webSocketService.send(connectFrame)
+                                Log.d("StompRepo", ">>> webSocketService.send(CONNECT) result: $sent")
+
+                                if (sent) {
+                                    Log.i("StompRepo", ">>> STOMP CONNECT frame sent successfully.")
+                                } else {
+                                    Log.e("StompRepo", ">>> Failed to send STOMP CONNECT frame via webSocketService.")
+                                    handleConnectionFailure(Exception("Failed to send CONNECT frame"))
+                                    close(Exception("Failed to send CONNECT frame")) // Flow 종료
+                                }
+                            } else {
+                                Log.e("StompRepo", ">>> Access Token is NULL. Cannot send CONNECT frame.")
+                                handleConnectionFailure(Exception("Access token not available"))
+                                close(Exception("Access token not available")) // Flow 종료
+                            }
+                        } catch (e: Exception) {
+                            Log.e("StompRepo", "!!! Exception in onOpen launch block (getAccessToken or send) !!!", e)
+                            handleConnectionFailure(e) // 연결 실패 처리
+                            close(e) // Flow 종료
+                        }
+                    } // launch 끝
+                } // onOpen 끝
+
+                // ===== 이하 리스너 메서드들은 기존 로직 유지 =====
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    // Raw STOMP 프레임 처리
+                    Log.d("StompRepo", ">>> forwardingListener onMessage received raw: ${text.take(200)}...")
                     try {
                         val (command, headers, body) = StompUtils.parseFrame(text)
                         Log.d("StompRepo", "Processing Frame: Command=$command, SubId=${headers["subscription"]}")
@@ -125,83 +148,96 @@ class WebSocketRepositoryImpl @Inject constructor(
                             "CONNECTED" -> {
                                 Log.i("StompRepo", "STOMP CONNECTED frame received.")
                                 _connectionState.value = StompConnectionState.CONNECTED
-                                // 연결 성공 시 즉시 구독 프레임 전송
                                 sendSubscriptionFrame(currentTopic!!, currentSubscriptionId!!)
                             }
                             "MESSAGE" -> {
-                                // 현재 구독 ID와 일치하는 메시지만 Flow로 전달
                                 if (headers["subscription"] == currentSubscriptionId) {
                                     Log.d("StompRepo", "Message for current subscription received.")
-                                    trySend(body)
+                                    trySend(body) // Flow로 메시지 방출
                                 } else {
                                     Log.w("StompRepo", "Received message for unrelated subscription: ${headers["subscription"]}")
                                 }
                             }
                             "ERROR" -> {
                                 Log.e("StompRepo", "STOMP ERROR frame received: $headers - $body")
-                                // 오류 발생 시 Flow 종료
                                 close(StompErrorException("STOMP Error: ${headers["message"]} - $body"))
                             }
-                            // PONG (Heartbeat 응답) 등 다른 프레임 처리 필요 시 추가
+                            // TODO: HEARTBEAT 프레임 처리 (필요시) -> 서버가 HEARTBEAT 보내는지 확인 필요
+                            // "HEARTBEAT" -> Log.d("StompRepo", "Received HEARTBEAT frame from server.")
+                            else -> {
+                                Log.d("StompRepo", "ELSE frame received: $headers - $body")
+                            }
                         }
                     } catch (e: Exception) {
-                        Log.e("StompRepo", "Error parsing STOMP frame: ${e.message}", e)
-                        // 파싱 오류 시 Flow 종료 고려
+                        Log.e("StompRepo", "Error parsing STOMP frame in onMessage", e)
                         close(e)
                     }
                 }
 
                 override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                    webSocketListener.onClosing(webSocket, code, reason)
-                    close()
+                    Log.w("StompRepo", ">>> forwardingListener onClosing: Code=$code, Reason=$reason")
+                    handleDisconnect("WebSocket Closing in Flow")
+                    close() // Flow 종료
                 }
+
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    webSocketListener.onClosed(webSocket, code, reason)
-                    close()
+                    Log.w("StompRepo", ">>> forwardingListener onClosed: Code=$code, Reason=$reason")
+                    handleDisconnect("WebSocket Closed in Flow")
+                    close() // Flow 종료
                 }
+
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    webSocketListener.onFailure(webSocket, t, response)
+                    Log.e("StompRepo", ">>> forwardingListener onFailure", t)
+                    handleConnectionFailure(t)
                     close(t) // Flow를 에러와 함께 종료
                 }
-            }
+            } // forwardingListener 정의 끝
 
-            // WebSocket 연결 시작
-            Log.d("StompRepo", "Connecting WebSocket to $webSocketUrl for room $topic")
+            // WebSocket 연결 시작 시 forwardingListener 전달
+            Log.d("StompRepo", ">>> Calling webSocketService.connect() with forwardingListener...")
             webSocketService.connect(webSocketUrl, forwardingListener)
 
-            // Flow 종료 시 정리 작업
+            // Flow 종료 대기
             awaitClose {
                 Log.d("StompRepo", "ChannelFlow for room $topic closing.")
-                // disconnectInternal() 호출은 disconnect() 또는 리스너 콜백에서 처리
+                // handleDisconnect는 각 콜백(onClosing, onClosed) 또는 외부 disconnect() 호출 시 처리됨
             }
-        }
+        } // channelFlow 끝
 
-        // 생성된 Flow를 공유 가능하게 만들고 저장
+        // 4. Flow 공유 및 관찰 (기존 코드 유지)
         messageFlow = internalFlow.shareIn(repositoryScope, SharingStarted.WhileSubscribed())
-        // Flow 관찰 시작 (오류 처리 및 재시작 로직 추가 가능)
         messageFlowJob = repositoryScope.launch {
             messageFlow?.catch { e ->
-                Log.e("StompRepo", "Error in shared message flow", e)
-                handleConnectionFailure(e) // 공유 Flow에서 에러 발생 시 처리
-            }?.collect{} // 공유 Flow 활성화 및 메시지 처리 시작
+                Log.e("StompRepo", "Error caught in shared message flow collector", e)
+                // channelFlow 내부에서 에러 발생 시 여기서 잡힐 수 있음
+                handleConnectionFailure(e)
+            }?.collect{
+                // ShareIn 사용 시 collect는 Flow 활성화를 위해 필요
+                // 메시지 처리는 구독하는 곳(ViewModel 등)에서 수행
+                Log.d("StompRepo", "Message collected in shared flow activator: ${it.take(50)}...")
+            }
         }
 
-        // 연결 상태가 CONNECTED가 될 때까지 기다리거나 타임아웃 처리 (선택적)
+        // 5. 연결 완료 대기 또는 타임아웃 (기존 코드 유지 - 필요에 따라 조정)
         try {
-            withTimeoutOrNull(15000) { // 15초 타임아웃 예시
+            Log.d("StompRepo", "Waiting for STOMP connection...")
+            withTimeoutOrNull(15000) { // 타임아웃 15초
                 _connectionState.first { it == StompConnectionState.CONNECTED }
             }
-            if (_connectionState.value != StompConnectionState.CONNECTED) {
+            if (_connectionState.value == StompConnectionState.CONNECTED) {
+                Log.i("StompRepo", "STOMP connection established successfully.")
+            } else {
+                Log.e("StompRepo", "STOMP connection timed out after 15 seconds.")
                 throw Exception("STOMP connection timed out for room $topic")
             }
         } catch (e: Exception) {
-            Log.e("StompRepo", "Connection failed or timed out for room $topic", e)
-            handleConnectionFailure(e)
-            throw e // 실패를 호출자에게 알림
+            Log.e("StompRepo", "Error during connection wait/timeout", e)
+            handleConnectionFailure(e) // 이미 연결 실패 처리되었을 수 있음
+            throw e // 실패를 호출자에게 전파
         }
 
-        Log.i("StompRepo", "Successfully connected and subscribed to room $topic. Returning message flow.")
-        return messageFlow!! // 위에서 null 체크/할당 완료
+        Log.i("StompRepo", "connect() method finished for topic $topic. Returning message flow.")
+        return messageFlow!! // 위에서 할당 및 성공 확인 완료
     }
 
     override fun send(destination: String, message: String): Boolean {
@@ -210,7 +246,7 @@ class WebSocketRepositoryImpl @Inject constructor(
             return false
         }
         // '/app/...' 형태의 destination 확인 필요
-        val sendFrame = StompUtils.buildSendFrame("app/room/"+destination, message)
+        val sendFrame = StompUtils.buildSendFrame("app/room/" + destination, message)
         val success = webSocketService.send(sendFrame)
         if (!success) {
             Log.e("StompRepo", "Failed to send message frame to $destination")

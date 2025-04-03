@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.d104.data.local.dao.DataStorePreferencesDao
+import com.d104.data.local.dao.PreferencesDao
 import com.d104.data.repository.DataStoreRepositoryImpl
 import com.d104.domain.model.AnswerMessage
 import com.d104.domain.model.IceCandidateMessage
@@ -16,6 +17,7 @@ import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
 import com.d104.domain.model.UserReadyMessage
 import com.d104.domain.repository.DataStoreRepository
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,6 +50,7 @@ object PersistenceModule {
     fun provideDataStoreRepository(dataStoreDao: DataStorePreferencesDao): DataStoreRepository {
         return DataStoreRepositoryImpl(dataStoreDao)
     }
+
 
     @Provides
     @Singleton
