@@ -8,6 +8,7 @@ import java.util.List;
 @Entity
 @Table(name = "User")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -25,9 +26,8 @@ public class User {
     private Long createdAt;
     private Long modifyAt;
 
-    // 한 사용자가 여러 Room(채팅방, 혹은 모임 등)을 생성할 수 있음
-    @OneToMany(mappedBy = "creator")
-    private List<Room> rooms;
+    @ManyToOne
+    private Room room;
 
     // 한 사용자가 여러 RoomRecord(방 기록)에 참여함
     @OneToMany(mappedBy = "user")

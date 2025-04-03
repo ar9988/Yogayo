@@ -19,9 +19,6 @@ public class Room {
     private Long roomId; // room_id
 
     // 방 생성자: Room은 반드시 하나의 User(생성자)에 속함
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User creator;
 
     private String password;        // password
     private int roomMax;           // room_max
@@ -35,6 +32,9 @@ public class Room {
     private Long deletedAt;         // deleted_at
     private Long roomState;         // room_state
 
+    @OneToMany(mappedBy = "room")
+    private List<User> users;
+
     // 한 방에는 여러 기록(RoomRecord)이 있을 수 있음
     @OneToMany(mappedBy = "room")
     private List<RoomRecord> roomRecords;
@@ -42,4 +42,6 @@ public class Room {
     // 한 방에 여러 RoomCoursePose가 포함될 수 있음
     @OneToMany(mappedBy = "room")
     private List<RoomCoursePose> roomCoursePoses;
+
+    private Long creatorId;
 }

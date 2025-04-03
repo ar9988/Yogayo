@@ -54,13 +54,13 @@ INSERT INTO badge_detail (badge_detail_name, badge_detail_img, badge_description
 -- --(6, 'user6', '경이현', 'user6', '경이현 닉', 'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EC%9A%94%EA%B0%80+%EC%BD%94%EC%8A%A4+5%EA%B0%9C+%EC%83%9D%EC%84%B1.png', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 
-INSERT INTO user_record (
-    user_record_id, user_id, room_win, ex_days, ex_con_days,
-    create_at
-) VALUES (
-    1, 6, 4, 2, 30,
-    UNIX_TIMESTAMP()
-);
+-- --INSERT INTO user_record (
+-- --    user_record_id, user_id, room_win, ex_days, ex_con_days,
+-- --    create_at
+-- --) VALUES (
+-- --    1, 6, 4, 2, 30,
+-- --    UNIX_TIMESTAMP()
+-- --);
 
 
 
@@ -106,7 +106,7 @@ INSERT INTO pose (
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/Bhujangasana.png',
     1,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224936484.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Bhujangasana_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EB%B6%80%EC%9E%A5%EA%B0%80%EC%82%AC%EB%82%98.gif',
     null
 );
 
@@ -124,7 +124,7 @@ INSERT INTO pose (
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/AdhoMukhaSvanasana.png',
     1,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224933984.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/AdhoMukhaSvanasana_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EC%95%84%EB%8F%84_%EB%AC%B4%EC%B9%B4_%EC%8A%A4%EB%B0%94%EB%82%98%EC%95%84%EC%82%AC%EB%82%98.gif',
     null
 );
 
@@ -142,7 +142,7 @@ INSERT INTO pose (
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/Ustrasana.png',
     2,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_225013682.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Ustrasana_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EC%9A%B0%EC%8A%A4%ED%8A%B8%EB%9D%BC%EC%82%AC%EB%82%98.gif',
     null
 );
 
@@ -158,9 +158,9 @@ INSERT INTO pose (
     '비라바드라사나 2',
     '다리를 옆으로 벌리고 서서 한쪽 무릎을 굽히고,\n양팔을 옆으로 뻗어 시선을 앞쪽 손끝을 향하는 자세입니다.',
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/Virabhadrasana_two.png',
-    3,
+    2,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224959220.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Virabhadrasana_two_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EB%B9%84%EB%9D%BC%EB%B0%94%EB%93%9C%EB%9D%BC%EC%82%AC%EB%82%98_2.gif',
     null
 );
 
@@ -178,7 +178,7 @@ INSERT INTO pose (
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/Navasana.png',
     3,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224954611.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Navasana_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EB%82%98%EB%B0%94%EC%82%AC%EB%82%98.gif',
     null
 );
 
@@ -193,10 +193,10 @@ INSERT INTO pose (
 ) VALUES (
     '비라바드라사나 3',
     '한 다리로 서서 몸을 앞으로 기울이고,\n다른 다리를 뒤로 들어 올려\n몸이 T 자 모양이 되도록 하는 자세입니다.',
-    'hthttps://yogayo.s3.ap-northeast-2.amazonaws.com/Virabhadrasana_three.png',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Virabhadrasana_three.png',
     3,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224939712.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Virabhadrasana_three_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%EB%B9%84%EB%9D%BC%EB%B0%94%EB%93%9C%EB%9D%BC%EC%82%AC%EB%82%98_3.gif',
     null
 );
 
@@ -215,6 +215,6 @@ INSERT INTO pose (
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/Halasana.png',
     3,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224942626.mp4',
-    'https://yogayo.s3.ap-northeast-2.amazonaws.com/Halasana_lottie.json',
+    'https://yogayo.s3.ap-northeast-2.amazonaws.com/%ED%95%A0%EB%9D%BC%EC%82%AC%EB%82%98.gif',
     null
 );
