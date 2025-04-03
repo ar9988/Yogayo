@@ -3,12 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 
-    id("kotlin-kapt")
     id("kotlin-parcelize")
     id("com.google.dagger.hilt.android")
 
     kotlin("plugin.serialization") version "1.5.0"
 
+    id("kotlin-kapt")
 }
 
 android {
@@ -43,6 +43,10 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    hilt {
+        enableAggregatingTask = true  // 멀티 모듈 프로젝트 시 필수
+        enableExperimentalClasspathAggregation = true
     }
     
 }
@@ -102,8 +106,8 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.48")
 
     // Coil
-    implementation("io.coil-kt:coil:2.4.0-rc03")
-    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("io.coil-kt:coil:2.5.0")
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Glide
     implementation("com.github.bumptech.glide:glide:4.12.0")

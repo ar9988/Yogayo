@@ -78,8 +78,4 @@ abstract class RepositoryModule {
         dataStorePreferencesDaoImpl: DataStorePreferencesDao // 구현체 주입 요청
     ): PreferencesDao // 인터페이스 반환 타입
 
-    @Binds
-    @Singleton
-    abstract fun bindUserRepositoryRepository(impl: UserRepositoryImpl): UserRepository
-
 }
