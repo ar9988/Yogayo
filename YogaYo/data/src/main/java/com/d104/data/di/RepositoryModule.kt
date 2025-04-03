@@ -3,11 +3,15 @@ package com.d104.data.di
 import com.d104.data.repository.AuthRepositoryImpl
 import com.d104.data.repository.LobbyRepositoryImpl
 import com.d104.data.repository.UserCourseRepositoryImpl
+import com.d104.data.repository.UserRepositoryImpl
+import com.d104.data.repository.WebSocketRepositoryImpl
 import com.d104.data.repository.YogaPoseHistoryRepositoryImpl
 import com.d104.data.repository.YogaPoseRepositoryImpl
 import com.d104.domain.repository.AuthRepository
 import com.d104.domain.repository.LobbyRepository
 import com.d104.domain.repository.UserCourseRepository
+import com.d104.domain.repository.UserRepository
+import com.d104.domain.repository.WebSocketRepository
 import com.d104.domain.repository.YogaPoseHistoryRepository
 import com.d104.domain.repository.YogaPoseRepository
 import dagger.Binds
@@ -37,5 +41,14 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindWebSocketRepository(impl: WebSocketRepositoryImpl): WebSocketRepository
+
+    @Binds
+    @Singleton
     abstract fun bindYogaPoseHistoryRepositoryRepository(impl: YogaPoseHistoryRepositoryImpl): YogaPoseHistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepositoryRepository(impl: UserRepositoryImpl): UserRepository
+
 }

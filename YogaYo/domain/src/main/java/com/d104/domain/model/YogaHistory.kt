@@ -6,8 +6,10 @@ data class YogaHistory(
     val roomRecordId:Int = -1,
     val userId:Int = -1,
     val accuracy:Float,
+    val ranking:Int?=null,
     val poseTime:Float = 5.5f,
     val recordImg:String,
     val isSkipped: Boolean = false,
-    val poseImg:String
+    val poseImg:String,
+    val createdAt: Long? = null
 )

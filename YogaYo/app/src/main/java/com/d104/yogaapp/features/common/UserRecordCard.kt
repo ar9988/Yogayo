@@ -18,19 +18,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.d104.domain.model.UserRecord
+import com.d104.domain.model.MyPageInfo
 import com.d104.yogaapp.ui.theme.GrayCardColor
 
 @Composable
 fun UserRecordCard(
-    userRecord: UserRecord,
+    myPageInfo: MyPageInfo,
     showDetailButton: Boolean = false,
     onClickDetail: ()-> Unit = {}
 ){
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(vertical = 8.dp)
         ,
         colors = CardDefaults.cardColors(
             containerColor = GrayCardColor
@@ -54,7 +54,7 @@ fun UserRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "운동 일수 :")
-                Text(text = "${userRecord.exDays}일", fontWeight = FontWeight.Bold)
+                Text(text = "${myPageInfo.exDays}일", fontWeight = FontWeight.Bold)
             }
 
             Row(
@@ -62,7 +62,7 @@ fun UserRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "연속 운동 일수 :")
-                Text(text = "${userRecord.exConDays}일", fontWeight = FontWeight.Bold)
+                Text(text = "${myPageInfo.exConDays}일", fontWeight = FontWeight.Bold)
             }
 
             Row(
@@ -70,7 +70,7 @@ fun UserRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = "1위 횟수 :")
-                Text(text = "${userRecord.roomWin}회", fontWeight = FontWeight.Bold)
+                Text(text = "${myPageInfo.roomWin}회", fontWeight = FontWeight.Bold)
             }
             if(showDetailButton){
                 Spacer(modifier = Modifier.height(8.dp))

@@ -1,18 +1,15 @@
 package com.d104.data.repository
 
-import android.content.ContentResolver
-import android.content.Context
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.util.Log
 import com.d104.data.mapper.PoseRecordMapper
-import com.d104.data.remote.datasource.YogaPoseHistoryDataSource.YogaPoseHistoryDataSource
-import com.d104.data.remote.datasource.YogaPoseHistoryDataSource.YogaPoseHistoryDataSourceImpl
-import com.d104.data.remote.dto.PoseRecordRequest
-import com.d104.domain.model.YogaHistory
+import com.d104.data.mapper.YogaPoseHistoryDetailMapper
+import com.d104.data.remote.datasource.yogaposehistory.YogaPoseHistoryDataSource
+import com.d104.data.remote.dto.PoseRecordRequestDto
+import com.d104.domain.model.BestPoseRecord
+import com.d104.domain.model.YogaPoseHistoryDetail
 import com.d104.domain.model.YogaPoseRecord
 import com.d104.domain.repository.YogaPoseHistoryRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -23,14 +20,13 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import javax.inject.Inject
 
 class YogaPoseHistoryRepositoryImpl @Inject constructor(
     private val yogaPoseHistoryDataSource: YogaPoseHistoryDataSource,
     private val poseRecordMapper: PoseRecordMapper,
+    private val yogaPoseHistoryDetailMapper: YogaPoseHistoryDetailMapper
 
     ):YogaPoseHistoryRepository{
     override suspend fun postYogaPoseHistory(
@@ -51,7 +47,7 @@ class YogaPoseHistoryRepositoryImpl @Inject constructor(
                 Log.d("PostYogaPoseHistory","img:$recordImgPart")
                 yogaPoseHistoryDataSource.postYogaPoseHistory(
                     poseId = poseId,
-                    poseRecordRequest = PoseRecordRequest(
+                    poseRecordRequestDto = PoseRecordRequestDto(
                         roomRecordId,
                         accuracy,
                         ranking,
@@ -75,12 +71,37 @@ class YogaPoseHistoryRepositoryImpl @Inject constructor(
     }
 
 
-    override suspend fun getYogaBestHistories(): Flow<Result<List<YogaPoseRecord>>> {
-        TODO("Not yet implemented")
+    override suspend fun getYogaBestHistories(): Flow<Result<List<BestPoseRecord>>>  = flow{
+        try {
+            val response = withContext(Dispatchers.IO){
+                yogaPoseHistoryDataSource.getYogaBestHistories()
+
+            }
+            val body = response.body()
+            if(response.isSuccessful && body != null){
+                emit(Result.success(poseRecordMapper.toBestPoseRecordList(body)))
+            } else {
+                emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}")))
+            }
+        }catch (e:Exception){
+            emit(Result.failure(e))
+        }
     }
 
-    override suspend fun getYogaPoseHistories(): Flow<Result<List<YogaPoseRecord>>> {
-        TODO("Not yet implemented")
+    override suspend fun getYogaPoseHistoryDetail(poseId:Long): Flow<Result<YogaPoseHistoryDetail>> = flow{
+        try {
+            val response = withContext(Dispatchers.IO) {
+                yogaPoseHistoryDataSource.getYogaPoseHistoryDetail(poseId)
+            }
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomain(body)))
+            } else {
+                emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}")))
+            }
+        }catch (e:Exception){
+            emit(Result.failure(e))
+        }
     }
 
     fun createMultipartBodyPartFromUri(

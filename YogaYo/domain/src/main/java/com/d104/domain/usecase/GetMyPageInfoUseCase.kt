@@ -8,6 +8,5 @@ import javax.inject.Inject
 class GetMyPageInfoUseCase @Inject constructor(
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(): Flow<Result<MyPageInfo>> =
-        userRepository.getMyPageInfo()
+    suspend operator fun invoke(): Flow<Result<MyPageInfo>> = userRepository.getMyPageInfo()
 }

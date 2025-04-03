@@ -17,6 +17,9 @@ paletteKtx = "1.0.0"
 cameraCore = "1.4.1"
 firebasePerfKtx = "21.0.4"
 protoliteWellKnownTypes = "18.0.0"
+vico = "1.14.0"
+
+
 
 
 
@@ -43,6 +46,10 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 firebase-perf-ktx = { group = "com.google.firebase", name = "firebase-perf-ktx", version.ref = "firebasePerfKtx" }
 protolite-well-known-types = { group = "com.google.firebase", name = "protolite-well-known-types", version.ref = "protoliteWellKnownTypes" }
+vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
+vico-core = { group = "com.patrykandpatrick.vico", name = "core", version.ref = "vico" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
