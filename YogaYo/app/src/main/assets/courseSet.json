@@ -1,0 +1,124 @@
+
+[
+  {
+    "courseId" : -1,
+    "courseName" : "초급 코스",
+    "tutorial" : true,
+    "poses" :[
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 2,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://drive.usercontent.google.com/download?id=18iITC-iM0TusNA4bAj8k6w1b_1Fi18Pu&export=view&authuser=0",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 3,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://drive.usercontent.google.com/download?id=1oB5Tgwva-8wSq48mA5151p6G0V7_wC0x&export=view&authuser=0",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      }
+    ]
+  },
+  {
+    "courseId" : -2,
+    "courseName" : "중급 코스",
+    "tutorial" : false,
+    "poses" :[
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 2,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      }
+    ]
+  },
+  {
+    "courseId" : -3,
+    "courseName" : "상급 코스",
+    "tutorial" : true,
+    "poses" :[
+      {
+        "poseId": 1,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 2,
+        "poseName": "2번 자세",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 3,
+        "poseName": "3번 자세",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 4,
+        "poseName": "4번 자세",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      },
+      {
+        "poseId": 5,
+        "poseName": "아도 무카 스바나사나",
+        "poseDescription": "발을 골반 너비로 벌리고 똑바로 서세요.\n 왼쪽 다리에 체중을 서서히 옮기세요.\n 오른발을 들어 왼쪽 다리의 안쪽으로 향하게 하세요.\n 팔을 위로 뻗고 손바닥을 모으세요.",
+        "poseImg": "https://d5sbbf6usl3xq.cloudfront.net/adhomukha_svanasana.png",
+        "poseLevel": 1  ,
+        "poseAnimation": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4.lottie.json",
+        "setPoseId": 2,
+        "poseVideo": "https://yogayo.s3.ap-northeast-2.amazonaws.com/Girl+doing+Warrior+Pose.mp4"
+      }
+    ]
+  }
+]
