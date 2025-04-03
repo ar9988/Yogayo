@@ -21,26 +21,44 @@ public class UserRecordScheduler {
      * 매일 12시 1분(자정 12:01)에 실행하여,
      * 각 UserRecord의 운동 날짜 관련 필드를 확인합니다.
      *
-     * - currentExerciseDate가 null이면 아무 작업도 하지 않습니다.
-     * - currentExerciseDate가 어제 날짜가 아니라면,
-     *      만약 previousExerciseDate도 어제 날짜가 아니라면 exConDays(연속 운동 일수)를 0으로 재설정합니다.
+     * [초기화하지 않는 조합]
+     * 1. currentExerciseDate가 오늘, previousExerciseDate가 어제 또는 null
+     * 2. currentExerciseDate가 어제, previousExerciseDate가 null 또는 어제보다 과거인 경우
+     *
+     * 이 외의 조합이면 연속 운동 기록(exConDays)을 0으로 초기화합니다.
      */
     @Scheduled(cron = "0 1 00 * * *")
     public void updateConsecutiveExerciseDays() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
         List<UserRecord> userRecords = userRecordRepository.findAll();
 
         for (UserRecord record : userRecords) {
-            // 현재 운동 기록이 없으면 무시
-            if (record.getCurrentExerciseDate() != null) {
-                // 오늘 기록이 어제가 아니라면
-                if (!record.getCurrentExerciseDate().equals(yesterday)) {
-                    // 이전 운동 기록이 없거나 어제와 다르면 연속 운동이 끊겼으므로 0으로 재설정
-                    if (record.getPreviousExerciseDate() == null || !record.getPreviousExerciseDate().equals(yesterday)) {
-                        record.setExConDays(0L);
-                        log.info("User {} did not exercise yesterday. Reset exConDays to 0.", record.getUser().getUserId());
-                    }
+            // currentExerciseDate가 null이면 무시
+            if (record.getCurrentExerciseDate() == null) {
+                continue;
+            }
+
+            boolean valid = false;
+            LocalDate current = record.getCurrentExerciseDate();
+            LocalDate previous = record.getPreviousExerciseDate();
+
+            if (current.equals(today)) {
+                // 현재 운동 기록이 오늘일 경우, 이전 운동 기록이 어제이거나 null이면 유지
+                if (previous == null || previous.equals(yesterday)) {
+                    valid = true;
                 }
+            } else if (current.equals(yesterday)) {
+                // 현재 운동 기록이 어제일 경우, 이전 운동 기록이 null이거나 어제보다 과거이면 유지
+                if (previous == null || previous.isBefore(yesterday)) {
+                    valid = true;
+                }
+            }
+
+            if (!valid) {
+                record.setExConDays(0L);
+                log.info("User {}: currentExerciseDate={} and previousExerciseDate={} are not a valid consecutive combination. Reset exConDays to 0.",
+                        record.getUser().getUserId(), current, previous);
             }
             userRecordRepository.save(record);
             log.info("Updated exConDays for userId {}: exConDays = {}", record.getUser().getUserId(), record.getExConDays());
