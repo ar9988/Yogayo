@@ -1,6 +1,7 @@
 package com.red.yogaback.controller;
 
 
+import com.red.yogaback.dto.request.RoomEnterReq;
 import com.red.yogaback.dto.request.RoomRequest;
 import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.service.RoomService;
@@ -40,5 +41,11 @@ public class RoomController {
         return sseEmitterService.subscribe(allRooms);
     }
 
+    @PostMapping("lobby/enter")
+    @Operation(summary = "방 입장")
+    public ResponseEntity<Void> enterRoom(@RequestBody RoomEnterReq roomEnterReq) {
+        roomService.enterRoom(roomEnterReq);
+        return ResponseEntity.ok().build();
+    }
 
 }

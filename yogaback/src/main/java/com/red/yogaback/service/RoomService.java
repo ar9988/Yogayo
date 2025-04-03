@@ -1,11 +1,14 @@
 package com.red.yogaback.service;
 
+import com.red.yogaback.dto.request.RoomEnterReq;
 import com.red.yogaback.dto.request.RoomRequest;
 import com.red.yogaback.model.Pose;
 import com.red.yogaback.model.Room;
 import com.red.yogaback.model.RoomCoursePose;
 import com.red.yogaback.model.User;
 import com.red.yogaback.repository.*;
+import com.red.yogaback.security.SecurityUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,7 +39,7 @@ public class RoomService {
         );
 
         Room room = Room.builder()
-                .creator(user)
+                .creatorId(user.getUserId())
                 .password(roomReq.getPassword())
                 .roomName(roomReq.getRoomName())
                 .roomMax(roomReq.getRoomMax())
@@ -86,11 +89,12 @@ public class RoomService {
         }
         return allRooms.stream().filter(room ->
                 room.getRoomState() == 1).map(room -> {
+            User user = userRepository.findById(room.getCreatorId()).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
             RoomRequest roomRequest = new RoomRequest();
             roomRequest.setRoomId(room.getRoomId());
             roomRequest.setRoomCount(room.getRoomCount());
             roomRequest.setRoomMax(room.getRoomMax());
-            roomRequest.setUserNickname(room.getCreator().getUserNickname());
+            roomRequest.setUserNickname(user.getUserNickname());
             roomRequest.setRoomName(room.getRoomName());
             roomRequest.setHasPassword(room.isHasPassword());
 
@@ -104,6 +108,17 @@ public class RoomService {
 
 
     // 방 입장
-
+    @Transactional
+    public void enterRoom(RoomEnterReq roomEnterReq){
+        Long userId = SecurityUtil.getCurrentMemberId();
+        User findUser = userRepository.findById(userId).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
+        Room findRoom = roomRepository.findById(roomEnterReq.getRoomId()).orElseThrow(()->new NoSuchElementException("방을 찾을 수 없습니다."));
+        if (findRoom.getPassword().equals(roomEnterReq.getPassword())){
+            findUser.setRoom(findRoom);
+            findRoom.setRoomCount(findRoom.getRoomCount() + 1);
+        } else {
+            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+        }
+    }
 
 }
