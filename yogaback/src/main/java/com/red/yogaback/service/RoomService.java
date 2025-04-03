@@ -2,7 +2,6 @@ package com.red.yogaback.service;
 
 import com.red.yogaback.dto.request.RoomEnterReq;
 import com.red.yogaback.dto.request.RoomRequest;
-import com.red.yogaback.dto.respond.RoomEnterRes;
 import com.red.yogaback.model.Pose;
 import com.red.yogaback.model.Room;
 import com.red.yogaback.model.RoomCoursePose;
@@ -110,7 +109,7 @@ public class RoomService {
 
     // 방 입장
     @Transactional
-    public List<RoomEnterRes> enterRoom(RoomEnterReq roomEnterReq){
+    public boolean enterRoom(RoomEnterReq roomEnterReq){
         Long userId = SecurityUtil.getCurrentMemberId();
         User findUser = userRepository.findById(userId).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
         Room findRoom = roomRepository.findById(roomEnterReq.getRoomId()).orElseThrow(()->new NoSuchElementException("방을 찾을 수 없습니다."));
@@ -120,12 +119,8 @@ public class RoomService {
         } else {
             throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
-        List<User> users = userRepository.findByRoom(findRoom);
-        List<RoomEnterRes> roomEnterRes = users.stream().map(user ->
-                        new RoomEnterRes(user.getUserId(), user.getUserNickname()))
-                .collect(Collectors.toList());
 
-        return roomEnterRes;
+        return true;
     }
 
 }
