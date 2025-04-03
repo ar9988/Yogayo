@@ -70,7 +70,8 @@ public class JWTFilter extends OncePerRequestFilter {
                 path.equals("/api/notifications/button-patterns") ||
                 path.startsWith("/api/groups/invite") ||
                 path.startsWith("/api/yoga/all") ||
-                path.startsWith("/api/yoga/detail");
+                path.startsWith("/api/yoga/detail") ||
+                path.startsWith("/ws");
     }
 
     private void setErrorResponse(HttpServletResponse response, CustomException e) throws IOException {

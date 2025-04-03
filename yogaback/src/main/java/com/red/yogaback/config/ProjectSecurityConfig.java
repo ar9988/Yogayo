@@ -43,7 +43,7 @@ public class ProjectSecurityConfig {
         http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/api/auth/**", "/error", "/api/notifications/button-patterns", "/api/groups/invite/**", "/api/yoga/all", "/api/yoga/detail/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/error", "/api/notifications/button-patterns", "/api/groups/invite/**", "/api/yoga/all", "/api/yoga/detail/**","/ws").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs","/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(new JWTFilter(jwtUtil), BasicAuthenticationFilter.class)

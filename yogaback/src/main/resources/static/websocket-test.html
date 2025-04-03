@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>STOMP WebSocket Test</title>
-  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <!-- CDN을 통해 stomp.js 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs"></script>
 </head>
 <body>
 <h1>STOMP WebSocket Test</h1>
@@ -42,14 +42,11 @@
 <pre id="output" style="border:1px solid #ccc; padding:10px; width:80%; height:200px; overflow:auto;"></pre>
 
 <script>
+  // stomp.js 클라이언트 변수
   let client = null;
   let connected = false;
 
-  function log(message) {
-    console.log(message);
-    document.getElementById("output").textContent += message + "\n";
-  }
-
+  // 연결 버튼 클릭 시 동작
   document.getElementById('connectBtn').addEventListener('click', function() {
     const token = document.getElementById('token').value;
     if (!token) {
@@ -57,79 +54,46 @@
       return;
     }
 
-    log("Attempting to connect with token: " + token.substring(0, 20) + "...");
-
-    // 기존 연결이 있다면 정리
-    if (client && connected) {
-      client.deactivate();
-      connected = false;
-    }
-
     client = new StompJs.Client({
       brokerURL: "ws://localhost:8080/ws",
       connectHeaders: {
         'token': token
       },
-      reconnectDelay: 5000,
-      heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000,
-      webSocketFactory: () => {
-        return new SockJS("http://localhost:8080/ws");
-      },
+      reconnectDelay: 5000, // 재연결 딜레이 (ms)
       debug: function(str) {
-        log("STOMP Debug: " + str);
+        console.log(str);
+        document.getElementById("output").textContent += str + "\n";
       }
     });
 
+    // 연결 성공 시 처리
     client.onConnect = function(frame) {
       connected = true;
-      log("Connected successfully: " + JSON.stringify(frame));
+      document.getElementById("output").textContent += "Connected: " + frame + "\n";
     };
 
+    // STOMP 에러 발생 시 처리
     client.onStompError = function(frame) {
-      log("STOMP Error: " + JSON.stringify(frame));
-      connected = false;
+      document.getElementById("output").textContent += "Broker error: " + frame.headers['message'] + "\n" + frame.body + "\n";
     };
 
-    client.onWebSocketError = function(event) {
-      log("WebSocket Error: " + JSON.stringify(event));
-      if (event.target && event.target.readyState) {
-        log("WebSocket State: " + event.target.readyState);
-      }
-      connected = false;
-    };
-
-    client.onWebSocketClose = function(event) {
-      log("WebSocket Closed: " + JSON.stringify(event));
-      if (event.code) {
-        log("Close Code: " + event.code);
-      }
-      if (event.reason) {
-        log("Close Reason: " + event.reason);
-      }
-      connected = false;
-    };
-
-    try {
-      client.activate();
-      log("Client activation initiated");
-    } catch (error) {
-      log("Error activating client: " + error.message);
-      connected = false;
-    }
+    client.activate();
   });
 
+  // 연결 종료 버튼 클릭 시 동작
   document.getElementById('disconnectBtn').addEventListener('click', function() {
     if(client && connected){
       client.deactivate();
       connected = false;
-      log("Disconnected");
+      document.getElementById("output").textContent += "Disconnected\n";
     }
   });
 
+  // 구독 버튼 클릭 시 동작
   document.getElementById('subscribeBtn').addEventListener('click', function() {
     if(client && connected){
       let roomId = document.getElementById('roomId').value;
+      // 구독할 토픽들
       const topics = [
         "/topic/room/" + roomId,
         "/topic/room/" + roomId + "/allReady",
@@ -142,20 +106,15 @@
       ];
 
       topics.forEach(topic => {
-        try {
-          const subscription = client.subscribe(topic, function(message) {
-            log("Received from " + topic + ": " + message.body);
-          });
-          log("Subscribed to " + topic + " with subscription ID: " + subscription.id);
-        } catch (error) {
-          log("Error subscribing to " + topic + ": " + error.message);
-        }
+        client.subscribe(topic, function(message) {
+          document.getElementById("output").textContent += "Received from " + topic + ": " + message.body + "\n";
+        });
+        document.getElementById("output").textContent += "Subscribed to " + topic + "\n";
       });
-    } else {
-      log("Cannot subscribe: Client not connected");
     }
   });
 
+  // 메시지 전송 버튼 클릭 시 동작
   document.getElementById('sendBtn').addEventListener('click', function() {
     if(client && connected){
       let roomId = document.getElementById('roomId').value;
@@ -201,12 +160,12 @@
           destination: "/app/action/" + roomId,
           body: JSON.stringify(payload)
         });
-        log("Sent: " + JSON.stringify(payload));
+        document.getElementById("output").textContent += "Sent: " + JSON.stringify(payload) + "\n";
       } catch (error) {
-        log("Error sending message: " + error.message);
+        document.getElementById("output").textContent += "Error sending message: " + error.message + "\n";
       }
     } else {
-      log("Cannot send message: Client not connected");
+      document.getElementById("output").textContent += "Cannot send message: Client not connected\n";
     }
   });
 </script>
