@@ -13,10 +13,13 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthChannelInterceptor authChannelInterceptor;
+    private final StompLoggingInterceptor stompLoggingInterceptor;
 
     @Autowired
-    public WebSocketConfig(WebSocketAuthChannelInterceptor authChannelInterceptor) {
+    public WebSocketConfig(WebSocketAuthChannelInterceptor authChannelInterceptor,
+                         StompLoggingInterceptor stompLoggingInterceptor) {
         this.authChannelInterceptor = authChannelInterceptor;
+        this.stompLoggingInterceptor = stompLoggingInterceptor;
     }
 
     @Override
@@ -33,6 +36,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(authChannelInterceptor);
+        registration.interceptors(authChannelInterceptor, stompLoggingInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompLoggingInterceptor);
     }
 }
