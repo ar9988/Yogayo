@@ -1,15 +1,15 @@
 package com.d104.data.mapper
 
 import com.d104.data.remote.dto.BestPoseHistoryResponseDto
-import com.d104.data.remote.dto.PoseRecordRequest
-import com.d104.data.remote.dto.PoseRecordResponse
+import com.d104.data.remote.dto.PoseRecordRequestDto
+import com.d104.data.remote.dto.PoseRecordResponseDto
 import com.d104.domain.model.BestPoseRecord
 import com.d104.domain.model.YogaPoseRecord
 import javax.inject.Inject
 
 class PoseRecordMapper @Inject constructor() { // Hilt 주입을 위해 @Inject constructor 추가
 
-    fun toYogaPoseRecord(response: PoseRecordResponse): YogaPoseRecord {
+    fun toYogaPoseRecord(response: PoseRecordResponseDto): YogaPoseRecord {
         return YogaPoseRecord(
             poseRecordId = response.poseRecordId,
             poseId = response.poseId,
@@ -22,12 +22,12 @@ class PoseRecordMapper @Inject constructor() { // Hilt 주입을 위해 @Inject 
         )
     }
 
-    fun toYogaPoseRecordList(responses: List<PoseRecordResponse>?): List<YogaPoseRecord> {
+    fun toYogaPoseRecordList(responses: List<PoseRecordResponseDto>?): List<YogaPoseRecord> {
         return responses?.map { toYogaPoseRecord(it) } ?: emptyList()
     }
 
-    fun toRequest(record: YogaPoseRecord): PoseRecordRequest {
-        return PoseRecordRequest(
+    fun toRequest(record: YogaPoseRecord): PoseRecordRequestDto {
+        return PoseRecordRequestDto(
             roomRecordId = record.roomRecordId,
             accuracy = record.accuracy,
             ranking = record.ranking,
@@ -35,7 +35,7 @@ class PoseRecordMapper @Inject constructor() { // Hilt 주입을 위해 @Inject 
         )
     }
 
-    fun toRequestList(records: List<YogaPoseRecord>?): List<PoseRecordRequest> {
+    fun toRequestList(records: List<YogaPoseRecord>?): List<PoseRecordRequestDto> {
         return records?.map { toRequest(it) } ?: emptyList()
     }
 

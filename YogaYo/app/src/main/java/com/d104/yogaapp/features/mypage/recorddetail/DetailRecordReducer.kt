@@ -9,7 +9,7 @@ class DetailRecordReducer @Inject constructor() {
             is DetailRecordIntent.initialize -> DetailRecordState()
             is DetailRecordIntent.SetUserRecord->{
                 state.copy(
-                    userRecord = intent.userRecord
+                    myPageInfo = intent.myPageInfo
                 )
             }
 

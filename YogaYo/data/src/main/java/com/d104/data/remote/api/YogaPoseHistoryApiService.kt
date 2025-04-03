@@ -1,8 +1,8 @@
 package com.d104.data.remote.api
 
 import com.d104.data.remote.dto.BestPoseHistoryResponseDto
-import com.d104.data.remote.dto.PoseRecordRequest
-import com.d104.data.remote.dto.PoseRecordResponse
+import com.d104.data.remote.dto.PoseRecordRequestDto
+import com.d104.data.remote.dto.PoseRecordResponseDto
 import com.d104.data.remote.dto.YogaPoseHistoryDetailResponseDto
 import okhttp3.MultipartBody
 import retrofit2.Response
@@ -18,9 +18,9 @@ interface YogaPoseHistoryApiService {
     @POST("api/yoga/history/{poseId}")
     suspend fun postYogaPoseHistory(
         @Path("poseId") poseId:Long,
-        @Part("poseRecordRequest") poseRecordRequest: PoseRecordRequest,
+        @Part("poseRecordRequest") poseRecordRequestDto: PoseRecordRequestDto,
         @Part recordImg: MultipartBody.Part
-    ): Response<PoseRecordResponse>
+    ): Response<PoseRecordResponseDto>
 
     @GET("api/yoga/history")
     suspend fun getYogaBestHistories():Response<List<BestPoseHistoryResponseDto>>

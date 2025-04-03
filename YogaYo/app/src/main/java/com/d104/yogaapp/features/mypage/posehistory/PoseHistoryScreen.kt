@@ -1,11 +1,14 @@
 package com.d104.yogaapp.features.mypage.posehistory
 
 import android.widget.Toast
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,10 +40,14 @@ import coil.request.ImageRequest
 import com.d104.domain.model.ChartData
 import com.d104.domain.model.YogaHistory
 import com.d104.yogaapp.R // 앱의 리소스 경로 확인
+import com.d104.yogaapp.features.common.YogaAccuracyTimeChart
 import com.d104.yogaapp.features.common.YogaPoseDetailDialog
 import com.d104.yogaapp.features.solo.play.DownloadState
 import com.d104.yogaapp.ui.theme.GrayCardColor
+import com.d104.yogaapp.ui.theme.Neutral50
 import com.d104.yogaapp.ui.theme.PastelBlue
+import com.d104.yogaapp.ui.theme.PastelGreen
+import com.d104.yogaapp.ui.theme.PastelLigtBlue
 import com.d104.yogaapp.ui.theme.PastelRed
 import com.d104.yogaapp.ui.theme.PrimaryColor
 import com.d104.yogaapp.ui.theme.White
@@ -47,6 +55,9 @@ import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollState
+import com.patrykandpatrick.vico.compose.component.textComponent
+import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
 import com.patrykandpatrick.vico.core.axis.AxisItemPlacer
 import com.patrykandpatrick.vico.core.axis.AxisPosition
 import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
@@ -175,25 +186,14 @@ fun PoseHistoryScreen(
                                 )
                             }
 
-                            // 3. 포즈 이름 아이템 - 패딩 추가
-//                            item {
-//                                Text(
-//                                    text = poseDetail.poseName,
-//                                    fontSize = 24.sp,
-//                                    fontWeight = FontWeight.Bold,
-//                                    modifier = Modifier
-//                                        .fillMaxWidth()
-//                                        .then(horizontalPaddingModifier), // 수평 패딩 적용
-//                                    textAlign = TextAlign.Center
-//                                )
-//                            }
 
                             // 4. 주요 지표 카드 아이템 - 패딩 추가
                             item {
                                 PoseMetricsCard(
                                     accuracy = poseDetail.bestAccuracy,
                                     maxTime = poseDetail.bestTime,
-                                    count = poseDetail.winCount,
+                                    count = poseDetail.histories.size,
+                                    winCount = poseDetail.winCount,
                                     modifier = horizontalPaddingModifier // Card 자체 Modifier에 패딩 적용
                                 )
                             }
@@ -270,6 +270,7 @@ fun PoseMetricsCard(
     accuracy: Float,
     maxTime: Float,
     count: Int,
+    winCount:Int,
     modifier:Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -286,6 +287,7 @@ fun PoseMetricsCard(
             MetricItem(label = "베스트 정확도 :", value = String.format("%.1f%%", accuracy*100))
             MetricItem(label = "최대 유지 시간:", value = String.format("%.2f초", maxTime))
             MetricItem(label = "자세 수행 횟수:", value = "${count}회")
+            MetricItem(label = "우승 횟수:", value = "${winCount}회")
         }
     }
 }
@@ -451,6 +453,8 @@ fun MetricWithIcon(icon: ImageVector, label: String, value: String) {
 }
 
 
+
+
 // 타임스탬프(Long)를 날짜/시간 문자열로 변환하는 헬퍼 함수
 fun formatTimestamp(timestamp: Long?): String {
     if (timestamp == null) return "시간 정보 없음"
@@ -470,239 +474,52 @@ fun formatDuration(seconds: Float): String {
     return String.format(Locale.getDefault(), "%02d:%02d", minutes, remainingSeconds)
 }
 
-@Composable
-fun rememberYogaHistoryChartProducer(
-    yogaHistoryList: List<YogaHistory>
-): Pair<ChartEntryModelProducer, List<YogaHistory>> {
-
-    val modelProducer = remember { ChartEntryModelProducer() }
-    // 1. 원본 데이터 정렬 (X축 포매터용)
-    val sortedHistory = remember(yogaHistoryList) {
-        yogaHistoryList
-            .filter { it.createdAt != null }
-            .sortedBy { it.createdAt }
-    }
-
-    // 2. 시리즈 1: 실제 데이터 ChartEntry 리스트
-    val realChartEntries: List<ChartEntry> = remember(sortedHistory) {
-        sortedHistory.mapIndexed { index, history ->
-            entryOf(index.toFloat(), history.accuracy*100)
-        }
-    }
-
-    // 3. 시리즈 2 & 3: 투명 경계선용 데이터 (0% 및 100%)
-    val boundaryEntries0: List<ChartEntry> = remember(realChartEntries) {
-        if (realChartEntries.isNotEmpty()) {
-            val minX = realChartEntries.first().x
-            val maxX = realChartEntries.last().x
-            // 시작과 끝 X 지점에 Y=0 값 추가
-            listOf(entryOf(minX, 0f), entryOf(maxX, 0f))
-        } else {
-            emptyList()
-        }
-    }
-    val boundaryEntries100: List<ChartEntry> = remember(realChartEntries) {
-        if (realChartEntries.isNotEmpty()) {
-            val minX = realChartEntries.first().x
-            val maxX = realChartEntries.last().x
-            // 시작과 끝 X 지점에 Y=100 값 추가
-            listOf(entryOf(minX, 100f), entryOf(maxX, 100f))
-        } else {
-            emptyList()
-        }
-    }
-
-    // 4. 3개의 시리즈를 포함하는 ChartEntryModel 생성 및 Producer 업데이트
-    LaunchedEffect(realChartEntries, boundaryEntries0, boundaryEntries100) {
-        if (realChartEntries.isNotEmpty()) {
-            // 3개의 시리즈를 entryModelOf 또는 entryModel()을 사용하여 모델로 만듦
-            val multiSeriesData = listOf(realChartEntries, boundaryEntries0, boundaryEntries100)
-            println("Updating chart producer with List<List<ChartEntry>>.")
-            // setEntries 메소드에 이 리스트 자체를 전달
-            modelProducer.setEntries(multiSeriesData)
-            // 애니메이션 원하면: modelProducer.setEntriesSuspending(chartModel)
-        } else {
-            modelProducer.setEntries(emptyList<ChartEntry>()) // 데이터 없으면 비우기
-        }
-    }
-
-    // Producer와 정렬된 '원본' 데이터 리스트 반환 (X축 포매터용)
-    return remember(modelProducer, sortedHistory) { modelProducer to sortedHistory }
-}
-
-
-class FixedStepVerticalAxisPlacer : AxisItemPlacer.Vertical {
-
-    // 표시할 고정된 Y축 값 리스트
-    private val fixedValues = listOf(0f, 25f, 50f, 75f, 100f)
-
-    // 레이블을 표시할 Y 값 반환
-    override fun getLabelValues(
-        context: ChartDrawContext,
-        axisHeight: Float,
-        maxLabelHeight: Float,
-        position: AxisPosition.Vertical
-    ): List<Float> {
-        return fixedValues
-    }
-
-    // 레이블 높이 측정을 위해 사용할 Y 값 반환 (getLabelValues와 동일하게)
-    override fun getHeightMeasurementLabelValues(
-        context: MeasureContext,
-        position: AxisPosition.Vertical
-    ): List<Float> {
-        return fixedValues
-    }
-
-    // 레이블 너비 측정을 위해 사용할 Y 값 반환 (getLabelValues와 동일하게)
-    override fun getWidthMeasurementLabelValues(
-        context: MeasureContext,
-        axisHeight: Float,
-        maxLabelHeight: Float,
-        position: AxisPosition.Vertical
-    ): List<Float> {
-        return fixedValues
-    }
-
-    // 눈금(Tick) 및 가이드라인을 표시할 Y 값 반환 (null이면 getLabelValues 값을 사용)
-    // 여기서는 레이블과 동일한 위치에 라인을 그리기 위해 null 반환 (또는 fixedValues 직접 반환)
-    override fun getLineValues(
-        context: ChartDrawContext,
-        axisHeight: Float,
-        maxLabelHeight: Float,
-        position: AxisPosition.Vertical
-    ): List<Float>? {
-        return fixedValues // 명시적으로 같은 값을 반환해도 됨
-    }
-
-    // 축 상단에 필요한 여백 계산 (레이블 높이의 절반 정도)
-    override fun getTopVerticalAxisInset(
-        verticalLabelPosition: VerticalAxis.VerticalLabelPosition,
-        maxLabelHeight: Float,
-        maxLineThickness: Float
-    ): Float {
-        return when (verticalLabelPosition) {
-            // 레이블이 라인 위에 있거나 중앙 정렬이면 높이의 절반만큼 여백 필요
-            VerticalAxis.VerticalLabelPosition.Top,
-            VerticalAxis.VerticalLabelPosition.Center -> maxLabelHeight / 2f
-            // 레이블이 라인 아래에 있으면 여백 필요 없음
-            VerticalAxis.VerticalLabelPosition.Bottom -> 0f
-        }
-    }
-
-    // 축 하단에 필요한 여백 계산 (레이블 높이의 절반 정도)
-    override fun getBottomVerticalAxisInset(
-        verticalLabelPosition: VerticalAxis.VerticalLabelPosition,
-        maxLabelHeight: Float,
-        maxLineThickness: Float
-    ): Float {
-        return when (verticalLabelPosition) {
-            // 레이블이 라인 아래에 있거나 중앙 정렬이면 높이의 절반만큼 여백 필요
-            VerticalAxis.VerticalLabelPosition.Bottom,
-            VerticalAxis.VerticalLabelPosition.Center -> maxLabelHeight / 2f
-            // 레이블이 라인 위에 있으면 여백 필요 없음
-            VerticalAxis.VerticalLabelPosition.Top -> 0f
-        }
-    }
-
-    // (선택 사항) 최상단 라인 처리 방식 (기본값 true 사용)
-    // override fun getShiftTopLines(chartDrawContext: ChartDrawContext): Boolean = true
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun YogaAccuracyTimeChart(
-    yogaHistoryList: List<YogaHistory>,
-    modifier: Modifier = Modifier
-) {
-    // 1. 데이터 Producer 및 정렬된 리스트 가져오기
-    val (chartModelProducer, sortedHistory) = rememberYogaHistoryChartProducer(yogaHistoryList)
-
-    // 2. X축 (Bottom Axis) 설정 - 날짜/시간 포매터
-    //    차트 라이브러리가 오래된 버전이라면 java.text.SimpleDateFormat 사용
-    //    val xDateFormatter = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault())
-    //    최신 자바 시간 API 사용 권장
-    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("MM/dd HH:mm", Locale.getDefault()) }
-
-    val bottomAxisValueFormatter = AxisValueFormatter<AxisPosition.Horizontal.Bottom> { value, chartValues ->
-        // value는 ChartEntry의 x값 (여기서는 인덱스)
-        val index = value.toInt()
-        // 해당 인덱스의 createdAt 타임스탬프 찾기
-        sortedHistory.getOrNull(index)?.createdAt?.let { timestamp ->
-            try {
-                // Long 타임스탬프를 LocalDateTime으로 변환 후 포맷팅
-                val localDateTime = Instant.ofEpochMilli(timestamp)
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDateTime()
-                localDateTime.format(dateTimeFormatter)
-            } catch (e: Exception) {
-                // 변환 중 오류 발생 시 타임스탬프 원본 또는 빈 문자열 반환
-                println("Error formatting timestamp: $timestamp, Error: ${e.message}")
-                timestamp.toString() // 오류 시 원본 Long 값 표시 (혹은 빈 문자열 "")
-            }
-        } ?: "" // 해당 인덱스에 데이터가 없거나 createdAt이 null이면 빈 문자열 반환
-    }
-
-    val bottomAxis = rememberBottomAxis(
-        valueFormatter = bottomAxisValueFormatter,
-        // 레이블이 많으면 겹칠 수 있으므로, 레이블 회전이나 표시 간격 조절 고려
-        // labelRotationDegrees = 45f,
-        // guideline = null, // 가이드라인 제거
-        // title = "Time"
-    )
-
-    // 3. Y축 (Start Axis) 설정 - 정확도 포매터
-    val startAxisValueFormatter = AxisValueFormatter<AxisPosition.Vertical.Start> { value, chartValues ->
-        // value는 ChartEntry의 y값 (accuracy)
-        "${(value)}%" // 예: 85.5 -> "85%" (소수점 버림) 또는 "%.1f%%".format(value)로 소수점 표시
-    }
-    val fixedStepPlacer = remember { FixedStepVerticalAxisPlacer() }
-
-    val startAxis = rememberStartAxis(
-        valueFormatter = startAxisValueFormatter,
-        itemPlacer = fixedStepPlacer, // <- 여기에 커스텀 Placer 인스턴스 전달
-    // guideline = ...
-    )
-
-    // 데이터가 없을 경우 차트 대신 다른 UI 표시 (선택 사항)
-    if (sortedHistory.isEmpty()) {
-        // 예: Text("표시할 요가 기록 데이터가 없습니다.")
-        return // 차트를 그리지 않음
-    }
-
-    // 4. 차트 그리기
-    Chart(
-        modifier = modifier
-            .height(250.dp)
-            .padding(start = 16.dp, bottom = 16.dp, end = 8.dp, top = 8.dp),
-        chart = lineChart(
-            // 3개의 LineSpec 리스트를 전달 (Producer의 시리즈 순서와 일치해야 함)
-            lines = listOf(
-                // Spec 1: 실제 데이터용 (보이는 스타일)
-                LineChart.LineSpec(
-                    lineColor = PrimaryColor.toArgb(), // PrimaryColor 또는 원하는 색상
-                    lineThicknessDp = 2f,
-                    // 포인트, 데이터 라벨 등 필요시 여기에 추가
-                ),
-                // Spec 2: Y=0 경계선용 (투명 스타일)
-                LineChart.LineSpec(
-                    lineColor = Color.Transparent.toArgb(), // 완전 투명
-                    lineThicknessDp = 0f, // 두께 0 또는 매우 작게
-                    point = null, // 데이터 포인트 표시 안함
-                    dataLabel = null, // 데이터 라벨 표시 안함
-                    lineBackgroundShader = null // 배경 채우기 안함
-                ),
-                // Spec 3: Y=100 경계선용 (투명 스타일)
-                LineChart.LineSpec(
-                    lineColor = Color.Transparent.toArgb(), // 완전 투명
-                    lineThicknessDp = 0f,
-                    point = null,
-                    dataLabel = null,
-                    lineBackgroundShader = null
-                )
-            )
-        ),
-        chartModelProducer = chartModelProducer, // 3개 시리즈 포함된 Producer 전달
-        startAxis = startAxis,
-    )
-}
+//@Composable
+//internal fun rememberMarker(
+//    valueFormatter: DefaultCartesianMarker.ValueFormatter =
+//        DefaultCartesianMarker.ValueFormatter.default(),
+//    showIndicator: Boolean = true,
+//): CartesianMarker {
+//    val labelBackgroundShape = markerCorneredShape(CorneredShape.Corner.Rounded)
+//    val labelBackground =
+//        rememberShapeComponent(
+//            fill = fill(MaterialTheme.colorScheme.background),
+//            shape = labelBackgroundShape,
+//            strokeThickness = 1.dp,
+//            strokeFill = fill(MaterialTheme.colorScheme.outline),
+//        )
+//    val label =
+//        rememberTextComponent(
+//            color = MaterialTheme.colorScheme.onSurface,
+//            textAlignment = Layout.Alignment.ALIGN_CENTER,
+//            padding = insets(8.dp, 4.dp),
+//            background = labelBackground,
+//            minWidth = TextComponent.MinWidth.fixed(40.dp),
+//        )
+//    val indicatorFrontComponent =
+//        rememberShapeComponent(fill(MaterialTheme.colorScheme.surface), CorneredShape.Pill)
+//    val guideline = rememberAxisGuidelineComponent()
+//    return rememberDefaultCartesianMarker(
+//        label = label,
+//        valueFormatter = valueFormatter,
+//        indicator =
+//        if (showIndicator) {
+//            { color ->
+//                LayeredComponent(
+//                    back = ShapeComponent(fill(color.copy(alpha = 0.15f)), CorneredShape.Pill),
+//                    front =
+//                    LayeredComponent(
+//                        back = ShapeComponent(fill = fill(color), shape = CorneredShape.Pill),
+//                        front = indicatorFrontComponent,
+//                        padding = insets(5.dp),
+//                    ),
+//                    padding = insets(10.dp),
+//                )
+//            }
+//        } else {
+//            null
+//        },
+//        indicatorSize = 36.dp,
+//        guideline = guideline,
+//    )
+//}

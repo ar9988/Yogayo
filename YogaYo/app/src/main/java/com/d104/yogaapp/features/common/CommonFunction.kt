@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
 import android.os.Build
 import android.view.WindowManager
 import android.widget.Toast
@@ -14,6 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import android.graphics.Matrix
+
 
 fun Context.findActivity(): Activity? {
     var currentContext = this
@@ -84,4 +87,25 @@ fun ShowToast(message: String) {
     LaunchedEffect(message) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
+}
+
+fun resizeBitmapWithMatrix(originalBitmap: Bitmap, targetWidth: Int = 224, targetHeight: Int = 224): Bitmap {
+    val width = originalBitmap.width
+    val height = originalBitmap.height
+
+    val scaleWidth = targetWidth.toFloat() / width
+    val scaleHeight = targetHeight.toFloat() / height
+
+    val matrix = Matrix()
+    matrix.postScale(scaleWidth, scaleHeight)
+
+    return Bitmap.createBitmap(
+        originalBitmap,
+        0,
+        0,
+        width,
+        height,
+        matrix,
+        true
+    )
 }

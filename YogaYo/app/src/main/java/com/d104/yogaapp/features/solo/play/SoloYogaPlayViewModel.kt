@@ -38,6 +38,7 @@ class SoloYogaPlayViewModel @Inject constructor(
     private val _state = MutableStateFlow(SoloYogaPlayState())
     val state: StateFlow<SoloYogaPlayState> = _state.asStateFlow()
 
+
     val currentPose: StateFlow<YogaPose> = _state.map { state ->
         if (state.userCourse.poses.isNotEmpty() &&
             state.currentPoseIndex < state.userCourse.poses.size) {

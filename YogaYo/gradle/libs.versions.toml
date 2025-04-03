@@ -48,7 +48,7 @@ firebase-perf-ktx = { group = "com.google.firebase", name = "firebase-perf-ktx",
 protolite-well-known-types = { group = "com.google.firebase", name = "protolite-well-known-types", version.ref = "protoliteWellKnownTypes" }
 vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
-
+vico-core = { group = "com.patrykandpatrick.vico", name = "core", version.ref = "vico" }
 
 
 [plugins]

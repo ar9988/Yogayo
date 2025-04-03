@@ -7,9 +7,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -76,7 +72,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.CourseResultScreen
-import com.d104.yogaapp.features.common.LottieImage
+import com.d104.yogaapp.features.common.GifImage
 import com.d104.yogaapp.utils.PermissionChecker
 import com.d104.yogaapp.features.common.RotateScreen
 import com.d104.yogaapp.features.common.YogaAnimationScreen
@@ -205,7 +201,8 @@ fun SoloYogaPlayScreen(
                     isPlaying = state.isPlaying,
                     onPause = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
                     leftContent = {YogaAnimationScreen(pose = currentPose, accuracy = state.currentAccuracy, isPlaying = state.isPlaying)},
-                    onImageCaptured = {bitmap: Bitmap ->  viewModel.processIntent(SoloYogaPlayIntent.CaptureImage(bitmap))}
+                    onImageCaptured = {bitmap: Bitmap ->  viewModel.processIntent(SoloYogaPlayIntent.CaptureImage(bitmap))},
+                    isCountingDown = state.isCountingDown
 
                 )
 
@@ -467,7 +464,7 @@ fun PoseGuideScreen(
                 .fillMaxHeight()
                 .padding(16.dp)
             ){
-                LottieImage(
+                GifImage(
                     pose.poseAnimation
                 )
             }

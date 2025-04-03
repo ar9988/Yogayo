@@ -14,26 +14,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -58,19 +52,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.d104.domain.model.BestPoseRecord
-import com.d104.domain.model.UserRecord
+import com.d104.domain.model.MyPageInfo
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.UserRecordCard
-import com.d104.yogaapp.ui.theme.GrayCardColor
-import com.d104.yogaapp.ui.theme.Neutral10
 import com.d104.yogaapp.ui.theme.PrimaryColor
 import com.d104.yogaapp.ui.theme.White
-import kotlin.math.ceil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailRecordScreen(
-    userRecord: UserRecord?, // Nullable 처리 고려
+    myPageInfo: MyPageInfo?, // Nullable 처리 고려
     viewModel: DetailRecordViewModel = hiltViewModel(),
     onBackPressed: () -> Unit, // 뒤로가기 추가 (필요 시)
     onNavigateToPoseHistory: (poseId: Long) -> Unit
@@ -81,13 +72,13 @@ fun DetailRecordScreen(
     val state by viewModel.state.collectAsState()
 
     // userRecord가 null이면 로딩 또는 오류 표시
-    if (userRecord == null && state.isLoading) { // 로딩 중이면서 userRecord 없을 때
+    if (myPageInfo == null && state.isLoading) { // 로딩 중이면서 userRecord 없을 때
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
     }
-    if (userRecord == null) { // 로딩 끝났는데도 userRecord 없을 때 (오류 등)
+    if (myPageInfo == null) { // 로딩 끝났는데도 userRecord 없을 때 (오류 등)
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("사용자 기록 정보를 불러올 수 없습니다.")
         }
@@ -130,7 +121,7 @@ fun DetailRecordScreen(
             Column(modifier = Modifier.padding(horizontal = 12.dp)) { // 카드와 아래 컨텐츠 간 간격 확보용 Column
                 // Spacer(modifier = Modifier.height(8.dp)) // contentPadding.vertical로 대체 가능
                 UserRecordCard(
-                    userRecord = userRecord, // 이제 non-null 보장
+                    myPageInfo = myPageInfo, // 이제 non-null 보장
                     showDetailButton = false
                     // modifier = Modifier.padding(bottom = 16.dp) // 카드와 그리드 아이템 간 간격 -> 아래 Spacer로 조절
                 )

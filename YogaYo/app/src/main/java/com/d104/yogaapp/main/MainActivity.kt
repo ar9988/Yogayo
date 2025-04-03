@@ -47,7 +47,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
-import com.d104.domain.model.UserRecord
+import com.d104.domain.model.MyPageInfo
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
@@ -232,9 +232,9 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             composable(
                 route = "detail_record",
             ) { backStackEntry ->
-                state.userRecord?.let {
+                state.myPageInfo?.let {
                     DetailRecordScreen(
-                        userRecord = it,
+                        myPageInfo = it,
                         onBackPressed = {
                             navController.popBackStack()
                         },
@@ -264,7 +264,7 @@ fun MainTabScreen(
     onNavigateToYogaPlay: (UserCourse) -> Unit,
     onNavigateMultiPlay: (Room) -> Unit,
     onNavigateSoloScreen:() -> Unit,
-    onNavigateToDetailRecord:(userRecord:UserRecord)->Unit,
+    onNavigateToDetailRecord:(myPageInfo:MyPageInfo)->Unit,
     isLogin:Boolean = false
 ) {
     Box(

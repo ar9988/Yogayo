@@ -102,7 +102,7 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.48")
 
     // Coil
-    implementation("io.coil-kt:coil:2.0.0-rc03")
+    implementation("io.coil-kt:coil:2.4.0-rc03")
     implementation("io.coil-kt:coil-compose:2.4.0")
 
     // Glide
@@ -123,9 +123,10 @@ dependencies {
     implementation ("androidx.media3:media3-common:1.2.0")
 
     //VicoGraph
-    implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
-    implementation("com.patrykandpatrick.vico:core:1.14.0")
+
+    //MediaPipe
+    implementation ("com.google.mediapipe:tasks-vision:0.10.14")
 
 
 

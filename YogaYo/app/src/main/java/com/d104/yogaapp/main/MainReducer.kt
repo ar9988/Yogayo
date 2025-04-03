@@ -16,14 +16,14 @@ class MainReducer @Inject constructor() {
                 currentState
 
             is MainIntent.SetUserRecord -> {
-                currentState.copy(userRecord = intent.userRecord)
+                currentState.copy(myPageInfo = intent.myPageInfo)
             }
             is MainIntent.SelectRoom -> {
                 currentState.copy(room = intent.room)
             }
 
             is MainIntent.ClearUserRecord -> {
-                currentState.copy(userRecord = null)
+                currentState.copy(myPageInfo = null)
             }
         }
     }
