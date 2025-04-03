@@ -31,7 +31,7 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
     private UserSessionService userSessionService;
 
     @Autowired
-    private SocketRoomService socketRoomService;
+    private SocketRoomService roomService;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -47,12 +47,11 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
         }
         String roomId = userSession.getRoomId();
         String userId = userSession.getUserId();
-
-        Room room = socketRoomService.getRoom(roomId);
+        Room room = roomService.getRoom(roomId);
         if (room != null) {
             room.removeParticipant(sessionId, userId);
             if (room.getParticipantCount() == 0) {
-                socketRoomService.removeRoom(roomId);
+                roomService.removeRoom(roomId);
                 logger.info("Room {} removed as no participants remain", roomId);
             } else {
                 messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",

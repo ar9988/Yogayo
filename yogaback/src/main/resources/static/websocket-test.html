@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>STOMP WebSocket Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+</head>
+<body>
+<h1>STOMP WebSocket Test</h1>
+
+<div>
+  <label for="token">JWT Token:</label>
+  <input type="text" id="token" style="width: 300px;">
+  <button id="connectBtn">Connect</button>
+  <button id="disconnectBtn">Disconnect</button>
+</div>
+
+<div>
+  <label for="roomId">Room ID:</label>
+  <input type="text" id="roomId" value="room123">
+  <button id="subscribeBtn">Subscribe to Room</button>
+</div>
+
+<div>
+  <label for="action">Action:</label>
+  <select id="action">
+    <option value="enter">Enter Room</option>
+    <option value="ready">Ready</option>
+    <option value="signal">Signal</option>
+    <option value="iceCandidate">ICE Candidate</option>
+    <option value="heartbeat">Heartbeat</option>
+  </select>
+</div>
+
+<div>
+  <label for="messageInput">Message:</label>
+  <input type="text" id="messageInput">
+  <button id="sendBtn">Send Message</button>
+</div>
+
+<pre id="output" style="border:1px solid #ccc; padding:10px; width:80%; height:200px; overflow:auto;"></pre>
+
+<script>
+  let client = null;
+  let connected = false;
+
+  function log(message) {
+    console.log(message);
+    document.getElementById("output").textContent += message + "\n";
+  }
+
+  document.getElementById('connectBtn').addEventListener('click', function() {
+    const token = document.getElementById('token').value;
+    if (!token) {
+      alert('Please enter a JWT token');
+      return;
+    }
+
+    log("Attempting to connect with token: " + token.substring(0, 20) + "...");
+
+    // 기존 연결이 있다면 정리
+    if (client && connected) {
+      client.deactivate();
+      connected = false;
+    }
+
+    client = new StompJs.Client({
+      brokerURL: "ws://localhost:8080/ws",
+      connectHeaders: {
+        'token': token
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      webSocketFactory: () => {
+        return new SockJS("http://localhost:8080/ws");
+      },
+      debug: function(str) {
+        log("STOMP Debug: " + str);
+      }
+    });
+
+    client.onConnect = function(frame) {
+      connected = true;
+      log("Connected successfully: " + JSON.stringify(frame));
+    };
+
+    client.onStompError = function(frame) {
+      log("STOMP Error: " + JSON.stringify(frame));
+      connected = false;
+    };
+
+    client.onWebSocketError = function(event) {
+      log("WebSocket Error: " + JSON.stringify(event));
+      if (event.target && event.target.readyState) {
+        log("WebSocket State: " + event.target.readyState);
+      }
+      connected = false;
+    };
+
+    client.onWebSocketClose = function(event) {
+      log("WebSocket Closed: " + JSON.stringify(event));
+      if (event.code) {
+        log("Close Code: " + event.code);
+      }
+      if (event.reason) {
+        log("Close Reason: " + event.reason);
+      }
+      connected = false;
+    };
+
+    try {
+      client.activate();
+      log("Client activation initiated");
+    } catch (error) {
+      log("Error activating client: " + error.message);
+      connected = false;
+    }
+  });
+
+  document.getElementById('disconnectBtn').addEventListener('click', function() {
+    if(client && connected){
+      client.deactivate();
+      connected = false;
+      log("Disconnected");
+    }
+  });
+
+  document.getElementById('subscribeBtn').addEventListener('click', function() {
+    if(client && connected){
+      let roomId = document.getElementById('roomId').value;
+      const topics = [
+        "/topic/room/" + roomId,
+        "/topic/room/" + roomId + "/allReady",
+        "/topic/room/" + roomId + "/courseStarted",
+        "/topic/room/" + roomId + "/userReady",
+        "/topic/room/" + roomId + "/signal",
+        "/topic/room/" + roomId + "/iceCandidate",
+        "/topic/room/" + roomId + "/heartbeat",
+        "/user/queue/errors"
+      ];
+
+      topics.forEach(topic => {
+        try {
+          const subscription = client.subscribe(topic, function(message) {
+            log("Received from " + topic + ": " + message.body);
+          });
+          log("Subscribed to " + topic + " with subscription ID: " + subscription.id);
+        } catch (error) {
+          log("Error subscribing to " + topic + ": " + error.message);
+        }
+      });
+    } else {
+      log("Cannot subscribe: Client not connected");
+    }
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', function() {
+    if(client && connected){
+      let roomId = document.getElementById('roomId').value;
+      let action = document.getElementById('action').value;
+      let messageInput = document.getElementById('messageInput').value;
+
+      let payload = {
+        action: action,
+        message: {}
+      };
+
+      switch(action) {
+        case "enter":
+          payload.message = {
+            roomId: roomId,
+            userId: "1",
+            userNickName: "Tester",
+            userProfile: "profileUrl"
+          };
+          break;
+        case "ready":
+          payload.message = {
+            ready: true
+          };
+          break;
+        case "signal":
+          payload.message = {
+            signal: messageInput
+          };
+          break;
+        case "iceCandidate":
+          payload.message = {
+            candidate: messageInput
+          };
+          break;
+        case "heartbeat":
+          payload.message = {};
+          break;
+      }
+
+      try {
+        client.publish({
+          destination: "/app/action/" + roomId,
+          body: JSON.stringify(payload)
+        });
+        log("Sent: " + JSON.stringify(payload));
+      } catch (error) {
+        log("Error sending message: " + error.message);
+      }
+    } else {
+      log("Cannot send message: Client not connected");
+    }
+  });
+</script>
+</body>
+</html>
