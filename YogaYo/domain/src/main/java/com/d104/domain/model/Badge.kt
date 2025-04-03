@@ -6,5 +6,4 @@ data class Badge (
     val badgeProgress : Int,
     val highLevel: Int,
     val badgeDetails: List<BadgeDetail>
-
 )

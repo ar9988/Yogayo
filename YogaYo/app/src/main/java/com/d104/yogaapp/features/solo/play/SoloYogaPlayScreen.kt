@@ -72,7 +72,7 @@ import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.CourseResultScreen
-import com.d104.yogaapp.features.common.LottieImage
+import com.d104.yogaapp.features.common.GifImage
 import com.d104.yogaapp.utils.PermissionChecker
 import com.d104.yogaapp.features.common.RotateScreen
 import com.d104.yogaapp.features.common.YogaAnimationScreen
@@ -201,7 +201,8 @@ fun SoloYogaPlayScreen(
                     isPlaying = state.isPlaying,
                     onPause = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
                     leftContent = {YogaAnimationScreen(pose = currentPose, accuracy = state.currentAccuracy, isPlaying = state.isPlaying)},
-                    onImageCaptured = {bitmap: Bitmap ->  viewModel.processIntent(SoloYogaPlayIntent.CaptureImage(bitmap))}
+                    onImageCaptured = {bitmap: Bitmap ->  viewModel.processIntent(SoloYogaPlayIntent.CaptureImage(bitmap))},
+                    isCountingDown = state.isCountingDown
 
                 )
 
@@ -463,7 +464,7 @@ fun PoseGuideScreen(
                 .fillMaxHeight()
                 .padding(16.dp)
             ){
-                LottieImage(
+                GifImage(
                     pose.poseAnimation
                 )
             }

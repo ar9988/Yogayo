@@ -9,16 +9,16 @@ import com.d104.data.repository.LobbyRepositoryImpl
 import com.d104.data.repository.UserCourseRepositoryImpl
 import com.d104.data.repository.UserRepositoryImpl
 import com.d104.data.repository.WebRTCRepositoryImpl
-import com.d104.data.repository.YogaPoseHistoryRepositoryImpl
 import com.d104.data.repository.WebSocketRepositoryImpl
+import com.d104.data.repository.YogaPoseHistoryRepositoryImpl
 import com.d104.data.repository.YogaPoseRepositoryImpl
 import com.d104.domain.repository.AuthRepository
 import com.d104.domain.repository.ImageReassemblyRepository
 import com.d104.domain.repository.ImageSenderRepository
 import com.d104.domain.repository.LobbyRepository
 import com.d104.domain.repository.UserCourseRepository
-import com.d104.domain.repository.UserRepository
 import com.d104.domain.repository.WebRTCRepository
+import com.d104.domain.repository.UserRepository
 import com.d104.domain.repository.YogaPoseHistoryRepository
 import com.d104.domain.repository.WebSocketRepository
 import com.d104.domain.repository.YogaPoseRepository
@@ -77,4 +77,9 @@ abstract class RepositoryModule {
     abstract fun bindPreferencesDao(
         dataStorePreferencesDaoImpl: DataStorePreferencesDao // 구현체 주입 요청
     ): PreferencesDao // 인터페이스 반환 타입
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepositoryRepository(impl: UserRepositoryImpl): UserRepository
+
 }
