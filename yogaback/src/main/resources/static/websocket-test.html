@@ -54,12 +54,28 @@
       return;
     }
 
+    // 토큰에서 'Bearer ' 접두사가 있다면 제거
+    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+
     client = new StompJs.Client({
       brokerURL: "ws://localhost:8080/ws",
       connectHeaders: {
-        'token': token
+        'Authorization': 'Bearer ' + cleanToken,
+        'host': 'localhost',
+        'accept-version': '1.2',
+        'heart-beat': '10000,10000'
       },
-      reconnectDelay: 5000, // 재연결 딜레이 (ms)
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      webSocketFactory: () => {
+        const ws = new WebSocket("ws://localhost:8080/ws", ["v10.stomp", "v11.stomp"]);
+        ws.onerror = (event) => {
+          console.log("WebSocket Factory Error: " + JSON.stringify(event));
+          document.getElementById("output").textContent += "WebSocket Factory Error: " + JSON.stringify(event) + "\n";
+        };
+        return ws;
+      },
       debug: function(str) {
         console.log(str);
         document.getElementById("output").textContent += str + "\n";
@@ -126,11 +142,12 @@
         message: {}
       };
 
+      // 액션별 메시지 포맷 설정
       switch(action) {
         case "enter":
           payload.message = {
             roomId: roomId,
-            userId: "1",
+            userId: "1", // JWT 토큰에서 추출된 값으로 대체되어야 함
             userNickName: "Tester",
             userProfile: "profileUrl"
           };
@@ -155,17 +172,11 @@
           break;
       }
 
-      try {
-        client.publish({
-          destination: "/app/action/" + roomId,
-          body: JSON.stringify(payload)
-        });
-        document.getElementById("output").textContent += "Sent: " + JSON.stringify(payload) + "\n";
-      } catch (error) {
-        document.getElementById("output").textContent += "Error sending message: " + error.message + "\n";
-      }
-    } else {
-      document.getElementById("output").textContent += "Cannot send message: Client not connected\n";
+      client.publish({
+        destination: "/app/action/" + roomId,
+        body: JSON.stringify(payload)
+      });
+      document.getElementById("output").textContent += "Sent: " + JSON.stringify(payload) + "\n";
     }
   });
 </script>

@@ -42,9 +42,8 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
                 if (authHeader != null && authHeader.toLowerCase().startsWith("bearer ")) {
                     token = authHeader.substring(7); // "Bearer " 다음부터 실제 토큰
                 } else {
-                    // Bearer 타입이 아니거나 형식이 잘못된 경우 처리 (선택적)
-                    logger.warn("Invalid Authorization header format.");
-                    // token = authHeader; // 만약 Bearer 없이 토큰만 올 수도 있다면
+                    // Bearer 접두사가 없는 경우 토큰을 그대로 사용
+                    token = authHeader;
                 }
             }
 
