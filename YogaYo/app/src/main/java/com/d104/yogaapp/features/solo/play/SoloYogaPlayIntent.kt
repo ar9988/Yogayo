@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.media.Image
 import android.net.Uri
 import com.d104.domain.model.UserCourse
+import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.features.solo.SoloIntent
 
 sealed class SoloYogaPlayIntent {
@@ -20,7 +21,8 @@ sealed class SoloYogaPlayIntent {
     data class UpdateTimerProgress(val progress: Float) : SoloYogaPlayIntent()
     data class UpdateCameraPermission(val granted: Boolean) : SoloYogaPlayIntent()
     data class InitializeWithCourse(val course: UserCourse) : SoloYogaPlayIntent()
-    data class CaptureImage(val bitmap: Bitmap): SoloYogaPlayIntent()
+    data class SendHistory(val pose: YogaPose, val accuracy:Float, val time: Float, val bitmap: Bitmap): SoloYogaPlayIntent()
+    data class SetCurrentHistory (val accuracy:Float, val time: Float): SoloYogaPlayIntent()
     data class DownloadImage(val uri:Uri,val poseName:String):SoloYogaPlayIntent()
 
 }

@@ -49,6 +49,7 @@ class SoloViewModel @Inject constructor(
 
     init {
         // 병렬로 초기 데이터 로드
+        courseJsonParser.printModelMetadata()
         viewModelScope.launch {
             try {
                 // 기본 코스와 포즈 데이터를 병렬로 로드
@@ -325,5 +326,7 @@ class SoloViewModel @Inject constructor(
             _state.update { it.copy(yogaPoseLoading = false) }
         }
     }
+
+
 
 }

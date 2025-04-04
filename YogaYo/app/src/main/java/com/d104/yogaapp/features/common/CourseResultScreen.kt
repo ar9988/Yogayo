@@ -374,7 +374,7 @@ fun YogaPoseDetailDialog(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "${history.poseTime.toInt()}초",
+                            text = String.format("%.2f초", history.poseTime),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
