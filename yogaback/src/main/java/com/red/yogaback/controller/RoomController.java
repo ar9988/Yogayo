@@ -36,8 +36,9 @@ public class RoomController {
 
     @GetMapping("/lobby")
     @Operation(summary = "방 조회 / SSE 연결")
-    public SseEmitter getAllRooms() {
-        List<RoomRequest> allRooms = roomService.getAllRooms();
+    public SseEmitter getAllRooms(@RequestParam("roomName") String roomName,
+                                  @RequestParam("page") String page) {
+        List<RoomRequest> allRooms = roomService.getAllRooms(roomName);
         return sseEmitterService.subscribe(allRooms);
     }
 

@@ -209,11 +209,11 @@ public class BadgeService {
         // 1. 정확도 기반 배지 체크 - 단 한 번의 쿼리로 최고 정확도 조회
         Optional<Integer> maxAccuracy = poseRecordRepository.findMaxAccuracyByUser(user);
         maxAccuracy.ifPresent(accuracy -> {
-            if (accuracy >= 90) {
+            if (accuracy >= 0.9) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 3, accuracy);
-            } else if (accuracy >= 80) {
+            } else if (accuracy >= 0.8) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 2, accuracy);
-            } else if (accuracy >= 70) {
+            } else if (accuracy >= 0.7) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 1, accuracy);
             }
         });

@@ -80,7 +80,7 @@ public class RoomService {
         roomReq.setUserNickname(user.getUserNickname());
 //        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
         cashingRoomPoses(room.getRoomId(), roomReq.getPose());
-        sseEmitterService.notifyRoomUpdate(getAllRooms());
+        sseEmitterService.notifyRoomUpdate(getAllRooms(""));
         return roomReq;
 
     }
@@ -91,9 +91,9 @@ public class RoomService {
     }
 
     // 방 조회 / SSE 연결
-    public List<RoomRequest> getAllRooms() {
+    public List<RoomRequest> getAllRooms(String roomName) {
 //        log.info("현재 방, 포즈: {}", roomPoseMap);
-        List<Room> allRooms = roomRepository.findAll();
+        List<Room> allRooms = roomRepository.findByRoomNameContaining(roomName);
         if (allRooms.isEmpty()) {
             return new ArrayList<>();
         }
