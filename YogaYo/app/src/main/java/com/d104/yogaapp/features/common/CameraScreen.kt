@@ -34,12 +34,10 @@ import androidx.core.content.ContextCompat
 import com.d104.yogaapp.R
 import timber.log.Timber
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.speech.tts.TextToSpeech
 import android.util.Size
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -51,20 +49,53 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.d104.domain.model.YogaPose
+import java.util.Locale
 
 
 @Composable
 fun YogaPlayScreen(
+    isCountingDown: Boolean = false,
+    isTutorial:Boolean = false,
+    pose:YogaPose = YogaPose(0,"","",0, listOf(),"",0,""),
     timerProgress: Float,
     isPlaying: Boolean,
     onPause: () -> Unit,
     leftContent: @Composable () -> Unit,
-    onImageCaptured: (Bitmap) -> Unit = {},
-    isCountingDown: Boolean = false,
+    onSendResult: (YogaPose,Float,Float,Bitmap) -> Unit ={_,_,_,_->},
+    onAccuracyUpdate:(Float,Float)->Unit = {_,_->}
 ) {
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // TTS 인스턴스 생성
+    val textToSpeech = remember { mutableStateOf<TextToSpeech?>(null) }
+    var currentDescriptionIndex by remember { mutableStateOf(-1) } // -1로 시작하면 아직 설명 시작 전
+    var isTtsReady by remember { mutableStateOf(false) }
+
+    // TTS 초기화
+    LaunchedEffect(Unit) {
+        textToSpeech.value = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                textToSpeech.value?.language = Locale.getDefault()
+                isTtsReady = true
+            }
+        }
+    }
+
+
+    // 컴포넌트 해제 시 TTS 리소스 정리
+    DisposableEffect(Unit) {
+        onDispose {
+            textToSpeech.value?.stop()
+            textToSpeech.value?.shutdown()
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -101,14 +132,29 @@ fun YogaPlayScreen(
                 CameraPreview(
                     modifier = Modifier.fillMaxSize(),
                     isPlaying = isPlaying,
-                    onImageCaptured = onImageCaptured,
-                    poseId = 1.toString(),
-                    shouldCapture = if(timerProgress==0.5f) true else false,
-                    isCountingDown = isCountingDown
+                    onSendResult = onSendResult,
+                    pose = pose,
+                    isCountingDown = isCountingDown,
+                    onRessultFeedback = {accuracy,time,feedback->
+                        onAccuracyUpdate(accuracy,time )
+                        if (feedback.isNotEmpty() && isTtsReady&&isPlaying) {
+                            textToSpeech.value?.let{textToSpeech->
+                                if(!textToSpeech.isSpeaking){
+                                textToSpeech.speak(
+                                    feedback,
+                                    TextToSpeech.QUEUE_ADD, // QUEUE_FLUSH 대신 QUEUE_ADD 사용
+                                    null,
+                                    "text_${System.currentTimeMillis()}" // 고유한 식별자 사용
+                                )
+                                    }
+
+                            }
+                        }
+                    }
                 )
 
                 // 일시정지/재생 버튼
-                if(isPlaying) {
+                if(isPlaying&&!isCountingDown) {
                     IconButton(
                         onClick = onPause,
                         modifier = Modifier
@@ -125,188 +171,57 @@ fun YogaPlayScreen(
                         )
                     }
                 }
+                if(!isTutorial) {
 
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth(0.9f)
-                        .padding(16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    // 타이머 프로그레스 바
-                    LinearProgressIndicator(
-                        progress = { timerProgress },
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(36.dp)),
-                        color = Color(0xFF2196F3),
-                        trackColor = Color(0x80FFFFFF) // 반투명 흰색
-                    )
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(0.9f)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        // 타이머 프로그레스 바
+                        LinearProgressIndicator(
+                            progress = { timerProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(36.dp)),
+                            color = Color(0xFF2196F3),
+                            trackColor = Color(0x80FFFFFF) // 반투명 흰색
+                        )
 
-                    // 타이머 아이콘 (프로그레스 바 위에 겹치게)
-                    Image(
-                        painter = painterResource(id = R.drawable.img_timer),
-                        contentDescription = "타이머",
-                        modifier = Modifier
-                            .size(54.dp)
-                            .offset(x = (-6).dp,y=-4.dp), // 약간 왼쪽으로 이동
-                        contentScale = ContentScale.Fit
-                    )
+                        // 타이머 아이콘 (프로그레스 바 위에 겹치게)
+                        Image(
+                            painter = painterResource(id = R.drawable.img_timer),
+                            contentDescription = "타이머",
+                            modifier = Modifier
+                                .size(54.dp)
+                                .offset(x = (-6).dp, y = -4.dp), // 약간 왼쪽으로 이동
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
             }
         }
     }
 }
-//@Composable
-//fun CameraPreview(
-//    modifier: Modifier = Modifier,
-//    isPlaying: Boolean = true,
-//    poseId: String, // 포즈 식별자 (String으로 통일)
-//    onImageCaptured: (Bitmap) -> Unit, // 저장 완료 후 URI 전달
-//    shouldCapture: Boolean = false, // 외부에서 캡처 트리거
-//) {
-//    val context = LocalContext.current
-//    val lifecycleOwner = LocalLifecycleOwner.current
-//    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-//    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-//    var preview by remember { mutableStateOf<Preview?>(null) }
-//    var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
-//
-//    // PreviewView 구성
-//    val previewView = remember {
-//        PreviewView(context).apply {
-//            this.scaleType = PreviewView.ScaleType.FILL_CENTER
-//            layoutParams = ViewGroup.LayoutParams(
-//                ViewGroup.LayoutParams.MATCH_PARENT,
-//                ViewGroup.LayoutParams.MATCH_PARENT
-//            )
-//            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-//        }
-//    }
-//
-//    // 사진 캡처 함수
-//    val captureImage = remember(imageCapture, poseId) {
-//        {
-//            val imageCaptureUseCase = imageCapture
-//            if (imageCaptureUseCase != null) {
-//                imageCaptureUseCase.takePicture(
-//                    ContextCompat.getMainExecutor(context),
-//                    object : ImageCapture.OnImageCapturedCallback() {
-//                        override fun onCaptureSuccess(image: ImageProxy) {
-//                            try {
-//                                // 이미지 프록시를 비트맵으로 변환
-//                                val buffer = image.planes[0].buffer
-//                                val bytes = ByteArray(buffer.remaining())
-//                                buffer.get(bytes)
-//                                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-//
-//                                onImageCaptured(bitmap)
-//
-//                            } catch (e: Exception) {
-//                                Timber.e("비트맵 변환 실패", e)
-//                            } finally {
-//                                image.close()
-//                            }
-//                        }
-//
-//                        override fun onError(exception: ImageCaptureException) {
-//                            Timber.e("사진 캡처 실패", exception)
-//                        }
-//                    }
-//                )
-//            }
-//        }
-//    }
-//
-//    // 바인딩 함수
-//    val bindCamera = remember {
-//        {
-//            try {
-//                val cameraSelector = CameraSelector.Builder()
-//                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-//                    .build()
-//
-//                imageCapture = ImageCapture.Builder()
-//                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-//                    .build()
-//
-//                cameraProvider?.unbindAll()
-//                cameraProvider?.bindToLifecycle(
-//                    lifecycleOwner,
-//                    cameraSelector,
-//                    preview,
-//                    imageCapture
-//                )
-//            } catch (e: Exception) {
-//                Timber.e("카메라 바인딩 실패", e)
-//            }
-//        }
-//    }
-//
-//    // 초기 카메라 설정
-//    DisposableEffect(Unit) {
-//        val cameraListener = Runnable {
-//            try {
-//                cameraProvider = cameraProviderFuture.get()
-//                preview = Preview.Builder().build().also {
-//                    it.setSurfaceProvider(previewView.surfaceProvider)
-//                }
-//
-//                if (isPlaying) {
-//                    bindCamera()
-//                }
-//            } catch (e: Exception) {
-//                Timber.e("카메라 초기화 실패", e)
-//            }
-//        }
-//
-//        cameraProviderFuture.addListener(cameraListener, ContextCompat.getMainExecutor(context))
-//
-//        onDispose {
-//            cameraProvider?.unbindAll()
-//        }
-//    }
-//
-//    // isPlaying 상태 변경에 따른 처리
-//    LaunchedEffect(isPlaying) {
-//        if (cameraProvider != null && preview != null) {
-//            if (isPlaying) {
-//                bindCamera()
-//            } else {
-//                cameraProvider?.unbindAll()
-//            }
-//        }
-//    }
-//
-//    // shouldCapture 상태가 true로 변경될 때 사진 캡처
-//    LaunchedEffect(shouldCapture) {
-//        if (shouldCapture) {
-//            captureImage()
-//        }
-//    }
-//
-//    // 카메라 프리뷰 UI
-//    Box(modifier = modifier) {
-//        AndroidView(
-//            factory = { previewView },
-//            modifier = Modifier.fillMaxSize()
-//        )
-//    }
-//}
+
 
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
     isPlaying: Boolean = true,
-    poseId: String, // 필요 없다면 제거
-    onImageCaptured: (Bitmap) -> Unit,
-    shouldCapture: Boolean = false,
+    pose: YogaPose = YogaPose(0,"","",0, listOf(),"",0,""),
+    onSendResult: (YogaPose,Float,Float, Bitmap) -> Unit={_,_,_,_->},
     viewModel: CameraViewModel = hiltViewModel(),
     isCountingDown: Boolean = false,
+    onRessultFeedback: (Float,Float,String) -> Unit={_,_,_->}
 ) {
+//    Timber.d("camera countDown ${isCountingDown}4")
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val accuracy by viewModel.displayAccuracy.collectAsState()
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var preview by remember { mutableStateOf<Preview?>(null) }
@@ -330,39 +245,7 @@ fun CameraPreview(
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         }
     }
-    // 사진 캡처 함수 (변경 없음, 단 Bitmap 변환 로직 정확성 확인 필요)
-    val captureImage = remember(imageCapture, poseId) {
-        {
-            val imageCaptureUseCase = imageCapture
-            if (imageCaptureUseCase != null) {
-                imageCaptureUseCase.takePicture(
-                    ContextCompat.getMainExecutor(context),
-                    object : ImageCapture.OnImageCapturedCallback() {
-                        override fun onCaptureSuccess(image: ImageProxy) {
-                            try {
-                                // 이미지 프록시를 비트맵으로 변환
-                                val buffer = image.planes[0].buffer
-                                val bytes = ByteArray(buffer.remaining())
-                                buffer.get(bytes)
-                                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
-                                onImageCaptured(bitmap)
-
-                            } catch (e: Exception) {
-                                Timber.e("비트맵 변환 실패", e)
-                            } finally {
-                                image.close()
-                            }
-                        }
-
-                        override fun onError(exception: ImageCaptureException) {
-                            Timber.e("사진 캡처 실패", exception)
-                        }
-                    }
-                )
-            }
-        }
-    }
 
     // 바인딩 함수 (내부 조건 제거, isHelperReady로 외부에서 제어)
     val bindCamera = remember(viewModel.imageAnalyzer, cameraProvider, preview, imageCapture) {
@@ -370,8 +253,8 @@ fun CameraPreview(
         {
             // isHelperReady 조건은 LaunchedEffect에서 처리하므로 여기선 제거
             if (!(cameraProvider == null || preview == null || imageCapture == null)) {
-
                 try {
+                    Timber.d("camera countDown ${isCountingDown}2")
                     val cameraSelector = CameraSelector.Builder()
                         .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
                         .build()
@@ -402,7 +285,10 @@ fun CameraPreview(
                             // setAnalyzer(ContextCompat.getMainExecutor(context), viewModel.imageAnalyzer) // <- UI 스레드 사용 시 문제될 수 있음
                             // ViewModel에서 생성한 cameraExecutor를 사용하도록 수정
                             // CameraViewModel에 정의된 cameraExecutor 사용
-                            setAnalyzer(viewModel.imageAnalyzerExecutor, viewModel.imageAnalyzer)
+                            setAnalyzer(
+                                viewModel.imageAnalyzerExecutor,
+                                viewModel.imageAnalyzer
+                            )
 
 
                         }
@@ -423,6 +309,8 @@ fun CameraPreview(
                     // ViewModel의 에러 상태 업데이트 또는 직접 처리
                     // viewModel.setError("Camera binding failed: ${e.message}")
                 }
+
+
             }
         }
     }
@@ -448,40 +336,52 @@ fun CameraPreview(
         }
         cameraProviderFuture.addListener(cameraListener, ContextCompat.getMainExecutor(context))
 
-        onDispose {
+        onDispose{
+            viewModel.bestResultBitmap?.let { bitmap ->
+                onSendResult(
+                    viewModel.currentPose,
+                    viewModel.bestAccuracy,
+                    viewModel.remainingPoseTime,
+                    bitmap
+                )
+            }
             cameraProvider?.unbindAll()
             // cameraExecutor는 ViewModel에서 관리하므로 여기서 shutdown 불필요
             Timber.d("CameraPreview disposed.")
         }
     }
 
+    LaunchedEffect(isCountingDown) {
+        viewModel.setAnalysisPaused(isCountingDown)
+    }
+
+    LaunchedEffect(pose) {
+
+        viewModel.initPose(pose)
+    }
+
+    LaunchedEffect(accuracy) {
+        //여기서 피드백 보내는거해야할듯
+        onRessultFeedback(accuracy,viewModel.remainingPoseTime,"피드백 테스트${viewModel.remainingPoseTime.toInt()}")
+
+    }
+
     // *** isPlaying 및 isHelperReady 상태에 따른 처리 ***
-    LaunchedEffect(isPlaying, isCountingDown,isHelperReady, cameraProvider, preview, imageCapture) {
-        if (cameraProvider != null && preview != null && imageCapture != null) { // 모든 UseCase 준비 확인
-            if (isPlaying && isHelperReady&&!isCountingDown) { // 재생 중이고 Helper 준비 완료 시
+    LaunchedEffect(isPlaying, isHelperReady, cameraProvider, preview, imageCapture) {
+        if (cameraProvider != null && preview != null) { // 모든 UseCase 준비 확인
+            if (isPlaying && isHelperReady) { // 재생 중이고 Helper 준비 완료 시
                 Timber.d("isPlaying is true and Helper is ready. Binding camera with ImageAnalysis.")
                 bindCamera() // 카메라 바인딩 (ImageAnalysis 포함)
             } else if (isPlaying && !isHelperReady) { // 재생 중이지만 Helper 준비 안됨
                 Timber.d("isPlaying is true, but waiting for PoseLandmarkerHelper to be ready...")
                 // 필요 시 로딩 표시
                 cameraProvider?.unbindAll() // 분석 없이 프리뷰만 보려면 Preview만 바인딩
-//                try {
-//                    cameraProvider?.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_FRONT_CAMERA, preview, imageCapture)
-//                    Timber.d("Binding Preview and ImageCapture only while waiting for helper.")
-//                } catch (e: Exception) { Timber.e(e, "Error binding Preview/Capture only") }
             } else { // isPlaying이 false일 때
                 Timber.d("isPlaying is false. Unbinding all.")
                 cameraProvider?.unbindAll() // 모든 바인딩 해제
             }
         } else {
             Timber.d("CameraProvider, Preview or ImageCapture not ready yet.")
-        }
-    }
-
-    // 사진 캡처 (변경 없음)
-    LaunchedEffect(shouldCapture) {
-        if (shouldCapture) {
-            captureImage()
         }
     }
 

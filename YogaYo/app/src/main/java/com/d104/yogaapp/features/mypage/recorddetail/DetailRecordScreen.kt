@@ -220,7 +220,7 @@ fun BestPoseRecordCard(
                     MetricItemShort(
                         icon = Icons.Outlined.Timer,
                         // formatDuration 함수를 사용하여 시간 포맷팅 (아래 정의 또는 import 필요)
-                        value = String.format("%.1f초", bestPoseHistory.bestTime), // "mm:ss" 또는 다른 형식 사용 가능
+                        value = String.format("%.2f초", bestPoseHistory.bestTime), // "mm:ss" 또는 다른 형식 사용 가능
                         contentDescription = "최고 시간"
                     )
                 }

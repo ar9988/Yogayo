@@ -1,6 +1,7 @@
 package com.d104.yogaapp.features.solo.play
 
 import com.d104.domain.model.YogaHistory
+import timber.log.Timber
 import javax.inject.Inject
 
 class SoloYogaPlayReducer @Inject constructor() {
@@ -17,7 +18,9 @@ class SoloYogaPlayReducer @Inject constructor() {
                         currentPoseIndex = state.currentPoseIndex + 1,
                         timerProgress = 1f,
                         isPlaying = false,
-                        isGuide = true
+                        isGuide = true,
+                        remainingTime = 0f,
+                        currentAccuracy = 0f,
                     )
                 }else{
                     state.copy(isPlaying = false, isResult = true)
@@ -60,7 +63,6 @@ class SoloYogaPlayReducer @Inject constructor() {
                 )
             }
 
-            is SoloYogaPlayIntent.CaptureImage -> {state}
             SoloYogaPlayIntent.SkipPose -> {
                 // 현재 포즈에 대한 히스토리 생성 (isSkipped = true로 표시)
                 val currentIndex = state.currentPoseIndex
@@ -109,12 +111,17 @@ class SoloYogaPlayReducer @Inject constructor() {
                         timerProgress = 1f,
                         isPlaying = false,
                         isGuide = true,
-                        poseHistories = updatedHistories
+                        isSkipped = true,
+                        poseHistories = updatedHistories,
+                        remainingTime = 0f,
+                        currentAccuracy = 0f,
                     )
                 } else {
                     state.copy(
                         isPlaying = false,
                         isResult = true,
+                        isSkipped = true,
+                        remainingTime = 0f,
                         poseHistories = updatedHistories
                     )
                 }
@@ -133,6 +140,12 @@ class SoloYogaPlayReducer @Inject constructor() {
                 state.copy(
                     isLogin = intent.isLogin
                 )
+            }
+
+            is SoloYogaPlayIntent.SendHistory -> state
+            is SoloYogaPlayIntent.SetCurrentHistory -> {
+                Timber.d("remainingTime:${intent.time}")
+                state.copy(currentAccuracy = intent.accuracy, remainingTime = intent.time)
             }
         }
     }

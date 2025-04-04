@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -55,7 +56,7 @@ class SoloYogaPlayViewModel @Inject constructor(
     private var timerJob: Job? = null
 
     private var currentTimerStep: Float = 1f
-    private val totalTimeMs = 5_000L //테스트용 5초
+    private val totalTimeMs = 20_000L //테스트용 5초
 //    private val totalTimeMs = 20_000L // 20초
     private val intervalMs = 100L // 0.1초마다 업데이트
     private val totalSteps = totalTimeMs / intervalMs
@@ -88,7 +89,7 @@ class SoloYogaPlayViewModel @Inject constructor(
                 startTimer()
             }
             is SoloYogaPlayIntent.UpdateCameraPermission -> {
-                if (intent.granted && newState.isPlaying) {
+                if (intent.granted && state.value.isPlaying) {
                     // 권한이 부여되고 재생 상태인 경우에만 타이머 시작
                     startTimer()
                 }
@@ -105,9 +106,21 @@ class SoloYogaPlayViewModel @Inject constructor(
 
             }
 
-            is SoloYogaPlayIntent.CaptureImage -> {
-                viewModelScope.launch {
-                    saveImage(intent.bitmap, currentPose.value)
+            is SoloYogaPlayIntent.SendHistory -> {
+                if(!state.value.isSkipped) {
+                    viewModelScope.launch {
+                        val uri = saveImage(intent.bitmap, currentPose.value)
+                        uri?.let { savedUri ->
+                            updatePoseHistory(
+                                pose = intent.pose,
+                                accuracy = intent.accuracy,
+                                time = intent.time,
+                                imageUri = savedUri,
+                            )
+                        }
+                    }
+                }else {
+                    _state.update {it.copy(isSkipped = false)  }
                 }
             }
 
@@ -136,6 +149,7 @@ class SoloYogaPlayViewModel @Inject constructor(
             }
 
             is SoloYogaPlayIntent.SetLoginState -> {}
+            is SoloYogaPlayIntent.SetCurrentHistory -> {}
         }
     }
 
@@ -148,7 +162,7 @@ class SoloYogaPlayViewModel @Inject constructor(
     }
 
     private fun startTimer() {
-        if (!state.value.isPlaying || !state.value.cameraPermissionGranted) return
+        if (!state.value.isPlaying || !state.value.cameraPermissionGranted||state.value.userCourse.tutorial) return
 
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
@@ -168,20 +182,10 @@ class SoloYogaPlayViewModel @Inject constructor(
 
             // 타이머 종료 후 다음 동작으로 자동 전환
             if (state.value.timerProgress <= 0f) {
-                if(state.value.isLogin&&!state.value.userCourse.tutorial){
-                    val currentidx = state.value.currentPoseIndex
-                    Timber.d("history:${state.value.poseHistories}")
-                    viewModelScope.launch {
-                        postYogaPoseHistoryUseCase(
-                            poseId = state.value.poseHistories[currentidx].poseId,
-                            accuracy = state.value.poseHistories[currentidx].accuracy,
-                            poseTime = state.value.poseHistories[currentidx].poseTime,
-                            imgUri = state.value.poseHistories[currentidx].recordImg
-                        ).collectLatest {
-                            Timber.d("historyresult:${it}")
-                        }
-                    }
-                }
+//                if(state.value.isLogin&&!state.value.userCourse.tutorial){
+//                    val currentidx = state.value.currentPoseIndex
+//                    Timber.d("history:${state.value.poseHistories}")
+//                }
                 processIntent(SoloYogaPlayIntent.GoToNextPose)
             }
         }
@@ -191,20 +195,13 @@ class SoloYogaPlayViewModel @Inject constructor(
     suspend fun saveImage(bitmap: Bitmap,pose:YogaPose): Uri? {
         // 이미지 저장 후 URI 반환
         val imageUri = imageStorageManager.saveImage(bitmap, state.value.currentPoseIndex.toString(), pose.poseId.toString())
-
-        // 이미지가 성공적으로 저장된 경우 히스토리 업데이트
-        if (imageUri != null) {
-            updatePoseHistory(imageUri,pose)
-        }
-
         return imageUri
     }
 
-    private fun updatePoseHistory(imageUri: Uri,pose:YogaPose) {
+    private fun updatePoseHistory(pose:YogaPose,accuracy:Float,time:Float,imageUri: Uri) {
         // 현재 상태와 인덱스 가져오기
         val currentState = _state.value
         val currentIndex = currentState.currentPoseIndex
-        val currentAccuracy = Random.nextFloat()//currentState.currentAccuracy
 
         // 현재 포즈 히스토리 리스트 복사
         val updatedHistories = currentState.poseHistories.toMutableList()
@@ -213,36 +210,31 @@ class SoloYogaPlayViewModel @Inject constructor(
         val newHistory = YogaHistory(
             poseId = pose.poseId,
             poseName = pose.poseName,
-            accuracy = currentAccuracy,
+            poseTime = time,
+            accuracy = accuracy,
             recordImg = imageUri.toString(),
             poseImg = pose.poseImg
         )
 
-        // 현재 인덱스에 해당하는 히스토리가 있는지 확인
-        if (currentIndex < updatedHistories.size) {
-            // 있으면 업데이트
-            updatedHistories[currentIndex] = newHistory
-        } else {
-            // 없으면 리스트 크기를 확장하여 정확한 인덱스에 추가
-            while (updatedHistories.size < currentIndex) {
-                // 빈 자리는 더미 데이터로 채움
-                updatedHistories.add(
-                    YogaHistory(
-                        poseId = -1,
-                        poseName="",
-                        accuracy = 0f,
-                        recordImg = "",
-                        poseImg = ""
-                    )
-                )
-            }
-            // 현재 인덱스에 새 히스토리 추가
-            updatedHistories.add(newHistory)
-        }
+        updatedHistories.add(newHistory)
 
         // 상태 업데이트
         _state.value = currentState.copy(poseHistories = updatedHistories)
-        if(state.value.isLogin){
+        if(state.value.isLogin&&!_state.value.userCourse.tutorial){
+            viewModelScope.launch {
+                state.value.poseHistories.last().let {history->
+                    postYogaPoseHistoryUseCase(
+                        poseId = history.poseId,
+                        accuracy = history.accuracy,
+                        poseTime = history.poseTime,
+                        imgUri = history.recordImg
+                    ).collectLatest {
+                        Timber.d("historyresult:${it}")
+                    }
+
+                }
+
+            }
 
         }
 
