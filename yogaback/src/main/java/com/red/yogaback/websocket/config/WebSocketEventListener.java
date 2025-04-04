@@ -46,6 +46,7 @@ public class WebSocketEventListener {
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+
         String sessionId = headerAccessor.getSessionId();
         logger.info("New WebSocket connection established: {}", sessionId);
     }
@@ -76,6 +77,7 @@ public class WebSocketEventListener {
             } else {
                 messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
                         userId + "님이 나갔습니다. 남은 참가자 수: " + room.getParticipantCount());
+
                 logger.info("User {} left room {}", userId, roomId);
             }
         }

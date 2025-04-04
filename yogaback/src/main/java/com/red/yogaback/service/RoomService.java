@@ -49,6 +49,7 @@ public class RoomService {
                 .roomMax(roomReq.getRoomMax())
                 .hasPassword(roomReq.isHasPassword())
                 .createdAt(System.currentTimeMillis())
+                .roomCount(1)
                 .roomState(1L)
                 .build();
 
