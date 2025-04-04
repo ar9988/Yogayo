@@ -115,17 +115,21 @@ object StompUtils {
 
     // SEND 프레임 생성
     fun buildSendFrame(destination: String, body: String): String {
-        // body에 NULL 문자가 있으면 STOMP 스펙에 따라 이스케이프 필요할 수 있음
-        // 현재는 그대로 전송
-        val contentLength = body.toByteArray(Charsets.UTF_8).size // content-length 추가 (선택적)
+        // 원본 메시지를 payload로 감싸기
+        val wrappedBody = "{\"payload\":$body}"
 
-        return """
-         SEND
-         destination:$destination
-         content-type:application/json;charset=UTF-8
-         content-length:$contentLength
+        val bodyBytes = wrappedBody.toByteArray(Charsets.UTF_8)
+        val contentLength = bodyBytes.size
 
-         $body$NULL
-         """.trimIndent() // content-type, content-length는 예시
+        val builder = StringBuilder()
+        builder.append("SEND\n")
+        builder.append("destination:$destination\n")
+        builder.append("content-type:application/json;charset=UTF-8\n")
+        builder.append("content-length:$contentLength\n")
+        builder.append("\n")
+        builder.append(wrappedBody)
+        builder.append(NULL)
+
+        return builder.toString()
     }
 }

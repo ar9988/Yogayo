@@ -4,8 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.d104.domain.model.ImageChunkMessage
 import com.d104.domain.model.ScoreUpdateMessage
+import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
 import com.d104.domain.usecase.CloseWebSocketUseCase
 import com.d104.domain.usecase.ConnectWebSocketUseCase
@@ -76,6 +78,27 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if(intent.message.type=="image"){
                     sendImage()
+                }
+                if(intent.message.type=="user_joined"){
+                    Timber.d("User joined: ${intent.message}")
+                    val msg = intent.message as UserJoinedMessage
+                    if(uiState.value.currentRoom!!.roomMax==uiState.value.userList.size){
+                        Timber.d("Game started")
+                        viewModelScope.launch {
+                            sendSignalingMessageUseCase(
+                                uiState.value.currentRoom!!.roomId.toString(),
+                                4
+                            )
+                        }
+                    }
+                }
+            }
+            is MultiPlayIntent.ExitRoom -> {
+                // 방 나가기 처리
+                viewModelScope.launch {
+                    sendSignalingMessageUseCase(uiState.value.currentRoom!!.roomId.toString(),4)
+                    closeWebSocketUseCase()
+                    closeWebRTCUseCase()
                 }
             }
             else -> {}

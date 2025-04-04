@@ -1,5 +1,6 @@
 package com.d104.domain.usecase
 
+import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
@@ -55,6 +56,11 @@ class SendSignalingMessageUseCase @Inject constructor(
                         type = "user_left"
                     )
                  }
+                4 -> {
+                    messageToSend = GameStateMessage(
+                        state = 0
+                    )
+                }
                 else -> {
                     // 알 수 없는 타입 처리
                     return false // 알 수 없는 타입이면 실패 반환
