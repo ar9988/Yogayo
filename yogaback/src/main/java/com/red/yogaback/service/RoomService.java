@@ -78,7 +78,7 @@ public class RoomService {
 
         roomCoursePoseRepository.saveAll(roomCoursePoses);
         roomReq.setRoomId(savedRoom.getRoomId());
-        roomReq.setUserNickname(user.getUserNickname());
+        roomReq.setUserId(user.getUserId());
 //        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
         cashingRoomPoses(room.getRoomId(), roomReq.getPose());
         sseEmitterService.notifyRoomUpdate(getAllRooms(""));
@@ -105,7 +105,7 @@ public class RoomService {
             roomRequest.setRoomId(room.getRoomId());
             roomRequest.setRoomCount(room.getRoomCount());
             roomRequest.setRoomMax(room.getRoomMax());
-            roomRequest.setUserNickname(user.getUserNickname());
+            roomRequest.setUserId(user.getUserId());
             roomRequest.setRoomName(room.getRoomName());
             roomRequest.setHasPassword(room.getHasPassword());
 
