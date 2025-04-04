@@ -4,5 +4,5 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class StartRoundMessage(
-    override val type: String = "round_start"
+    override val type: String = "round_start", override val fromPeerId: String
 ): SignalingMessage()

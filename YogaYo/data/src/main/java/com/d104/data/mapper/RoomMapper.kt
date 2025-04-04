@@ -31,6 +31,7 @@ class RoomMapper @Inject constructor(
 
                 // --- Extract Basic Room Details ---
                 val roomId = jsonObject.getLong("roomId")
+                val userId = jsonObject.getLong("userId")
                 val userNickname = jsonObject.getString("userNickname")
                 val roomMax = jsonObject.getInt("roomMax")
                 val roomCount = jsonObject.getInt("roomCount")
@@ -63,12 +64,13 @@ class RoomMapper @Inject constructor(
                 // --- Create Room Domain Model ---
                 val room = Room(
                     roomId = roomId,
-                    userNickname = userNickname,
+                    userId = userId,
                     roomMax = roomMax,
                     roomCount = roomCount,
                     roomName = roomName,
                     isPassword = hasPassword,  // Map hasPassword to isPassword
-                    userCourse = userCourse
+                    userCourse = userCourse,
+                    userNickname = userNickname
                 )
 
                 roomList.add(room)

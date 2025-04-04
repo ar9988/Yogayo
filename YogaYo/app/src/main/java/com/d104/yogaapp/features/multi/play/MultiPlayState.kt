@@ -6,7 +6,7 @@ import com.d104.domain.model.Room
 import com.d104.domain.model.YogaPose
 
 data class MultiPlayState(
-    val userList: MutableMap<String, PeerUser> = mutableMapOf(),
+    val userList: Map<String, PeerUser> = emptyMap(),
     val cameraPermissionGranted: Boolean = false,
     val menuClicked: Boolean = false,
     val isPlaying: Boolean = true,

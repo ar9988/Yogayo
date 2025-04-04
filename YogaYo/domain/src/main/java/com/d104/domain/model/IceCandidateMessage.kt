@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("ice_candidate")
 data class IceCandidateMessage(
-    val fromPeerId: String,
+    override val fromPeerId: String,
     val toPeerId: String,
     val candidate: IceCandidateData,
     override val type: String

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("user_ready")
 data class UserReadyMessage(
-    val peerId: String,
+    override val fromPeerId: String,
     val isReady: Boolean,
     override val type: String
 ) : SignalingMessage()

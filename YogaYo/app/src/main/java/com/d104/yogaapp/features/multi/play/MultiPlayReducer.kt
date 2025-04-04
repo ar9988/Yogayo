@@ -67,36 +67,32 @@ class MultiPlayReducer @Inject constructor() {
                 when (intent.message.type) {
                     "user_joined" -> {
                         val userJoinedMessage = intent.message as UserJoinedMessage
-                        val newPeerId = userJoinedMessage.peerId
-                        currentState.copy(
-                            userList = currentState.userList.apply {
-                                this[newPeerId] = PeerUser(
-                                    newPeerId,
-                                    userJoinedMessage.userNickName
-                                )
-                            }
-                        )
+                        val newPeerId = userJoinedMessage.fromPeerId
+                        val newUserList = currentState.userList.toMutableMap().apply {
+                            put(newPeerId, PeerUser(
+                                newPeerId,
+                                userJoinedMessage.userNickName
+                            ))
+                        }
+                        currentState.copy(userList = newUserList)
                     }
 
                     "user_left" -> {
                         val userLeftMessage = intent.message as UserLeftMessage
-
-                        currentState.copy(
-                            userList = currentState.userList.apply {
-                                this.remove(userLeftMessage.peerId)
-                            }
-                        )
+                        val newUserList = currentState.userList.toMutableMap().apply {
+                            remove(userLeftMessage.fromPeerId)
+                        }
+                        currentState.copy(userList = newUserList)
                     }
 
                     "user_ready" -> {
                         val userReadyMessage = intent.message as UserReadyMessage
-                        currentState.copy(
-                            userList = currentState.userList.apply {
-                                this[userReadyMessage.peerId] = this[userReadyMessage.peerId]!!.copy(
-                                    isReady = userReadyMessage.isReady
-                                )
+                        val newUserList = currentState.userList.toMutableMap().apply {
+                            this[userReadyMessage.fromPeerId]?.let { user ->
+                                put(userReadyMessage.fromPeerId, user.copy(isReady = userReadyMessage.isReady))
                             }
-                        )
+                        }
+                        currentState.copy(userList = newUserList)
                     }
                     "game_started" -> currentState.copy(
                         gameState = GameState.Playing

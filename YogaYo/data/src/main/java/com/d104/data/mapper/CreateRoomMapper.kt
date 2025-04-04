@@ -14,11 +14,12 @@ class CreateRoomMapper @Inject constructor(
         return CreateRoomResult.Success(
             Room(
                 roomId = input.roomId,
-                userNickname = input.userNickname,
+                userId = input.userId,
                 roomMax = input.roomMax,
                 roomCount = input.roomCount,
                 roomName = input.roomName,
                 isPassword = input.hasPassword,
+                userNickname = input.userNickname,
                 userCourse = UserCourse(
                     courseId = -1,
                     courseName = "TODO()",

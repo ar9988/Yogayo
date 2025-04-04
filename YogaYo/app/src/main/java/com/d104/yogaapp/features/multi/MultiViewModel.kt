@@ -184,82 +184,8 @@ class MultiViewModel @Inject constructor(
 
     init {
         searchCourse()
-        loadRooms("",uiState.value.pageIndex)
+        loadRooms("", uiState.value.pageIndex)
 
         _uiState.value.yogaCourses = courseJsonParser.loadUserCoursesFromAssets("courseSet.json")
-
-        _uiState.value.page = listOf(
-            Room(
-                roomId = 0,
-                userNickname = "We'T",
-                roomMax = 6,
-                roomCount = 4,
-                roomName = "요가 할래?",
-                isPassword = true,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            )
-        )
-
     }
 }

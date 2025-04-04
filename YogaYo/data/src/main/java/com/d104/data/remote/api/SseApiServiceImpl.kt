@@ -22,8 +22,8 @@ class SseApiServiceImpl @Inject constructor(
             .addPathSegment("api")
             .addPathSegment("multi")
             .addPathSegment("lobby")
-//            .addQueryParameter("roomName", searchText)
-//            .addQueryParameter("page", page.toString())
+            .addQueryParameter("roomName", searchText)
+            .addQueryParameter("page", page.toString())
             .build()
 
         val request = Request.Builder()

@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.d104.domain.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.io.IOException
@@ -143,5 +144,18 @@ class DataStorePreferencesDao @Inject constructor(
             preferences[KEYS.IS_LOGGED_IN] ?: false
         }
 
-
+    override suspend fun getUserId(): String {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    Log.e(TAG, "Error reading preferences", exception)
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[KEYS.USER_ID] ?: ""
+            }.first()
+    }
 }

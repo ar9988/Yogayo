@@ -9,19 +9,14 @@ import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.OfferMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.repository.DataStoreRepository
-import com.d104.domain.repository.UserRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import org.webrtc.*
 import java.nio.ByteBuffer
@@ -31,14 +26,11 @@ import javax.inject.Singleton
 @Singleton
 class WebRTCManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val userRepository: UserRepository,
     private val dataStoreRepository: DataStoreRepository
     // 필요하다면 WebSocketRepository 를 직접 주입받거나,
     // 시그널링 메시지 전송을 위한 콜백 인터페이스를 정의하여 사용
 ) {
     private val TAG = "WebRTCManager"
-
-    private val _myPeerId = MutableStateFlow<String?>(null)
     // 코루틴 스코프
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -48,10 +40,10 @@ class WebRTCManager @Inject constructor(
 
     // ICE 서버 설정 (Coturn 서버 정보)
     private val iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:3.36.70.137P:3478").createIceServer(), // 실제 IP로 변경
-        PeerConnection.IceServer.builder("turn:3.36.70.137:3478")    // 실제 IP로 변경
-            .setUsername("testuser")        // 설정한 사용자 이름으로 변경
-            .setPassword("testkey1")          // 설정한 비밀번호로 변경
+        PeerConnection.IceServer.builder("stun:54.161.126.21:3478").createIceServer(), // 실제 IP로 변경
+        PeerConnection.IceServer.builder("turn:54.161.126.21:3478")    // 실제 IP로 변경
+            .setUsername("username1")        // 설정한 사용자 이름으로 변경
+            .setPassword("key1")          // 설정한 비밀번호로 변경
             .createIceServer()
     )
 
@@ -91,56 +83,38 @@ class WebRTCManager @Inject constructor(
             .setVideoDecoderFactory(DefaultVideoDecoderFactory(eglBase?.eglBaseContext)) // 비디오 사용 안해도 기본값 제공
             .createPeerConnectionFactory()
         Log.d(TAG, "PeerConnectionFactory initialized.")
-
-        loadMyPeerId()
-    }
-
-    private fun loadMyPeerId() {
-        managerScope.launch(Dispatchers.IO) {
-            dataStoreRepository.getUser()
-                .mapNotNull { it?.userId } // UserData 객체에서 userId 추출 (null 이 아닌 경우만)
-                // 또는 dataStoreRepository.getUserId().filterNotNull()
-                .catch { e ->
-                    Log.e(TAG, "Failed to load Peer ID from DataStore", e)
-                    // 필요하다면 오류 처리 또는 기본값 emit
-                }
-                .collectLatest { peerId -> // 최신 Peer ID 만 _myPeerId 에 업데이트
-                    Log.d(TAG, "My Peer ID loaded: $peerId")
-                    _myPeerId.value = peerId.toString()
-                }
-        }
     }
 
     // --- 연결 시작 (Offer 생성) ---
-    fun initiateConnection(peerId: String) {
+    fun initiateConnection(fromPeerId: String,toPeerId: String) {
         managerScope.launch {
-            Log.d(TAG, "Initiating connection to peer: $peerId")
-            val peerConnection = createOrGetPeerConnection(peerId) ?: return@launch
+            Log.d(TAG, "Initiating connection to peer: $toPeerId")
+            val peerConnection = createOrGetPeerConnection(fromPeerId,toPeerId) ?: return@launch
             // 데이터 채널 생성 (Offer 생성 전에 해야 함)
-            createDataChannel(peerId, peerConnection)
+            createDataChannel(toPeerId, peerConnection)
 
             // Offer 생성
             val sdpConstraints = MediaConstraints() // 필요시 오디오/비디오 제약조건 설정
             peerConnection.createOffer(object : SimpleSdpObserver() {
                 override fun onCreateSuccess(sdp: SessionDescription?) {
                     sdp?.let { it ->
-                        Log.d(TAG, "Offer created successfully for peer: $peerId")
+                        Log.d(TAG, "Offer created successfully for peer: $toPeerId")
                         peerConnection.setLocalDescription(SimpleSdpObserver(), it) // 로컬 SDP 설정
-                        emitSignalingMessage { myPeerId -> // emitSignalingMessage 내부에서 null 체크 후 전달된 myPeerId 사용
+                        emitSignalingMessage(fromPeerId) { myPeerId -> // emitSignalingMessage 내부에서 null 체크 후 전달된 myPeerId 사용
                             OfferMessage(
                                 fromPeerId = myPeerId, // StateFlow 의 값이 아닌, non-null ID 사용
-                                toPeerId = peerId,
+                                toPeerId = toPeerId,
                                 sdp = it.description, // it.description 사용
                                 type = "offer"
                             )
                         }
                     } ?: run {
-                        Log.e(TAG, "Offer creation success but SDP is null for peer: $peerId")
+                        Log.e(TAG, "Offer creation success but SDP is null for peer: $toPeerId")
                     }
                 }
 
                 override fun onCreateFailure(error: String?) {
-                    Log.e(TAG, "Failed to create offer for peer $peerId: $error")
+                    Log.e(TAG, "Failed to create offer for peer $toPeerId: $error")
                     // TODO: 오류 처리
                 }
             }, sdpConstraints)
@@ -152,10 +126,10 @@ class WebRTCManager @Inject constructor(
 
 
 
-    fun onOfferReceived(peerId: String, sdp: String) {
+    fun onOfferReceived(fromPeerId: String,peerId: String, sdp: String) {
         managerScope.launch {
             Log.d(TAG, "Received offer from peer: $peerId")
-            val peerConnection = createOrGetPeerConnection(peerId) ?: return@launch
+            val peerConnection = createOrGetPeerConnection(fromPeerId,peerId) ?: return@launch
 
             // Remote Description 설정
             val sessionDescription = SessionDescription(SessionDescription.Type.OFFER, sdp)
@@ -163,7 +137,7 @@ class WebRTCManager @Inject constructor(
                 override fun onSetSuccess() {
                     Log.d(TAG, "Remote description (offer) set successfully for peer: $peerId")
                     // Answer 생성
-                    createAnswer(peerId, peerConnection)
+                    createAnswer(fromPeerId,peerId, peerConnection)
                 }
 
                 override fun onSetFailure(error: String?) {
@@ -174,7 +148,7 @@ class WebRTCManager @Inject constructor(
         }
     }
 
-    private fun createAnswer(peerId: String, peerConnection: PeerConnection) {
+    private fun createAnswer(fromPeerId: String,peerId: String, peerConnection: PeerConnection) {
         val sdpConstraints = MediaConstraints()
 
         peerConnection.createAnswer(object : SimpleSdpObserver() {
@@ -182,7 +156,7 @@ class WebRTCManager @Inject constructor(
                 sdp?.let {
                     Log.d(TAG, "Answer created successfully for peer: $peerId")
                     peerConnection.setLocalDescription(SimpleSdpObserver(), it)
-                    emitSignalingMessage { myPeerId -> // emitSignalingMessage 내부에서 null 체크 후 전달된 myPeerId 사용
+                    emitSignalingMessage(fromPeerId) { myPeerId -> // emitSignalingMessage 내부에서 null 체크 후 전달된 myPeerId 사용
                         AnswerMessage(
                             fromPeerId = myPeerId, // StateFlow 의 값이 아닌, non-null ID 사용
                             toPeerId = peerId,
@@ -315,9 +289,9 @@ class WebRTCManager @Inject constructor(
 
     // --- 연결 관리 ---
 
-    private fun createOrGetPeerConnection(peerId: String): PeerConnection? {
-        return peerConnections[peerId] ?: run {
-            Log.d(TAG, "Creating new PeerConnection for peer: $peerId")
+    private fun createOrGetPeerConnection(fromPeerId:String ,toPeerId: String): PeerConnection? {
+        return peerConnections[toPeerId] ?: run {
+            Log.d(TAG, "Creating new PeerConnection for peer: $toPeerId")
             val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
             // 필요시 추가 설정 (예: bundlePolicy, rtcpMuxPolicy)
             // rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
@@ -327,14 +301,14 @@ class WebRTCManager @Inject constructor(
                 rtcConfig,
                 object : PeerConnection.Observer {
                     override fun onSignalingChange(state: PeerConnection.SignalingState?) {
-                        Log.d(TAG, "Peer $peerId: SignalingState changed: $state")
+                        Log.d(TAG, "Peer $toPeerId: SignalingState changed: $state")
                     }
 
                     override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
-                        Log.d(TAG, "Peer $peerId: IceConnectionState changed: $newState")
+                        Log.d(TAG, "Peer $toPeerId: IceConnectionState changed: $newState")
                         newState?.let {
                             managerScope.launch {
-                                _peerConnectionStateChanged.emit(PeerConnectionState(peerId, it))
+                                _peerConnectionStateChanged.emit(PeerConnectionState(toPeerId, it))
                             }
                             if (it == PeerConnection.IceConnectionState.FAILED ||
                                 it == PeerConnection.IceConnectionState.DISCONNECTED ||
@@ -346,26 +320,26 @@ class WebRTCManager @Inject constructor(
                     }
 
                     override fun onIceConnectionReceivingChange(receiving: Boolean) {
-                        Log.d(TAG, "Peer $peerId: IceConnectionReceivingChange: $receiving")
+                        Log.d(TAG, "Peer $toPeerId: IceConnectionReceivingChange: $receiving")
                     }
 
                     override fun onIceGatheringChange(newState: PeerConnection.IceGatheringState?) {
-                        Log.d(TAG, "Peer $peerId: IceGatheringState changed: $newState")
+                        Log.d(TAG, "Peer $toPeerId: IceGatheringState changed: $newState")
                     }
 
                     override fun onIceCandidate(candidate: IceCandidate?) {
                         candidate?.let {
-                            Log.d(TAG, "Peer $peerId: New ICE candidate generated: ${it.sdp.take(30)}...")
+                            Log.d(TAG, "Peer $toPeerId: New ICE candidate generated: ${it.sdp.take(30)}...")
                             // ICE Candidate 메시지 생성 및 시그널링 채널로 전송 요청
                             val candidateData = IceCandidateData(
                                 sdpMid = it.sdpMid,
                                 sdpMLineIndex = it.sdpMLineIndex,
                                 sdpCandidate = it.sdp
                             )
-                            emitSignalingMessage {
+                            emitSignalingMessage(fromPeerId) {
                                 IceCandidateMessage(
-                                    fromPeerId = _myPeerId.toString(), // 로드된 ID 사용
-                                    toPeerId = peerId,
+                                    fromPeerId = fromPeerId, // 로드된 ID 사용
+                                    toPeerId = toPeerId,
                                     candidate = candidateData,
                                     type = "candidate"
                                 )
@@ -374,43 +348,43 @@ class WebRTCManager @Inject constructor(
                     }
 
                     override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {
-                        Log.d(TAG, "Peer $peerId: ICE candidates removed.")
+                        Log.d(TAG, "Peer $toPeerId: ICE candidates removed.")
                     }
 
                     override fun onAddStream(stream: MediaStream?) {
-                        Log.d(TAG, "Peer $peerId: Stream added (deprecated).")
+                        Log.d(TAG, "Peer $toPeerId: Stream added (deprecated).")
                         // 비디오/오디오 사용 시 여기 또는 onTrack 에서 처리
                     }
 
                     override fun onRemoveStream(stream: MediaStream?) {
-                        Log.d(TAG, "Peer $peerId: Stream removed (deprecated).")
+                        Log.d(TAG, "Peer $toPeerId: Stream removed (deprecated).")
                     }
 
                     override fun onDataChannel(dc: DataChannel?) {
                         dc?.let {
-                            Log.d(TAG, "Peer $peerId: DataChannel received: ${it.label()}")
-                            registerDataChannelObserver(peerId, it)
-                            dataChannels[peerId] = it
+                            Log.d(TAG, "Peer $toPeerId: DataChannel received: ${it.label()}")
+                            registerDataChannelObserver(toPeerId, it)
+                            dataChannels[toPeerId] = it
                         }
                     }
 
                     override fun onRenegotiationNeeded() {
-                        Log.d(TAG, "Peer $peerId: Renegotiation needed.")
+                        Log.d(TAG, "Peer $toPeerId: Renegotiation needed.")
                         // 필요시 재협상 로직 구현 (예: 비디오 추가/제거 시)
                     }
 
                     override fun onAddTrack(receiver: RtpReceiver?, mediaStreams: Array<out MediaStream>?) {
-                        Log.d(TAG, "Peer $peerId: Track added.")
+                        Log.d(TAG, "Peer $toPeerId: Track added.")
                         // 비디오/오디오 트랙 수신 시 처리
                     }
                 }
             )
 
             if (peerConnection == null) {
-                Log.e(TAG, "Failed to create PeerConnection for peer: $peerId")
+                Log.e(TAG, "Failed to create PeerConnection for peer: $toPeerId")
                 null
             } else {
-                peerConnections[peerId] = peerConnection
+                peerConnections[toPeerId] = peerConnection
                 peerConnection
             }
         }
@@ -445,20 +419,27 @@ class WebRTCManager @Inject constructor(
         // managerScope.cancel() // 필요하다면 스코프 취소
     }
 
-    // --- 유틸리티 ---
-    private fun emitSignalingMessage(messageBuilder: (myPeerId: String) -> SignalingMessage?) {
+    private fun emitSignalingMessage(fromPeerId: String, messageBuilder: (myPeerId: String) -> SignalingMessage?) {
         managerScope.launch {
-            // Peer ID 가 로드될 때까지 기다리거나, 로드되지 않았으면 로그 남기고 종료
-            val myPeerId = _myPeerId.first { it != null } // null 이 아닐 때까지 기다림 (또는 다른 처리 방식)
-            if (myPeerId == null) {
-                Log.e(TAG, "Cannot emit signaling message, My Peer ID is not loaded yet.")
-                return@launch
-            }
+            val message = messageBuilder(fromPeerId) // 콜백을 사용하여 메시지 생성
 
-            val message = messageBuilder(myPeerId) // 콜백을 사용하여 Peer ID 전달
-            message?.let {
-                Log.d(TAG, "Emitting signaling message: ${it::class.simpleName}")
-                _outgoingSignalingMessage.emit(it)
+            message?.let { msg -> // 생성된 메시지가 null이 아니면
+                // --- 자기 자신에게 보내는지 확인 ---
+                val toPeerId = when (msg) {
+                    is OfferMessage -> msg.toPeerId
+                    is AnswerMessage -> msg.toPeerId
+                    is IceCandidateMessage -> msg.toPeerId
+                    else -> null // 다른 타입은 대상이 없을 수 있음
+                }
+
+                if (toPeerId != null && msg.fromPeerId == toPeerId) {
+                    Log.w(TAG, "Attempting to send a message to self, dropping: ${msg::class.simpleName} from ${msg.fromPeerId} to $toPeerId")
+                    return@launch // 자신에게 보내는 메시지면 emit 하지 않고 종료
+                }
+                // -----------------------------------
+
+                Log.d(TAG, "Emitting signaling message: ${msg::class.simpleName}")
+                _outgoingSignalingMessage.emit(msg) // 정상적인 경우 Flow로 emit
             }
         }
     }

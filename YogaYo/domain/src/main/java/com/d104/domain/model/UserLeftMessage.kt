@@ -6,6 +6,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("user_left")
 data class UserLeftMessage(
-    val peerId: String,
+    override val fromPeerId: String,
     override val type: String = "user_left"
 ) : SignalingMessage()

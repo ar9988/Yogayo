@@ -6,5 +6,5 @@ import javax.inject.Inject
 class StartWebRTCConnectionUseCase @Inject constructor(
     private val webRTCRepository: WebRTCRepository
 ) {
-    suspend operator fun invoke(peerId: String) = webRTCRepository.startConnection(peerId)
+    suspend operator fun invoke(fromPeerId:String,peerId: String) = webRTCRepository.startConnection(fromPeerId ,peerId)
 }

@@ -28,7 +28,7 @@ import com.d104.domain.model.PeerUser
 
 @Composable
 fun WaitingScreen(
-    userList: MutableMap<String, PeerUser>
+    userList: Map<String, PeerUser>
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),

@@ -9,8 +9,8 @@ import com.d104.domain.model.RoomPeersMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
-import com.d104.domain.model.UserReadyMessage
 import com.d104.domain.model.WebRTCConnectionState
+import com.d104.domain.repository.DataStoreRepository
 import com.d104.domain.repository.WebRTCRepository
 import com.d104.domain.repository.WebSocketRepository
 import kotlinx.coroutines.CoroutineScope
@@ -26,6 +26,7 @@ import org.webrtc.PeerConnection
 import javax.inject.Inject
 
 class WebRTCRepositoryImpl @Inject constructor(
+    private val dataStoreRepository: DataStoreRepository,
     private val webRTCManager: WebRTCManager,         // 실제 WebRTC 로직 담당
     private val webSocketRepository: WebSocketRepository, // 시그널링 메시지 전송/수신
     private val json: Json,                           // JSON 직렬화/역직렬화 (Hilt 등으로 주입)
@@ -42,7 +43,7 @@ class WebRTCRepositoryImpl @Inject constructor(
             webRTCManager.outgoingSignalingMessage.collect { signalingMessage ->
                 try {
                     val messageJson = json.encodeToString(SignalingMessage.serializer(), signalingMessage) // 다형성 직렬화
-                    val destination = determineSignalingDestination(signalingMessage) // 메시지 타입과 수신자 ID 기반으로 목적지 결정
+                    val destination = determineSignalingDestination() // 메시지 타입과 수신자 ID 기반으로 목적지 결정
 
                     if (destination != null) {
                         Log.d(TAG, "Sending signaling message of type ${signalingMessage::class.simpleName} to $destination")
@@ -78,10 +79,10 @@ class WebRTCRepositoryImpl @Inject constructor(
     }
 
     // 연결 시작 요청 (Offer 생성 트리거)
-    override suspend fun startConnection(peerId: String): Result<Unit> {
+    override suspend fun startConnection(fromPeerId:String,peerId: String): Result<Unit> {
         return try {
             Log.d(TAG, "Requesting start connection to peer: $peerId")
-            webRTCManager.initiateConnection(peerId)
+            webRTCManager.initiateConnection(fromPeerId ,peerId)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start connection to peer: $peerId", e)
@@ -111,35 +112,87 @@ class WebRTCRepositoryImpl @Inject constructor(
         }
     }
 
-    // WebSocket 에서 수신된 시그널링 메시지를 WebRTCManager 로 전달
     override fun handleSignalingMessage(message: SignalingMessage) {
-        Log.d(TAG, "Handling signaling message of type ${message::class.simpleName}")
-        try {
-            when (message) {
-                is OfferMessage -> webRTCManager.onOfferReceived(message.fromPeerId, message.sdp)
-                is AnswerMessage -> webRTCManager.onAnswerReceived(message.fromPeerId, message.sdp)
-                is IceCandidateMessage -> webRTCManager.onIceCandidateReceived(message.fromPeerId, message.candidate)
-                is RoomPeersMessage -> {
-                    Log.i(TAG, "Received room peers: ${message.peerIds}")
-                    // TODO: 각 peer 에 대해 startConnection() 호출 또는 다른 로직 수행
-                    // 주의: 이미 연결 중이거나 자신은 제외하는 로직 필요
-                    // message.peerIds.forEach { peerId -> /* startConnection(peerId) */ }
-                }
-                is UserJoinedMessage -> {
-                    Log.i(TAG, "User joined: ${message.peerId}")
-                    // TODO: 새로운 피어에 대해 startConnection() 호출
-//                    startConnection(message.peerId)
-                }
-                is UserLeftMessage -> {
-                    Log.i(TAG, "User left: ${message.peerId}")
-                    // TODO: 해당 피어와의 연결 종료
-                    disconnect(message.peerId)
-                }
-                else -> Log.w(TAG, "Unhandled signaling message type: ${message::class.simpleName}")
+        appScope.launch { // 코루틴 스코프 내에서 사용자 ID를 비동기적으로 가져올 수 있도록 함
+            val currentUserId = getCurrentUserId() // 현재 사용자 ID를 가져오는 로직 (비동기일 수 있음)
+
+            if (currentUserId == null) {
+                Log.e(TAG, "Cannot handle signaling message, current user ID is null.")
+                return@launch
             }
+
+            // --- 자기 자신이 보낸 메시지인지 확인 ---
+            if (message.fromPeerId == currentUserId) {
+                Log.w(TAG, "Received a message from self, ignoring: ${message::class.simpleName} from ${message.fromPeerId}")
+                return@launch // 자신이 보낸 메시지면 처리하지 않고 종료
+            }
+            // -----------------------------------
+
+            Log.d(TAG, "Handling signaling message of type ${message::class.simpleName} from peer ${message.fromPeerId}")
+            try {
+                when (message) {
+                    is OfferMessage -> {
+                        // Offer는 수신자 ID (toPeerId)가 자신이어야 함
+                        if (message.toPeerId == currentUserId) {
+                            webRTCManager.onOfferReceived(currentUserId, message.fromPeerId, message.sdp) // toPeerId가 내가 맞으므로 fromPeerId를 전달
+                        } else {
+                            Log.w(TAG, "Received Offer not addressed to me (to: ${message.toPeerId}, me: $currentUserId), ignoring.")
+                        }
+                    }
+                    is AnswerMessage -> {
+                        // Answer는 수신자 ID (toPeerId)가 자신이어야 함
+                        if (message.toPeerId == currentUserId) {
+                            webRTCManager.onAnswerReceived(message.fromPeerId, message.sdp) // Answer를 보낸 사람의 ID 전달
+                        } else {
+                            Log.w(TAG, "Received Answer not addressed to me (to: ${message.toPeerId}, me: $currentUserId), ignoring.")
+                        }
+                    }
+                    is IceCandidateMessage -> {
+                        // Candidate는 수신자 ID (toPeerId)가 자신이어야 함
+                        if (message.toPeerId == currentUserId) {
+                            webRTCManager.onIceCandidateReceived(message.fromPeerId, message.candidate) // Candidate를 보낸 사람의 ID 전달
+                        } else {
+                            Log.w(TAG, "Received ICE Candidate not addressed to me (to: ${message.toPeerId}, me: $currentUserId), ignoring.")
+                        }
+                    }
+                    // RoomPeersMessage, UserJoinedMessage, UserLeftMessage 등은 fromPeerId 체크가 의미 없을 수 있음 (서버가 보내는 정보)
+                    // 필요에 따라 해당 메시지 타입에도 fromPeerId 체크 추가 가능
+                    is RoomPeersMessage -> {
+                        Log.i(TAG, "Received room peers: ${message.peerIds}")
+                        // TODO: 처리 로직
+                    }
+                    is UserJoinedMessage -> {
+                        Log.i(TAG, "User joined: ${message.fromPeerId}")
+                        // UserJoined 메시지의 peerId가 나 자신인지 확인하는 것은 의미가 있을 수 있음
+                        if (message.fromPeerId == currentUserId) {
+                            Log.d(TAG, "Ignoring self join message.")
+                            return@launch
+                        }
+                        // TODO: 처리 로직
+                    }
+                    is UserLeftMessage -> {
+                        Log.i(TAG, "User left: ${message.fromPeerId}")
+                        // TODO: 처리 로직
+                        disconnect(message.fromPeerId)
+                    }
+                    else -> Log.w(TAG, "Unhandled signaling message type: ${message::class.simpleName}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error handling signaling message", e)
+                // TODO: 오류 처리
+            }
+        }
+    }
+
+    // WebRTCRepositoryImpl 내부에 또는 별도의 UseCase 등으로 구현 필요
+    private suspend fun getCurrentUserId(): String? {
+        // 예시: DataStoreRepository 를 사용하여 사용자 ID 가져오기
+        return try {
+            dataStoreRepository.getUserId()
+            // 또는 dataStoreRepository.getUserId().first() 등
         } catch (e: Exception) {
-            Log.e(TAG, "Error handling signaling message", e)
-            // TODO: 오류 처리
+            Log.e(TAG, "Failed to get current user ID", e)
+            null
         }
     }
 
@@ -166,15 +219,9 @@ class WebRTCRepositoryImpl @Inject constructor(
             .map { Pair(it.peerId, it.data) }
     }
 
-    private fun determineSignalingDestination(message: SignalingMessage): String? {
+    private fun determineSignalingDestination(): String {
         val roomId = webSocketRepository.getCurrentRoomId() // 현재 방 ID 가져오기
-        if (roomId == null) {
-            Log.e(TAG, "Cannot determine destination, current room ID is null.")
-            return null
-        }
-
-        // !!! 중요: 이 경로는 실제 백엔드 STOMP @MessageMapping 경로와 일치해야 함 !!!
-        val destinationBase = "/app/action/$roomId"
+        val destinationBase = "$roomId"
         return destinationBase
         // 메시지 타입에 따라 수신자 ID 가 필요한 경우 toPeerId 를 경로에 추가
 //        return when (message) {

@@ -17,4 +17,5 @@ interface PreferencesDao {
 
     // 인증 상태
     fun isLoggedIn(): Flow<Boolean>
+    suspend fun getUserId(): String
 }

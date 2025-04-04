@@ -34,4 +34,8 @@ class DataStoreRepositoryImpl @Inject constructor(
         return preferencesDao.clearUser()
     }
 
+    override suspend fun getUserId(): String {
+        return preferencesDao.getUserId()
+    }
+
 }
