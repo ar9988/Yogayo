@@ -13,17 +13,21 @@ import com.red.yogaback.websocket.service.Room;
 import com.red.yogaback.websocket.service.SocketRoomService;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
+import com.red.yogaback.websocket.service.WebSocketConnectionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import org.springframework.web.socket.messaging.SessionSubscribeEvent;
+import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component
-public class WebSocketEventListener implements ApplicationListener<SessionDisconnectEvent> {
+public class WebSocketEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketEventListener.class);
 
@@ -35,11 +39,27 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private WebSocketConnectionService connectionService;
 
-    @Override
-    public void onApplicationEvent(SessionDisconnectEvent event) {
+    @EventListener
+    public void handleWebSocketConnectListener(SessionConnectedEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
+        logger.info("New WebSocket connection established: {}", sessionId);
+    }
+
+    @EventListener
+    public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String sessionId = headerAccessor.getSessionId();
+        logger.info("WebSocket connection closed: {}", sessionId);
+        
+        // 연결 종료 처리
+        connectionService.removeConnection(sessionId);
+        
+        // 기존 로직: 사용자 세션 및 방 처리
         UserSession userSession = userSessionService.getSession(sessionId);
         if (userSession == null) {
             logger.warn("Session not found for sessionId: {}", sessionId);
@@ -62,4 +82,24 @@ public class WebSocketEventListener implements ApplicationListener<SessionDiscon
         userSessionService.removeSession(sessionId);
     }
 
+    @EventListener
+    public void handleWebSocketSubscribeListener(SessionSubscribeEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String sessionId = headerAccessor.getSessionId();
+        String destination = headerAccessor.getDestination();
+        logger.info("New subscription: {} for session: {}", destination, sessionId);
+        
+        // 구독 시 연결 정보 업데이트
+        UserSession userSession = userSessionService.getSession(sessionId);
+        if (userSession != null) {
+            connectionService.updateConnection(sessionId, userSession.getRoomId(), userSession.getUserId());
+        }
+    }
+
+    @EventListener
+    public void handleWebSocketUnsubscribeListener(SessionUnsubscribeEvent event) {
+        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String sessionId = headerAccessor.getSessionId();
+        logger.info("Subscription removed for session: {}", sessionId);
+    }
 }

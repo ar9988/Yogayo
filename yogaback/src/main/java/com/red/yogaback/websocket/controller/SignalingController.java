@@ -28,7 +28,7 @@ public class SignalingController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    // 세션 검증 메서드 (필요 시 유지)
+    // 세션 검증 메서드
     private UserSession getValidatedUserSession(StompHeaderAccessor headerAccessor) {
         String sessionId = headerAccessor.getSessionId();
         UserSession userSession = userSessionService.getSession(sessionId);
@@ -41,7 +41,7 @@ public class SignalingController {
     }
 
     // 새로운 엔드포인트: "/app/room/{roomId}"
-    // 받은 메시지를 그대로 "/topic/room/{roomId}"로 브로드캐스트합니다.
+    // 클라이언트가 보낸 메시지를 그대로 "/topic/room/{roomId}"로 브로드캐스트합니다.
     @MessageMapping("/room/{roomId}")
     public void broadcastRoomMessage(@DestinationVariable String roomId,
                                      @Payload RoomActionMessage actionMessage,
@@ -49,7 +49,7 @@ public class SignalingController {
         String sessionId = headerAccessor.getSessionId();
         logger.debug("Received message for room {} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
 
-        // 선택 사항: 세션 검증 (여기서는 필요하다면)
+        // 세션 검증
         UserSession userSession = getValidatedUserSession(headerAccessor);
         if (userSession == null) {
             logger.warn("User session not validated for session: {}", sessionId);
@@ -57,13 +57,15 @@ public class SignalingController {
         }
 
         if (!roomId.equals(userSession.getRoomId())) {
-            logger.warn("Room ID mismatch for session {}: header roomId={}, session roomId={}", sessionId, roomId, userSession.getRoomId());
+            logger.warn("Room ID mismatch for session {}: header roomId={}, session roomId={}",
+                    sessionId, roomId, userSession.getRoomId());
             messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "요청한 방 정보와 세션의 방 정보가 일치하지 않습니다.");
             return;
         }
 
-        // 받은 메시지를 그대로 브로드캐스트합니다.
+        // 메시지를 그대로 브로드캐스트
         messagingTemplate.convertAndSend("/topic/room/" + roomId, actionMessage.getPayload());
-        logger.info("Broadcasted message to /topic/room/{} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
+        logger.info("Broadcasted message to /topic/room/{} from session {}: {}",
+                roomId, sessionId, actionMessage.getPayload());
     }
 }
