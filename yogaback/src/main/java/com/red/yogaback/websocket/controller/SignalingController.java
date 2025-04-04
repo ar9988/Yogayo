@@ -28,17 +28,6 @@ public class SignalingController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    // 세션 검증 메서드 (필요 시 유지)
-    private UserSession getValidatedUserSession(StompHeaderAccessor headerAccessor) {
-        String sessionId = headerAccessor.getSessionId();
-        UserSession userSession = userSessionService.getSession(sessionId);
-        if (userSession == null || userSession.getRoomId() == null) {
-            logger.warn("No room information found for session: {}", sessionId);
-            messagingTemplate.convertAndSendToUser(sessionId, "/queue/errors", "방 정보가 없습니다.");
-            return null;
-        }
-        return userSession;
-    }
 
     // 새로운 엔드포인트: "/app/room/{roomId}"
     // 받은 메시지를 그대로 "/topic/room/{roomId}"로 브로드캐스트합니다.

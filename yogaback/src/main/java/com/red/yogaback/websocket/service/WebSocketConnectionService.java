@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.red.yogaback.websocket.dto.IceCandidateMessage;
 
-
 @Service
 public class WebSocketConnectionService {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketConnectionService.class);
