@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.red.yogaback.websocket.dto.IceCandidateMessage;
 
 @Service
 public class WebSocketConnectionService {

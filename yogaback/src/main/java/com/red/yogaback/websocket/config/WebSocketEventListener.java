@@ -1,15 +1,5 @@
 package com.red.yogaback.websocket.config;
-//클라이언트의 세션 종료(SessionDisconnectEvent)를 감지하여,
-//
-//해당 세션의 UserSession을 가져와서
-//
-//방(Room)에서 참가자와 준비 상태를 제거
-//
-//모든 참가자가 퇴장하면 룸 삭제
-//
-//다른 사용자에게 퇴장 메시지 전송
 
-import com.red.yogaback.websocket.service.Room;
 import com.red.yogaback.websocket.service.SocketRoomService;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
@@ -39,7 +29,7 @@ public class WebSocketEventListener {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-    
+
     @Autowired
     private WebSocketConnectionService connectionService;
 
@@ -55,30 +45,26 @@ public class WebSocketEventListener {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
         logger.info("WebSocket connection closed: {}", sessionId);
-        
+
         // 연결 종료 처리
         connectionService.removeConnection(sessionId);
-        
-        // 기존 로직: 사용자 세션 및 방 처리
+
+        // 사용자 세션 조회 후 DB 업데이트: 방에서 퇴장 처리
         UserSession userSession = userSessionService.getSession(sessionId);
         if (userSession == null) {
             logger.warn("Session not found for sessionId: {}", sessionId);
             return;
         }
-        String roomId = userSession.getRoomId();
+        String roomId = userSession.getRoomId(); // 문자열 형태라고 가정
         String userId = userSession.getUserId();
-        Room room = roomService.getRoom(roomId);
-        if (room != null) {
-            room.removeParticipant(sessionId, userId);
-            if (room.getParticipantCount() == 0) {
-                roomService.removeRoom(roomId);
-                logger.info("Room {} removed as no participants remain", roomId);
-            } else {
-                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
-                        userId + "님이 나갔습니다. 남은 참가자 수: " + room.getParticipantCount());
-                logger.info("User {} left room {}", userId, roomId);
-            }
-        }
+
+        // DB 기반 방에서 해당 사용자의 퇴장을 반영
+        roomService.removeParticipant(roomId);
+        // 선택적으로 퇴장 알림을 발송
+        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
+                userId + "님이 나갔습니다.");
+        logger.info("User {} left room {}", userId, roomId);
+
         userSessionService.removeSession(sessionId);
     }
 
@@ -88,11 +74,13 @@ public class WebSocketEventListener {
         String sessionId = headerAccessor.getSessionId();
         String destination = headerAccessor.getDestination();
         logger.info("New subscription: {} for session: {}", destination, sessionId);
-        
-        // 구독 시 연결 정보 업데이트
+
+        // 구독 시 연결 정보 업데이트 (UserSession이 이미 등록되어 있다고 가정)
         UserSession userSession = userSessionService.getSession(sessionId);
         if (userSession != null) {
             connectionService.updateConnection(sessionId, userSession.getRoomId(), userSession.getUserId());
+            // DB 기반 방에 참가자 추가
+            roomService.addParticipant(userSession.getRoomId());
         }
     }
 
