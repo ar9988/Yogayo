@@ -42,8 +42,8 @@ class WebRTCManager @Inject constructor(
     private val iceServers = listOf(
         PeerConnection.IceServer.builder("stun:54.161.126.21:3478").createIceServer(), // 실제 IP로 변경
         PeerConnection.IceServer.builder("turn:54.161.126.21:3478")    // 실제 IP로 변경
-            .setUsername("username1")        // 설정한 사용자 이름으로 변경
-            .setPassword("key1")          // 설정한 비밀번호로 변경
+            .setUsername("testuser")        // 설정한 사용자 이름으로 변경
+            .setPassword("testkey1")          // 설정한 비밀번호로 변경
             .createIceServer()
     )
 
