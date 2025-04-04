@@ -34,6 +34,7 @@ public class BadgeService {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new NoSuchElementException("유저를 찾을 수 없습니다.")
         );
+        Optional<UserRecord> userRecord = userRecordRepository.findByUser(user);
         List<UserBadge> userBadges = userBadgeRepository.findByUser(user);
         List<Badge> badges = badgeRepository.findAll();
 
@@ -43,6 +44,9 @@ public class BadgeService {
                     .findFirst();
 
             int progress = userBadgeOpt.map(UserBadge::getProgress).orElse(0);
+            if (badge.getBadgeId() == 2L) {
+                progress = userRecord.get().getExConDays().intValue();
+            }
             int highLevel = userBadgeOpt.map(UserBadge::getHighLevel).orElse(0);
 
             List<BadgeListRes.BadgeDetailRes> badgeDetailRes = badge.getBadgeDetails()
@@ -71,7 +75,7 @@ public class BadgeService {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new NoSuchElementException("유저를 찾을 수 없습니다."));
         UserRecord userRecord = userRecordRepository.findByUser(user).orElse(null);
-        
+
         UserInfoRes userInfoRes = UserInfoRes.builder()
                 .userId(userId)
                 .userName(user.getUserName())
@@ -211,10 +215,10 @@ public class BadgeService {
         // 1. 정확도 기반 배지 체크 - 단 한 번의 쿼리로 최고 정확도 조회
         Optional<Float> maxAccuracy = poseRecordRepository.findMaxAccuracyByUser(user);
 
-        log.info("user : {}, maxAccuracy: {}",user,maxAccuracy);
-        maxAccuracy.ifPresent(accuracy  -> {
+        log.info("user : {}, maxAccuracy: {}", user, maxAccuracy);
+        maxAccuracy.ifPresent(accuracy -> {
             int newAccuracy = (int) (accuracy * 100);
-            log.info("newAccuracy: {}",newAccuracy);
+            log.info("newAccuracy: {}", newAccuracy);
             if (newAccuracy >= 90) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 3, newAccuracy);
             } else if (newAccuracy >= 80) {
