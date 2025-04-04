@@ -16,7 +16,7 @@ public interface PoseRecordRepository extends JpaRepository<PoseRecord, Long> {
 
     // 유저의 최대 정확도 조회
     @Query("SELECT MAX(p.accuracy) FROM PoseRecord p WHERE p.user = :user")
-    Optional<Integer> findMaxAccuracyByUser(@Param("user") User user);
+    Optional<Float> findMaxAccuracyByUser(@Param("user") User user);
 
     // 유저의 최대 포즈 유지 시간 조회
     @Query("SELECT MAX(p.poseTime) FROM PoseRecord p WHERE p.user = :user")

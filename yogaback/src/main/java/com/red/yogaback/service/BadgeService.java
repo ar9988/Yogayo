@@ -7,6 +7,7 @@ import com.red.yogaback.model.*;
 import com.red.yogaback.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BadgeService {
@@ -207,14 +209,18 @@ public class BadgeService {
                 .orElseThrow(() -> new NoSuchElementException("유저 기록을 찾을 수 없습니다."));
 
         // 1. 정확도 기반 배지 체크 - 단 한 번의 쿼리로 최고 정확도 조회
-        Optional<Integer> maxAccuracy = poseRecordRepository.findMaxAccuracyByUser(user);
-        maxAccuracy.ifPresent(accuracy -> {
-            if (accuracy >= 0.9) {
-                assignBadge(user, BadgeType.YOGA_ACCURACY, 3, accuracy);
-            } else if (accuracy >= 0.8) {
-                assignBadge(user, BadgeType.YOGA_ACCURACY, 2, accuracy);
-            } else if (accuracy >= 0.7) {
-                assignBadge(user, BadgeType.YOGA_ACCURACY, 1, accuracy);
+        Optional<Float> maxAccuracy = poseRecordRepository.findMaxAccuracyByUser(user);
+
+        log.info("user : {}, maxAccuracy: {}",user,maxAccuracy);
+        maxAccuracy.ifPresent(accuracy  -> {
+            int newAccuracy = (int) (accuracy * 100);
+            log.info("newAccuracy: {}",newAccuracy);
+            if (newAccuracy >= 90) {
+                assignBadge(user, BadgeType.YOGA_ACCURACY, 3, newAccuracy);
+            } else if (newAccuracy >= 80) {
+                assignBadge(user, BadgeType.YOGA_ACCURACY, 2, newAccuracy);
+            } else if (newAccuracy >= 70) {
+                assignBadge(user, BadgeType.YOGA_ACCURACY, 1, newAccuracy);
             }
         });
 
