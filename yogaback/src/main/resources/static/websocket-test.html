@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>STOMP WebSocket Test</title>
+<<<<<<< Updated upstream
   <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+=======
+  <!-- CDN을 통해 stomp.js 로드 -->
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+>>>>>>> Stashed changes
 </head>
 <body>
 <h1>STOMP WebSocket Test</h1>
@@ -66,18 +71,61 @@
     }
 
     client = new StompJs.Client({
-      brokerURL: "ws://localhost:8080/ws",
+      brokerURL: "ws://j12d104.p.ssafy.io/ws",
       connectHeaders: {
+<<<<<<< Updated upstream
         'token': token
+=======
+        'Authorization': 'Bearer ' + cleanToken,
+        'host': 'j12d104.p.ssafy.io',
+        'accept-version': '1.2',
+        'heart-beat': '10000,10000'
+>>>>>>> Stashed changes
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
       webSocketFactory: () => {
+<<<<<<< Updated upstream
         return new SockJS("http://localhost:8080/ws");
       },
       debug: function(str) {
         log("STOMP Debug: " + str);
+=======
+        const ws = new WebSocket("ws://j12d104.p.ssafy.io/ws", ["v10.stomp", "v11.stomp"]);
+        ws.onerror = (event) => {
+          console.error("WebSocket Error:", event);
+          console.error("WebSocket ReadyState:", ws.readyState);
+          document.getElementById("output").textContent += 
+            `WebSocket Error: ${JSON.stringify(event)}\nReadyState: ${ws.readyState}\n`;
+        };
+        ws.onopen = () => {
+          console.log("WebSocket connection opened");
+          document.getElementById("output").textContent += "WebSocket connection opened\n";
+        };
+        ws.onclose = (event) => {
+          console.log("WebSocket connection closed:", event);
+          document.getElementById("output").textContent += `WebSocket connection closed: ${JSON.stringify(event)}\n`;
+        };
+        return ws;
+      },
+      debug: function(str) {
+        console.log(str);
+        // STOMP 프레임 정보를 더 자세히 표시
+        if (str.includes('>>> CONNECT')) {
+          document.getElementById("output").textContent += "\n=== CONNECT Frame ===\n";
+          document.getElementById("output").textContent += str + "\n";
+          // 헤더 정보를 별도로 표시
+          const headers = client.connectHeaders;
+          document.getElementById("output").textContent += "\nHeaders:\n";
+          Object.keys(headers).forEach(key => {
+            document.getElementById("output").textContent += `${key}: ${headers[key]}\n`;
+          });
+          document.getElementById("output").textContent += "==================\n\n";
+        } else {
+          document.getElementById("output").textContent += str + "\n";
+        }
+>>>>>>> Stashed changes
       }
     });
 
@@ -142,6 +190,7 @@
       ];
 
       topics.forEach(topic => {
+<<<<<<< Updated upstream
         try {
           const subscription = client.subscribe(topic, function(message) {
             log("Received from " + topic + ": " + message.body);
@@ -150,6 +199,17 @@
         } catch (error) {
           log("Error subscribing to " + topic + ": " + error.message);
         }
+=======
+        client.subscribe(topic, function(message) {
+          console.log("Received message from " + topic + ":", message);
+          document.getElementById("output").textContent += 
+            `Received from ${topic}:\n${JSON.stringify(JSON.parse(message.body), null, 2)}\n`;
+        }, {
+          'ack': 'client',
+          'id': 'sub-' + topic
+        });
+        document.getElementById("output").textContent += "Subscribed to " + topic + "\n";
+>>>>>>> Stashed changes
       });
     } else {
       log("Cannot subscribe: Client not connected");
@@ -171,9 +231,12 @@
         case "enter":
           payload.message = {
             roomId: roomId,
+<<<<<<< Updated upstream
             userId: "1",
             userNickName: "Tester",
             userProfile: "profileUrl"
+=======
+>>>>>>> Stashed changes
           };
           break;
         case "ready":
