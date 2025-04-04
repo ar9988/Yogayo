@@ -18,6 +18,7 @@ public class RoomRequest {
     private int roomMax;
     private int roomCount;
     private Long userId;
+    private String userNickname;
     private String roomName;
     private String password;
 
