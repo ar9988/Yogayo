@@ -11,6 +11,10 @@ import com.red.yogaback.security.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -25,12 +29,12 @@ public class RoomService {
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
-    private final RoomRecordRepository roomRecordRepository;
     private final RoomCoursePoseRepository roomCoursePoseRepository;
     private final PoseRepository poseRepository;
     private final SseEmitterService sseEmitterService;
-
-    Map<Long, List<RoomRequest.PoseDetail>> roomPoseMap = new ConcurrentHashMap<>();
+    private final CacheManager cacheManager;
+//
+//    Map<Long, List<RoomRequest.PoseDetail>> roomPoseMap = new ConcurrentHashMap<>();
 
     // 방 만들기
     public RoomRequest createRooms(RoomRequest roomReq, Long userId) {
@@ -74,22 +78,28 @@ public class RoomService {
         roomCoursePoseRepository.saveAll(roomCoursePoses);
         roomReq.setRoomId(savedRoom.getRoomId());
         roomReq.setUserNickname(user.getUserNickname());
-        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
+//        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
+        cashingRoomPoses(room.getRoomId(), roomReq.getPose());
         sseEmitterService.notifyRoomUpdate(getAllRooms());
         return roomReq;
 
     }
 
+    @CachePut(value = "roomPoses", key = "#roomId")
+    private static List<RoomRequest.PoseDetail> cashingRoomPoses(Long roomId, List<RoomRequest.PoseDetail> poses) {
+        return poses;
+    }
+
     // 방 조회 / SSE 연결
     public List<RoomRequest> getAllRooms() {
-        log.info("현재 방, 포즈: {}", roomPoseMap);
+//        log.info("현재 방, 포즈: {}", roomPoseMap);
         List<Room> allRooms = roomRepository.findAll();
-        if (allRooms.isEmpty()){
+        if (allRooms.isEmpty()) {
             return new ArrayList<>();
         }
         return allRooms.stream().filter(room ->
                 room.getRoomState() == 1).map(room -> {
-            User user = userRepository.findById(room.getCreatorId()).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
+            User user = userRepository.findById(room.getCreatorId()).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
             RoomRequest roomRequest = new RoomRequest();
             roomRequest.setRoomId(room.getRoomId());
             roomRequest.setRoomCount(room.getRoomCount());
@@ -98,22 +108,36 @@ public class RoomService {
             roomRequest.setRoomName(room.getRoomName());
             roomRequest.setHasPassword(room.getHasPassword());
 
-            List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
-            roomRequest.setPose(poseDetails);
+//            List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
+//            roomRequest.setPose(poseDetails);
+
+            roomRequest.setPose(getRoomPosesFromCache(room.getRoomId()));
 
             return roomRequest;
 
         }).collect(Collectors.toList());
     }
 
+    // 캐시에서 포즈 꺼내오기
+    public List<RoomRequest.PoseDetail> getRoomPosesFromCache(Long roomId) {
+        Cache cache = cacheManager.getCache("roomPoses");
+        if (cache != null) {
+            Cache.ValueWrapper valueWrapper = cache.get(roomId);
+            if (valueWrapper != null) {
+                return (List<RoomRequest.PoseDetail>) valueWrapper.get();
+            }
+        }
+        return new ArrayList<>();
+    }
+
 
     // 방 입장
     @Transactional
-    public boolean enterRoom(RoomEnterReq roomEnterReq){
+    public boolean enterRoom(RoomEnterReq roomEnterReq) {
         Long userId = SecurityUtil.getCurrentMemberId();
-        User findUser = userRepository.findById(userId).orElseThrow(()-> new NoSuchElementException("유저를 찾을 수 없습니다."));
-        Room findRoom = roomRepository.findById(roomEnterReq.getRoomId()).orElseThrow(()->new NoSuchElementException("방을 찾을 수 없습니다."));
-        if (findRoom.getPassword().equals(roomEnterReq.getPassword())){
+        User findUser = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
+        Room findRoom = roomRepository.findById(roomEnterReq.getRoomId()).orElseThrow(() -> new NoSuchElementException("방을 찾을 수 없습니다."));
+        if (findRoom.getPassword().equals(roomEnterReq.getPassword())) {
             findUser.setRoom(findRoom);
             findRoom.setRoomCount(findRoom.getRoomCount() + 1);
         } else {
