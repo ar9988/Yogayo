@@ -1,3 +1,5 @@
+//WebSocket 관련 이벤트(연결, 연결 종료, 구독, 구독 취소)를 처리하여 사용자 세션 관리,
+// 방 참여자 수 업데이트, 알림 메시지 발송 등의 작업을 수행합니다.
 package com.red.yogaback.websocket.config;
 
 import com.red.yogaback.websocket.service.SocketRoomService;
@@ -19,6 +21,7 @@ import org.slf4j.LoggerFactory;
 @Component
 public class WebSocketEventListener {
 
+    // SLF4J 로거 초기화
     private static final Logger logger = LoggerFactory.getLogger(WebSocketEventListener.class);
 
     @Autowired
@@ -33,20 +36,33 @@ public class WebSocketEventListener {
     @Autowired
     private WebSocketConnectionService connectionService;
 
+    /**
+     * 클라이언트가 WebSocket 연결을 성공했을 때 호출되는 이벤트 리스너.
+     * 개선방향:
+     *  - 연결 후 추가적인 초기화 작업(예: 세션 정보 저장)이 필요할 경우 로직 추가 고려.
+     */
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
+        // STOMP 헤더 접근자를 사용하여 세션 ID 추출
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
         logger.info("New WebSocket connection established: {}", sessionId);
     }
 
+    /**
+     * 클라이언트가 WebSocket 연결을 종료했을 때 호출되는 이벤트 리스너.
+     * 개선방향:
+     *  - 연결 종료 시 예외 상황(예: DB 업데이트 실패)에 대한 추가 예외 처리를 고려.
+     *  - 로그 메시지에 민감한 정보가 포함되지 않도록 주의.
+     */
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+        // STOMP 헤더 접근자를 사용하여 세션 ID 추출
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
         logger.info("WebSocket connection closed: {}", sessionId);
 
-        // 연결 종료 처리
+        // 연결 종료 처리: 연결 정보를 삭제
         connectionService.removeConnection(sessionId);
 
         // 사용자 세션 조회 후 DB 업데이트: 방에서 퇴장 처리
@@ -55,21 +71,29 @@ public class WebSocketEventListener {
             logger.warn("Session not found for sessionId: {}", sessionId);
             return;
         }
-        String roomId = userSession.getRoomId(); // 문자열 형태라고 가정
+        String roomId = userSession.getRoomId(); // Improvement: roomId가 문자열 형태임을 명시, 필요시 추가 검증 고려
         String userId = userSession.getUserId();
 
         // DB 기반 방에서 해당 사용자의 퇴장을 반영
         roomService.removeParticipant(roomId);
-        // 선택적으로 퇴장 알림을 발송
+        // 선택적으로 퇴장 알림을 발송 (출력 메시지 포맷 개선 고려)
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
                 userId + "님이 나갔습니다.");
         logger.info("User {} left room {}", userId, roomId);
 
+        // 사용자 세션 정보 삭제
         userSessionService.removeSession(sessionId);
     }
 
+    /**
+     * 클라이언트가 특정 채널을 구독할 때 호출되는 이벤트 리스너.
+     * 개선방향:
+     *  - 구독한 대상(destination)에 대한 유효성 검증 추가 고려.
+     *  - 사용자 세션이 등록되어 있지 않은 경우에 대한 대처 로직 확장 가능.
+     */
     @EventListener
     public void handleWebSocketSubscribeListener(SessionSubscribeEvent event) {
+        // STOMP 헤더 접근자를 사용하여 세션 ID와 구독 대상(destination) 추출
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
         String destination = headerAccessor.getDestination();
@@ -84,8 +108,14 @@ public class WebSocketEventListener {
         }
     }
 
+    /**
+     * 클라이언트가 채널 구독을 취소할 때 호출되는 이벤트 리스너.
+     * 개선방향:
+     *  - 구독 취소 후 추가적인 정리 작업(예: 구독 관련 캐시 삭제) 고려.
+     */
     @EventListener
     public void handleWebSocketUnsubscribeListener(SessionUnsubscribeEvent event) {
+        // STOMP 헤더 접근자를 사용하여 세션 ID 추출
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
         String sessionId = headerAccessor.getSessionId();
         logger.info("Subscription removed for session: {}", sessionId);
