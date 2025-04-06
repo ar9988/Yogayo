@@ -10,7 +10,7 @@ sealed class MultiPlayIntent {
     data class UserLeft(val userId: String) : MultiPlayIntent()
     data class UserReady(val userId: String) : MultiPlayIntent()
     data class UserNotReady(val userId: String) : MultiPlayIntent()
-    data class GameStarted(val userId: String) : MultiPlayIntent()
+    data object GameStarted : MultiPlayIntent()
     data class UpdateCameraPermission(val granted: Boolean) : MultiPlayIntent()
     data class CaptureImage(val bitmap: Bitmap) : MultiPlayIntent()
     data class ClickPose(val poseId: Int) : MultiPlayIntent()

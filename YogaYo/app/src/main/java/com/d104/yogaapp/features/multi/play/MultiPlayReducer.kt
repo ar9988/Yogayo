@@ -94,9 +94,9 @@ class MultiPlayReducer @Inject constructor() {
                         }
                         currentState.copy(userList = newUserList)
                     }
-                    "game_started" -> currentState.copy(
-                        gameState = GameState.Playing
-                    )
+//                    "game_started" -> currentState.copy(
+//                        gameState = GameState.Playing
+//                    )
                     "round_start" -> currentState.copy(
                         roundIndex = currentState.roundIndex+1,
                         gameState = GameState.Playing
@@ -110,6 +110,12 @@ class MultiPlayReducer @Inject constructor() {
                     )
                     else -> currentState
                 }
+            }
+
+            is MultiPlayIntent.GameStarted -> {
+                currentState.copy(
+                    gameState = GameState.Playing
+                )
             }
 
             is MultiPlayIntent.ReceiveWebRTCImage -> {
