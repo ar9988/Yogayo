@@ -9,6 +9,9 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -26,6 +29,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         this.stompLoggingInterceptor = stompLoggingInterceptor;
     }
 
+    @Autowired
+    @Qualifier("webSocketTaskScheduler")
+    private TaskScheduler webSocketTaskScheduler;
+
     /**
      * 메시지 브로커 관련 설정.
      * 개선방향:
@@ -33,9 +40,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // 간단한 메시지 브로커 활성화 ("/topic", "/queue" 경로를 구독하는 클라이언트에 메시지 전달)
-        config.enableSimpleBroker("/topic", "/queue");
-        // 클라이언트가 서버로 메시지를 보낼 때 사용하는 접두사 설정 ("/app")
+        config.enableSimpleBroker("/topic", "/queue")
+            .setHeartbeatValue(new long[]{10000, 10000})
+            .setTaskScheduler(webSocketTaskScheduler);
         config.setApplicationDestinationPrefixes("/app");
     }
 
@@ -71,5 +78,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureClientOutboundChannel(ChannelRegistration registration) {
         // 로깅 인터셉터를 등록하여 나가는 메시지도 기록함
         registration.interceptors(stompLoggingInterceptor);
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        // 다음과 같은 설정을 추가하면 좋습니다
+        registration.setSendTimeLimit(15 * 1000)
+                   .setSendBufferSizeLimit(512 * 1024)
+                   .setMessageSizeLimit(128 * 1024);
     }
 }

@@ -15,29 +15,52 @@ public class SocketRoomService {
         this.roomRepository = roomRepository;
     }
 
-    // 문자열 형태의 roomId를 Long으로 변환하여 Room 엔티티를 조회합니다.
+    /**
+     * 문자열 형태의 roomId를 Long으로 변환하여 Room 엔티티를 조회합니다.
+     *
+     * 동작:
+     *  - NumberFormatException이 발생하면 null을 반환합니다.
+     *
+     * 개선방향:
+     *  - 잘못된 ID 형식에 대해 로깅 또는 커스텀 예외를 던져 호출자에게 원인을 명확히 알릴 수 있습니다.
+     *  - Optional<Room>을 반환하도록 변경하여 null 체크를 강제할 수 있습니다.
+     */
     public Room getRoom(String roomIdStr) {
         try {
             Long roomId = Long.valueOf(roomIdStr);
             return roomRepository.findById(roomId).orElse(null);
         } catch (NumberFormatException e) {
+            // Improvement: 잘못된 ID 형식에 대한 로깅 추가 고려
             return null;
         }
     }
 
-    // 사용자가 방에 입장할 때 DB의 roomCount를 증가시킵니다.
-    // 방 생성 시 roomCount는 1로 설정되어 있다고 가정합니다.
+    /**
+     * 사용자가 방에 입장할 때 DB의 roomCount를 증가시킵니다.
+     * 방 생성 시 roomCount는 1로 설정되어 있다고 가정합니다.
+     *
+     * 개선방향:
+     *  - 동시성 이슈 방지를 위해 데이터베이스 레벨의 증가 쿼리(예: @Modifying 쿼리)를 활용할 수 있습니다.
+     *  - roomCount 변경 시 이벤트 발행(예: ApplicationEventPublisher)으로 다른 컴포넌트에 알릴 수 있습니다.
+     */
     public void addParticipant(String roomIdStr) {
         Room room = getRoom(roomIdStr);
         if (room != null) {
             int currentCount = room.getRoomCount(); // null 체크 불필요
-            // 방 생성 시 roomCount가 1로 시작하도록 설정되어 있다면, 추가 입장 시 증가
             room.setRoomCount(currentCount + 1);
             roomRepository.save(room);
         }
     }
 
-    // 사용자가 방에서 퇴장할 때 DB의 roomCount를 감소시키고, 만약 0이 되면 roomState를 0으로 변경합니다.
+    /**
+     * 사용자가 방에서 퇴장할 때 DB의 roomCount를 감소시키고,
+     * 만약 0이 되면 roomState를 0으로 변경합니다.
+     *
+     * 개선방향:
+     *  - removeParticipant 호출 시에도 동시성 증가/감소 처리를 고려해야 합니다.
+     *  - roomState를 enum 타입으로 관리하면 가독성과 안정성이 높아집니다.
+     *  - 삭제 후 roomCount가 0일 때 방을 아예 삭제하거나 아카이브하는 로직을 추가할 수 있습니다.
+     */
     public void removeParticipant(String roomIdStr) {
         Room room = getRoom(roomIdStr);
         if (room != null) {

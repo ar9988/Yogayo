@@ -17,6 +17,7 @@ import org.springframework.web.socket.messaging.SessionUnsubscribeEvent;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.socket.CloseStatus;
 
 @Component
 public class WebSocketEventListener {
@@ -57,32 +58,41 @@ public class WebSocketEventListener {
      */
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
-        // STOMP 헤더 접근자를 사용하여 세션 ID 추출
-        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        String sessionId = headerAccessor.getSessionId();
-        logger.info("WebSocket connection closed: {}", sessionId);
+        try {
+            StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+            String sessionId = headerAccessor.getSessionId();
+            
+            // 연결 종료 처리
+            connectionService.removeConnection(sessionId);
+            UserSession userSession = userSessionService.getSession(sessionId);
+            if (userSession == null) {
+                logger.warn("Session not found for sessionId: {}", sessionId);
+                return;
+            }
+            
+            String roomId = userSession.getRoomId();
+            String userId = userSession.getUserId();
 
-        // 연결 종료 처리: 연결 정보를 삭제
-        connectionService.removeConnection(sessionId);
+            try {
+                // DB 업데이트는 별도의 try-catch로 처리
+                roomService.removeParticipant(roomId);
+            } catch (Exception e) {
+                logger.error("Failed to update room participant count: {}", e.getMessage());
+            }
 
-        // 사용자 세션 조회 후 DB 업데이트: 방에서 퇴장 처리
-        UserSession userSession = userSessionService.getSession(sessionId);
-        if (userSession == null) {
-            logger.warn("Session not found for sessionId: {}", sessionId);
-            return;
+            // 메시지 발송도 실패할 수 있으므로 별도 처리
+            try {
+                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
+                        userId + "님이 나갔습니다.");
+            } catch (Exception e) {
+                logger.error("Failed to send leave message: {}", e.getMessage());
+            }
+
+            userSessionService.removeSession(sessionId);
+            
+        } catch (Exception e) {
+            logger.error("Error handling WebSocket disconnect: {}", e.getMessage());
         }
-        String roomId = userSession.getRoomId(); // Improvement: roomId가 문자열 형태임을 명시, 필요시 추가 검증 고려
-        String userId = userSession.getUserId();
-
-        // DB 기반 방에서 해당 사용자의 퇴장을 반영
-        roomService.removeParticipant(roomId);
-        // 선택적으로 퇴장 알림을 발송 (출력 메시지 포맷 개선 고려)
-        messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
-                userId + "님이 나갔습니다.");
-        logger.info("User {} left room {}", userId, roomId);
-
-        // 사용자 세션 정보 삭제
-        userSessionService.removeSession(sessionId);
     }
 
     /**
