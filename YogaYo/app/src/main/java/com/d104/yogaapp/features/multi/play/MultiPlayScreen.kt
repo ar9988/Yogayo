@@ -53,6 +53,14 @@ fun MultiPlayScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    LaunchedEffect(uiState.exit) {
+        if(uiState.exit){
+            val activity = context as? Activity
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            onBackPressed()
+        }
+    }
+
     LaunchedEffect(room) {
         // Check prevents re-initializing if already set (e.g., during recomposition)
         if (uiState.currentRoom == null || uiState.currentRoom?.roomId != room.roomId) {
@@ -92,7 +100,6 @@ fun MultiPlayScreen(
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         if(uiState.gameState == GameState.Waiting){
             viewModel.processIntent(MultiPlayIntent.ExitRoom)
-            onBackPressed()
         } else if (uiState.gameState == GameState.Playing||uiState.gameState == GameState.RoundResult){
             viewModel.processIntent(MultiPlayIntent.ClickMenu)
         } else if (uiState.gameState == GameState.GameResult){
@@ -176,9 +183,6 @@ fun MultiPlayScreen(
                     onResume = { viewModel.processIntent(MultiPlayIntent.ClickMenu) },
                     onExit = {
                         viewModel.processIntent(MultiPlayIntent.ExitRoom)
-                        val activity = context as? Activity
-                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                        onBackPressed()
                     }
                 )
             }

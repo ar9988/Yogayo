@@ -28,4 +28,6 @@ sealed class MultiPlayIntent {
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()
     data object ClickNext : MultiPlayIntent()
+    data object RoundEnded: MultiPlayIntent()
+    data object Exit: MultiPlayIntent()
 }

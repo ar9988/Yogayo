@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -57,6 +58,7 @@ import androidx.compose.ui.platform.LocalDensity
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
+import timber.log.Timber
 
 @Composable
 fun MultiScreen(
@@ -75,10 +77,13 @@ fun MultiScreen(
     }
     LaunchedEffect(uiState.enteringRoom) {
         if (uiState.enteringRoom) {
+            viewModel.processIntent(MultiIntent.EnterRoomComplete)
             onNavigateMultiPlay(
                 uiState.selectedRoom!!
             )
             viewModel.processIntent(MultiIntent.EnterRoomComplete)
+            Timber.tag("MultiScreen")
+                .d("Navigating to MultiPlayScreen with room: ${uiState.enteringRoom}")
         }
     }
     Box(

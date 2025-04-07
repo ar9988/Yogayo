@@ -85,6 +85,10 @@ class MultiPlayReducer @Inject constructor() {
                 currentRoom = intent.room
             )
 
+            is MultiPlayIntent.Exit -> currentState.copy(
+                exit = true
+            )
+
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
                 when (intent.message.type) {
 
@@ -119,6 +123,12 @@ class MultiPlayReducer @Inject constructor() {
                     gameState = GameState.Playing,
                     roundIndex = 0,
                     currentPose = currentState.currentRoom!!.userCourse.poses[0],
+                )
+            }
+
+            is MultiPlayIntent.RoundEnded -> {
+                currentState.copy(
+                    gameState = GameState.RoundResult
                 )
             }
 
