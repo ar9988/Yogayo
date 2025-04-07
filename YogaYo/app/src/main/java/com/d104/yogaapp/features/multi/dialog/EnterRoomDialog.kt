@@ -49,7 +49,7 @@ fun EnterRoomDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text("${selectedRoom?.roomName} 그룹에 참가하시겠습니까?")
-                    if(selectedRoom?.isPassword == true){
+                    if(selectedRoom?.hasPassword == true){
                         Text("비밀번호를 입력해주세요")
                         OutlinedTextField(
                             value = roomPassword,

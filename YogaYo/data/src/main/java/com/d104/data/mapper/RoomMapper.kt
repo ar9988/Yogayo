@@ -68,7 +68,7 @@ class RoomMapper @Inject constructor(
                     roomMax = roomMax,
                     roomCount = roomCount,
                     roomName = roomName,
-                    isPassword = hasPassword,  // Map hasPassword to isPassword
+                    hasPassword = hasPassword,  // Map hasPassword to isPassword
                     userCourse = userCourse,
                     userNickname = userNickname
                 )
