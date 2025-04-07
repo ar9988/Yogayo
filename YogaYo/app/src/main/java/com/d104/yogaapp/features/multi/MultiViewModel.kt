@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.CreateRoomResult
@@ -19,8 +20,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -73,9 +76,11 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.SelectRoom -> {
                 processIntent(MultiIntent.UpdateRoomPassword(""))
             }
-            is MultiIntent.CreateRoom -> {
+            is MultiIntent.ClickCreateRoomButton -> {
                 processIntent(MultiIntent.UpdateRoomTitle(""))
                 processIntent(MultiIntent.UpdateRoomPassword(""))
+            }
+            is MultiIntent.CreateRoom ->{
                 createRoom()
             }
             else -> {}
@@ -85,19 +90,35 @@ class MultiViewModel @Inject constructor(
     private fun createRoom() {
         viewModelScope.launch {
             createRoomUseCase(
-                _uiState.value.roomTitle,
-                _uiState.value.roomMax,
-                _uiState.value.isPassword,
-                _uiState.value.roomPassword,
-                _uiState.value.selectedCourse!!.poses
+                uiState.value.roomTitle,
+                uiState.value.roomMax,
+                uiState.value.isPassword,
+                uiState.value.roomPassword,
+                uiState.value.selectedCourse!!
             ).collect{ result->
-                result.onSuccess {
-                    processIntent(MultiIntent.SelectRoom((it as CreateRoomResult.Success).room))
-                    processIntent(MultiIntent.EnterRoom)
-                }
-                result.onFailure {
-                    processIntent(MultiIntent.CreateRoomFail(it.message ?: "방 생성에 실패했습니다."))
-                }
+                result.fold(
+                    onSuccess = { createRoomResult ->
+                        when (createRoomResult) {
+                            is CreateRoomResult.Success -> {
+                                // 방 생성 성공 처리
+                                processIntent(MultiIntent.SelectRoom(createRoomResult.room))
+                                processIntent(MultiIntent.EnterRoom)
+                            }
+                            is CreateRoomResult.Error.BadRequest -> {
+                                // 잘못된 요청 처리
+                                processIntent(MultiIntent.CreateRoomFail("잘못된 요청: ${createRoomResult.message}"))
+                            }
+                            is CreateRoomResult.Error.Unauthorized -> {
+                                // 인증 실패 처리
+                                processIntent(MultiIntent.CreateRoomFail("인증 실패: ${createRoomResult.message}"))
+                            }
+                        }
+                    },
+                    onFailure = { throwable ->
+                        // 네트워크 오류 또는 예외 처리
+                        processIntent(MultiIntent.CreateRoomFail("오류 발생: ${throwable.message}"))
+                    }
+                )
             }
         }
     }
@@ -121,8 +142,10 @@ class MultiViewModel @Inject constructor(
         cancelSearch()
         searchJob = viewModelScope.launch {
             getRoomUseCase(searchText,pageIndex).collect { result ->
+                Timber.tag("SSE").d(result.toString())
                 result.onSuccess {
-                    _uiState.update { currentState -> currentState.copy(page = it) }
+                    Timber.tag("SSE").d(it.toString())
+                    processIntent(MultiIntent.UpdatePage(it))
                     processIntent(MultiIntent.RoomLoaded)
                 }
                 result.onFailure {
@@ -161,81 +184,8 @@ class MultiViewModel @Inject constructor(
 
     init {
         searchCourse()
+        loadRooms("", uiState.value.pageIndex)
 
         _uiState.value.yogaCourses = courseJsonParser.loadUserCoursesFromAssets("courseSet.json")
-
-        _uiState.value.page = listOf(
-            Room(
-                roomId = 0,
-                userNickname = "We'T",
-                roomMax = 6,
-                roomCount = 4,
-                roomName = "요가 할래?",
-                isPassword = true,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            ),
-            Room(
-                roomId = 0,
-                userNickname = "TestNickName",
-                roomMax = 6,
-                roomCount = 1,
-                roomName = "Test Room Name",
-                isPassword = false,
-                userCourse = UserCourse(
-                    courseId = 1,
-                    courseName = "Test Course",
-                    tutorial = false,
-                    poses = tmpPoseInfo
-                )
-            )
-        )
-
     }
 }

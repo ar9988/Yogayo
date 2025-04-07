@@ -135,7 +135,7 @@ fun MultiScreen(
         FloatingActionButton(
             onClick = {
                 // 방 생성 다이얼로그 표시
-                viewModel.processIntent(MultiIntent.CreateRoom)
+                viewModel.processIntent(MultiIntent.ClickCreateRoomButton)
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)

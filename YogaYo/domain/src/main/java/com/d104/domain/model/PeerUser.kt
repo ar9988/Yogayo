@@ -1,8 +1,9 @@
 package com.d104.domain.model
 
 data class PeerUser(
+    val id: String,
     val nickName: String,
-    val readyState: Boolean,
-    val totalScore: Int,
+    val isReady: Boolean = false,
+    val totalScore: Int = 0,
     val roundScore: Float = 0.0f
 )

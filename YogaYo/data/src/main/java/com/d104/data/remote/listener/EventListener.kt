@@ -1,4 +1,4 @@
-package com.d104.data.remote.utils
+package com.d104.data.remote.listener
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +24,6 @@ class EventListener @Inject constructor(): EventSourceListener() {
     }
 
     override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-        println("Error occurred: $t")
+        println("SSE Error occurred: $t")
     }
 }

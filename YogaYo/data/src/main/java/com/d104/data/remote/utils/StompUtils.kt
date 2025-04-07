@@ -24,41 +24,73 @@ object StompUtils {
             if (parts.size == 2) {
                 headers[parts[0].trim()] = parts[1].trim()
             }
-            bodyStartIndex = i + 1 // 헤더만 있고 바디 없는 경우 대비
+            // 빈 줄 없이 헤더만 있는 경우 대비, 인덱스 계속 업데이트
+            bodyStartIndex = i + 1
         }
 
         val body = if (bodyStartIndex < lines.size) {
             lines.subList(bodyStartIndex, lines.size).joinToString("\n")
-                .removeSuffix(NULL.toString()) // 끝의 NULL 문자 제거
+            // body 끝의 NULL 문자는 파싱 시 제거 (보낼 때는 프레임 끝에만 붙음)
+            // .removeSuffix(NULL.toString())
         } else {
             ""
         }
 
-        return Triple(command, headers, body)
+        // 파싱 시 body 끝의 NULL 문자 제거 (프레임 자체 끝 NULL은 제외)
+        val finalBody = body.removeSuffix(NULL.toString())
+
+        return Triple(command, headers, finalBody)
     }
 
-    // CONNECT 프레임 생성
-    fun buildConnectFrame(host: String, acceptVersion: String = V1_2): String {
+    /**
+     * CONNECT 프레임을 생성합니다.
+     * @param host 서버 호스트 주소
+     * @param token 인증을 위한 JWT 토큰 (Bearer 접두사 제외한 순수 토큰 값)
+     * @param acceptVersion 사용할 STOMP 버전 (기본값: 1.2)
+     * @return 생성된 CONNECT 프레임 문자열
+     */
+    fun buildConnectFrame(host: String, token: String): String {
+        return """
+        CONNECT
+        accept-version:1.2
+        host:$host
+        Authorization:Bearer $token
+        heart-beat:10000,10000
+
+        ${NULL}
+    """.trimIndent().replace("\n", "\n")
+    }
+
+    // --- 중요: 서버가 'Authorization' 대신 'token' 헤더를 직접 받는 경우 아래 함수 사용 ---
+    /*
+    fun buildConnectFrameWithTokenHeader(host: String, token: String, acceptVersion: String = V1_2): String {
+        // 'token' 헤더 직접 추가
+        val tokenHeader = "token: $token"
+
         return """
         CONNECT
         accept-version:$acceptVersion
         host:$host
+        $tokenHeader
         heart-beat:10000,10000
 
         $NULL
-        """.trimIndent() // heart-beat는 선택 사항 (서버 지원 확인 필요)
+        """.trimIndent()
     }
+    */
+
 
     // SUBSCRIBE 프레임 생성
     fun buildSubscribeFrame(destination: String, id: String): String {
-        return """
-        SUBSCRIBE
-        id:$id
-        destination:$destination
-        ack:auto
+        val builder = StringBuilder()
+        builder.append("SUBSCRIBE\n") // 명령어 시작 - 앞에 아무것도 없는지 확인
+        builder.append("id:$id\n")
+        builder.append("destination:$destination\n")
+        builder.append("ack:auto\n")
+        builder.append("\n")          // 헤더-바디 구분 빈 줄
+        builder.append(NULL)     // 실제 Null 문자 추가
 
-        $NULL
-        """.trimIndent() // ack 모드는 auto, client, client-individual 중 선택
+        return builder.toString()
     }
 
     // UNSUBSCRIBE 프레임 생성
@@ -83,13 +115,21 @@ object StompUtils {
 
     // SEND 프레임 생성
     fun buildSendFrame(destination: String, body: String): String {
-        // body에 NULL 문자가 있으면 STOMP 스펙에 따라 이스케이프 필요할 수 있음
-        return """
-         SEND
-         destination:$destination
-         content-type:application/json;charset=UTF-8
+        // 원본 메시지를 payload로 감싸기
+        val wrappedBody = "{\"payload\":$body}"
 
-         $body$NULL
-         """.trimIndent() // content-type은 예시
+        val bodyBytes = wrappedBody.toByteArray(Charsets.UTF_8)
+        val contentLength = bodyBytes.size
+
+        val builder = StringBuilder()
+        builder.append("SEND\n")
+        builder.append("destination:$destination\n")
+        builder.append("content-type:application/json;charset=UTF-8\n")
+        builder.append("content-length:$contentLength\n")
+        builder.append("\n")
+        builder.append(wrappedBody)
+        builder.append(NULL)
+
+        return builder.toString()
     }
 }

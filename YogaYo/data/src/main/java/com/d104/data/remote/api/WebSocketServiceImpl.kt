@@ -15,18 +15,30 @@ class WebSocketServiceImpl @Inject constructor(
     // 웹소켓 연결 종료 시 사용할 표준 코드
     private val normalClosureStatus = 1000 // WebSocket 표준 정상 종료 코드
 
-    override fun connect(url:String,listener: WebSocketListener) {
-        disconnect() // 기존 연결 정리
+    override fun connect(url: String, listener: WebSocketListener) {
+        Log.d("WebSocketService", ">>> connect() method entered. URL: $url") // 진입 확인용 로그 추가
+        try {
+            Log.d("WebSocketService", "Attempting disconnect() first...")
+            disconnect() // 기존 연결 정리
 
-        // 새 웹소켓 연결을 위한 요청 생성
-        val request = Request.Builder()
-            .url(url)
-            .build()
+            Log.d("WebSocketService", "Building request for URL: $url") // URL 형식 확인
+            val request = Request.Builder()
+                .url(url) // 여기서 IllegalArgumentException 발생 가능
+                .build()
+            Log.d("WebSocketService", "Request built successfully.")
 
-        // OkHttpClient를 사용하여 새 웹소켓 생성 및 연결 시작
-        // 실제 연결 과정 및 이벤트 처리는 OkHttp 내부와 제공된 listener에서 수행됩니다.
-        webSocket = client.newWebSocket(request, listener)
-        Log.d("WebSocketService", "웹소켓 연결 시도: $url")
+            Log.d("WebSocketService", "Calling client.newWebSocket...")
+            // 여기서 다양한 네트워크/보안 관련 예외 발생 가능
+            webSocket = client.newWebSocket(request, listener)
+            Log.d("WebSocketService", "client.newWebSocket call finished. WebSocket instance created: ${webSocket != null}")
+
+            // 원래 로그 (여기까지 오면 성공)
+            Log.d("WebSocketService", "웹소켓 연결 시도 완료 (Post-Init): $url")
+
+        } catch (t: Throwable) {
+            // 모든 종류의 예외를 잡아서 로그로 출력
+            Log.e("WebSocketService", "!!! EXCEPTION occurred within connect() method !!!", t)
+        }
     }
 
     override fun disconnect() {

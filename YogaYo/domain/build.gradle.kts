@@ -2,6 +2,7 @@ plugins {
     id("java-library")
     alias(libs.plugins.jetbrains.kotlin.jvm)
     id ("kotlin-kapt")
+    kotlin("plugin.serialization")
 }
 
 java {
@@ -31,4 +32,10 @@ dependencies {
     // OkHttp3
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+
+    // kotlinx.serialization core (애노테이션 처리 등에 필요)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.5.1") // 버전은 프로젝트의 다른 모듈과 통일
+
+    // kotlinx.serialization json (필요하다면 추가, domain 모듈에서 직접 파싱 안 하면 생략 가능하나 추가하는 것이 편리)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1") // 버전은 프로젝트의 다른 모듈과 통일
 }

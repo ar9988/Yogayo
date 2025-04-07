@@ -1,11 +1,11 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    id("kotlin-kapt")
     id("kotlin-parcelize")
     id("com.google.dagger.hilt.android")
     kotlin("plugin.serialization") version "1.5.0"
 
+    id("kotlin-kapt")
 }
 
 android {
@@ -34,6 +34,11 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+
+    hilt {
+        enableAggregatingTask = true  // 멀티 모듈 프로젝트 시 필수
+        enableExperimentalClasspathAggregation = true
     }
 }
 
@@ -77,6 +82,9 @@ dependencies {
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
 
+    // WebRTC
+    implementation("io.getstream:stream-webrtc-android:1.1.3")
+//    implementation("org.webrtc:google-webrtc:1.0.32006")
 }
 
 kapt {

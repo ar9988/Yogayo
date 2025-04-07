@@ -12,5 +12,6 @@ interface DataStoreRepository {
     suspend fun saveRefreshToken(token:String)
     suspend fun saveUser(user: User)
     suspend fun clearUserData() : Flow<Boolean>
+    suspend fun getUserId(): String
 
 }

@@ -2,6 +2,7 @@ package com.d104.domain.usecase
 
 import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.Room
+import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.repository.LobbyRepository
@@ -17,14 +18,14 @@ class CreateRoomUseCase @Inject constructor(
         roomMax: Int,
         isPassword: Boolean,
         password: String,
-        poses: List<YogaPose>
+        userCourse: UserCourse
     ) :Flow<Result<CreateRoomResult>> {
         return lobbyRepository.createRoom(
             roomName,
             roomMax,
             isPassword,
             password,
-            poses
+            userCourse
         )
     }
 }

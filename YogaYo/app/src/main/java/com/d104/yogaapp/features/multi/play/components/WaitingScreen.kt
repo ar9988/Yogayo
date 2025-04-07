@@ -8,12 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Person4
-import androidx.compose.material.icons.filled.PersonPin
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +28,7 @@ import com.d104.domain.model.PeerUser
 
 @Composable
 fun WaitingScreen(
-    userList: MutableMap<Int, PeerUser>
+    userList: Map<String, PeerUser>
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -46,7 +45,7 @@ fun WaitingScreen(
                 modifier = Modifier.padding(16.dp)
             )
             LazyColumn {
-                items(userList.size) {
+                items(userList.keys.toList()) {
                     Row(
                         modifier = Modifier.padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -80,14 +79,14 @@ fun WaitingScreen(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(40.dp)
-                                .border(1.dp, if (userList[it]?.readyState == true) Color.Green else Color.Gray, CircleShape)
+                                .border(1.dp, if (userList[it]?.isReady == true) Color.Green else Color.Gray, CircleShape)
                                 .clip(CircleShape)
                                 .padding(4.dp)
                         ) {
                             Icon(
-                                imageVector = if (userList[it]?.readyState == true) Icons.Filled.Check else Icons.Outlined.Check,
-                                contentDescription = if (userList[it]?.readyState == true) "Checked" else "Unchecked",
-                                tint = if (userList[it]?.readyState == true) Color.Green else Color.Gray
+                                imageVector = if (userList[it]?.isReady == true) Icons.Filled.Check else Icons.Outlined.Check,
+                                contentDescription = if (userList[it]?.isReady == true) "Checked" else "Unchecked",
+                                tint = if (userList[it]?.isReady == true) Color.Green else Color.Gray
                             )
                         }
                     }

@@ -18,9 +18,13 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -46,6 +50,9 @@ object NetworkModule {
     fun provideOkHttpClient(jwtInterceptor: JwtInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(jwtInterceptor)
+            .connectTimeout(100, TimeUnit.SECONDS)
+            .readTimeout(100,TimeUnit.SECONDS)
+            .writeTimeout(100,TimeUnit.SECONDS)
             .build()
     }
 
@@ -125,6 +132,12 @@ object NetworkModule {
     @Singleton
     fun provideWebSocketService(okHttpClient: OkHttpClient): WebSocketService {
         return WebSocketServiceImpl(okHttpClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCoroutineScope(): CoroutineScope {
+        return CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 
 }

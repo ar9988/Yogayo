@@ -39,6 +39,10 @@ class AuthRepositoryImpl @Inject constructor(
         return ""
     }
 
+    override suspend fun getUserId(): String {
+        return dataStoreRepository.getUserId()
+    }
+
 
     override suspend fun login(userId: String, password: String): Flow<Result<LoginResult>> {
         return flow {
