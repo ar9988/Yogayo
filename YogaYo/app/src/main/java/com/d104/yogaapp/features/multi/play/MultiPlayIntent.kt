@@ -31,4 +31,5 @@ sealed class MultiPlayIntent {
     data object RoundEnded: MultiPlayIntent()
     data object Exit: MultiPlayIntent()
     data object ReadyClick: MultiPlayIntent()
+    data object GameEnd: MultiPlayIntent()
 }

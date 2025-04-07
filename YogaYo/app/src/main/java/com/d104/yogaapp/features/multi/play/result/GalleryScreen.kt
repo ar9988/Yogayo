@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height // Import height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.features.multi.play.components.GalleryPhotoCard
 
 // Assuming GalleryPhotoCard exists and takes an Int item index
@@ -30,7 +32,9 @@ import com.d104.yogaapp.features.multi.play.components.GalleryPhotoCard
 @Composable
 fun GalleryScreen(
     onCheckClick: () -> Unit,
-    onItemClick: (Int) -> Unit
+    onItemClick: (Int) -> Unit,
+    poseList: List<YogaPose>,
+    bestUrls:List<String>,
 ) {
     Column(
         modifier = Modifier
@@ -51,11 +55,12 @@ fun GalleryScreen(
             // Padding inside the grid scroll area
             contentPadding = PaddingValues(vertical = 16.dp) // Only vertical padding inside grid needed now
         ) {
-            items(6) { item ->
+            itemsIndexed(bestUrls) { index, url -> // index와 url(String)을 받음
                 GalleryPhotoCard(
-                    item,
-                    onClick = { onItemClick(item) }
-                ) // Pass item index
+                    url = url,
+                    name = poseList[index].poseName,
+                    onClick = { onItemClick(index) } // 아이템의 인덱스(Int)를 전달
+                )
             }
         }
 

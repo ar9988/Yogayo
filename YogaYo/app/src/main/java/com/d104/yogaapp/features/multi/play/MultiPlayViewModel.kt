@@ -88,13 +88,17 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             // 타이머 종료 후
-            if (uiState.value.timerProgress <= 0f) {
+            if (uiState.value.timerProgress <= 0f&&(uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
                 sendRoundEndMessage()
             }
         }
     }
 
     fun processIntent(intent: MultiPlayIntent) {
+        if (intent is MultiPlayIntent.ExitRoom || intent is MultiPlayIntent.Exit) {
+            cancelPlayTimer()
+            // cancelNextRoundTimer() // <- 제거됨
+        }
         val newState = multiPlayReducer.reduce(_uiState.value, intent)
         _uiState.value = newState
         when (intent) {
@@ -111,21 +115,22 @@ class MultiPlayViewModel @Inject constructor(
                     sendScore()
                     processIntent(MultiPlayIntent.RoundEnded)
                 }
-                if (intent.message.type == "image") {
-                    sendImage()
-                }
                 if (intent.message.type == "user_joined") {
                     Timber.d("User joined: ${intent.message}")
                     val peerId = (intent.message as UserJoinedMessage).fromPeerId
                     val nickname = intent.message.userNickName
                     if (!uiState.value.userList.keys.contains(peerId)) {
-                        processIntent(MultiPlayIntent.UserJoined(PeerUser(
-                            id = peerId,
-                            nickName = nickname,
-                            isReady = false,
-                            totalScore = 0,
-                            roundScore = 0.0f
-                        )))
+                        processIntent(
+                            MultiPlayIntent.UserJoined(
+                                PeerUser(
+                                    id = peerId,
+                                    nickName = nickname,
+                                    isReady = false,
+                                    totalScore = 0.0f,
+                                    roundScore = 0.0f
+                                )
+                            )
+                        )
                         sendJoinMessage()
                     } else {
                         Timber.d("User already joined: $peerId")
@@ -142,16 +147,23 @@ class MultiPlayViewModel @Inject constructor(
                     } else if (state >= 1) {
                         Timber.d("Round $state started")
                         processIntent(MultiPlayIntent.RoundStarted(state))
+                    } else if (state == -1) {
+                        Timber.d("Game ended")
+                        processIntent(MultiPlayIntent.GameEnd)
                     }
                     startTimer()
                 }
                 if (intent.message.type == "user_left") {
                     processIntent(MultiPlayIntent.UserLeft(intent.message.fromPeerId))
                 }
-                if (intent.message.type == "user_ready"){
+                if (intent.message.type == "user_ready") {
                     Timber.d("Received user_ready message for ID: ${intent.message.fromPeerId}")
                     // --- 게임 시작 조건 확인 (user_ready 시 확인) ---
                     checkAndSendStartMessageIfNeeded() // 게임 시작 조건 확인 로직 호출
+                }
+                if (intent.message.type == "request_photo") {
+                    Timber.d("Received request_photo message")
+                    sendImage()
                 }
             }
 
@@ -163,10 +175,11 @@ class MultiPlayViewModel @Inject constructor(
                 // 방 나가기 처리
                 viewModelScope.launch {
                     val myId = getUserIdUseCase()
-                    if(sendSignalingMessageUseCase(
-                        myId,
-                        uiState.value.currentRoom!!.roomId.toString(), 3
-                    )){
+                    if (sendSignalingMessageUseCase(
+                            myId,
+                            uiState.value.currentRoom!!.roomId.toString(), 3
+                        )
+                    ) {
                         Timber.d("User left: $myId")
                         processIntent(MultiPlayIntent.Exit)
                     } else {
@@ -177,15 +190,28 @@ class MultiPlayViewModel @Inject constructor(
 
             is MultiPlayIntent.GameStarted -> {
                 timerJob?.cancel()
+                cancelPlayTimer()
                 startTimer()
             }
+
             is MultiPlayIntent.RoundStarted -> {
                 timerJob?.cancel()
+                cancelPlayTimer()
                 startTimer()
             }
+
             else -> {}
         }
     }
+
+    private fun cancelPlayTimer() {
+        if (timerJob?.isActive == true) {
+            Timber.d("Cancelling play timer.")
+            timerJob?.cancel()
+        }
+        timerJob = null
+    }
+
     override fun onCleared() {
         Timber.d("ViewModel cleared. Closing WebRTC and WebSocket.")
         // 여기서 확실하게 리소스 해제
@@ -219,6 +245,18 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
+    private fun sendGameEndMessage() {
+        viewModelScope.launch {
+            val id = getUserIdUseCase()
+            sendSignalingMessageUseCase(
+                id,
+                uiState.value.currentRoom!!.roomId.toString(),
+                5,
+                round = -1
+            )
+        }
+    }
+
     private fun sendReadyMessage() {
         viewModelScope.launch {
             val id = getUserIdUseCase()
@@ -232,15 +270,77 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
-    private fun sendRoundEndMessage(){
+    private fun sendRoundEndMessage() {
+        viewModelScope.launch {
+            val myId = getUserIdUseCase()
+            val currentRoom = _uiState.value.currentRoom ?: return@launch
+            val currentRoomId = currentRoom.roomId.toString()
+
+            // 호스트가 아니면 아무것도 안 함 (이 함수는 호스트만 호출해야 함)
+            if (currentRoom.userId.toString() != myId) {
+                Timber.w("sendRoundEndMessage called by non-host ($myId). Ignoring.")
+                return@launch
+            }
+
+            // 1. 라운드 종료 메시지 전송 (호스트가 서버로 보냄 -> 서버가 브로드캐스트)
+            Timber.i("Host ($myId) sending round_end message (type 6).")
+            sendSignalingMessageUseCase(myId, currentRoomId, 6)
+
+            // 2. 최고 점수 계산 및 사진 요청 (1초 딜레이 후)
+            Timber.d("Host ($myId) waiting 1 second to request photo.")
+            delay(1000L)
+            val stateAfterPhotoDelay = _uiState.value
+            val userListForPhoto = stateAfterPhotoDelay.userList
+            if (userListForPhoto.isNotEmpty()) {
+                val topScorerEntryPhoto = userListForPhoto.maxByOrNull { it.value.roundScore }
+                if (topScorerEntryPhoto != null) {
+                    Timber.i("Host requesting photo from top scorer: ${topScorerEntryPhoto.key}")
+                    requestPhoto(topScorerEntryPhoto.key)
+                } else {
+                    Timber.w("Host could not determine top scorer for photo request.")
+                }
+            } else {
+                Timber.w("User list empty, skipping photo request.")
+            }
+
+            // 3. 다음 라운드/게임 종료 결정을 위한 10초 대기 (사진 요청 후 시작)
+            Timber.i("Host ($myId) waiting 10 seconds before next round/game end decision.")
+            delay(10_000L)
+
+            // 4. 10초 후 다음 액션 결정 및 서버 메시지 전송
+            val stateAfter10s = _uiState.value // 10초 후 최신 상태 확인
+            if (stateAfter10s.gameState != GameState.RoundResult) {
+                // 10초 동안 상태가 바뀌었다면 (예: 누군가 나감) 액션 중단
+                Timber.w("Host's 10s delay finished, but state is no longer RoundResult (${stateAfter10s.gameState}). Aborting.")
+                return@launch
+            }
+
+            val nextRoundIndex = stateAfter10s.roundIndex + 1
+            val poses = stateAfter10s.currentRoom?.userCourse?.poses
+
+            if (poses != null && nextRoundIndex < poses.size) {
+                // 다음 라운드 시작 요청
+                Timber.i("Host sending next round message for round: $nextRoundIndex")
+                sendNextRoundMessage(nextRoundIndex)
+            } else {
+                // 게임 종료 요청
+                Timber.i("Host sending game end message.")
+                sendGameEndMessage()
+            }
+        }
+    }
+
+    private fun sendNextRoundMessage(nextRoundIndex: Int) {
         viewModelScope.launch {
             val id = getUserIdUseCase()
             sendSignalingMessageUseCase(
                 id,
                 uiState.value.currentRoom!!.roomId.toString(),
-                6
+                5,
+                round = nextRoundIndex
             )
         }
+
     }
 
 
@@ -292,6 +392,18 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
+    private fun requestPhoto(toPeerId: String) {
+        viewModelScope.launch {
+            val myId = getUserIdUseCase()
+            sendSignalingMessageUseCase(
+                myId,
+                uiState.value.currentRoom!!.roomId.toString(),
+                type = 5,
+                toPeerId = toPeerId,
+            )
+        }
+    }
+
     private fun initiateMeshNetwork() {
         viewModelScope.launch {
             val myId = getUserIdUseCase()
@@ -312,7 +424,8 @@ class MultiPlayViewModel @Inject constructor(
                     .roomId.toString()
 
                 Timber.d("Room ID acquired: $roomId. Setting up WebSocket connection and observation.")
-                val yogaPoses = (uiState.map { it.currentRoom }).filterNotNull().first().userCourse.poses
+                val yogaPoses =
+                    (uiState.map { it.currentRoom }).filterNotNull().first().userCourse.poses
                 Timber.d("Yoga poses: $yogaPoses")
                 viewModelScope.launch {
                     // myId 먼저 가져오기 (예시: .first() 사용 등으로 동기적으로 기다리거나)
@@ -398,4 +511,3 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 }
-//

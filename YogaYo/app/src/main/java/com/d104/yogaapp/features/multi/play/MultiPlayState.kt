@@ -1,7 +1,6 @@
 package com.d104.yogaapp.features.multi.play
 
 import android.graphics.Bitmap
-import androidx.compose.runtime.FloatState
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.Room
 import com.d104.domain.model.YogaPose
@@ -23,7 +22,10 @@ data class MultiPlayState(
     val bitmap: Bitmap? = null,
     val roundIndex: Int = 0,
     val exit: Boolean = false,
-    var myId: String? = null,
+    val myId: String? = null,
+    val isLoading: Boolean = true,
+    val bestUrls: List<String> = emptyList(),
+    val urls: Map<Int,List<String>> = emptyMap(),
 )
 
 enum class GameState {

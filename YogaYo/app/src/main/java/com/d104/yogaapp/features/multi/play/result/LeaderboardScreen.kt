@@ -1,55 +1,52 @@
 package com.d104.yogaapp.features.multi.play.result
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Person // 유지
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalContext // 유지
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.d104.domain.model.PeerUser // PeerUser 임포트
 import com.d104.yogaapp.R
 import kotlinx.coroutines.delay
 
-// Dummy Data Class
-data class PlayerScore(
-    val name: String,
-    val score: Int
-)
-
-// Sample Data (Matches the image)
-val leaderboardScores = listOf(
-    PlayerScore("RedLaw", 58),
-    PlayerScore("YogaYo", 50),
-    PlayerScore("김싸피", 43),
-    PlayerScore("이싸피", 36)
-)
 
 @Composable
 fun LeaderboardScreen(
-    scores: List<PlayerScore> = leaderboardScores,
+    // scores 파라미터 제거, userList 파라미터 추가
+    userList: Map<String, PeerUser>,
     onNextClick: () -> Unit
 ) {
     // State to control the visibility of list items for animation
     var visibleItems by remember { mutableIntStateOf(0) }
 
-    val context = LocalContext.current
+    // --- 데이터 처리: userList를 totalScore 기준 내림차순 정렬 ---
+    val sortedUsers = remember(userList) { // userList가 변경될 때만 재계산
+        userList.values.sortedByDescending { it.totalScore }
+    }
+    // ---------------------------------------------------------
+
     // Trigger the animation when the composable enters the composition
-    LaunchedEffect(key1 = scores) { // Re-trigger if scores change
+    // LaunchedEffect의 key를 sortedUsers 또는 userList로 변경
+    LaunchedEffect(key1 = sortedUsers) {
         visibleItems = 0 // Reset if scores change
-        scores.indices.forEach { index ->
-            delay(300L) // Delay between each item appearing (adjust as needed)
+        sortedUsers.indices.forEach { index ->
+            delay(300L) // Delay between each item appearing
             visibleItems = index + 1
         }
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,7 +54,8 @@ fun LeaderboardScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // --- Winner Section ---
-        WinnerSection(winner = scores.first()) // Assuming the first item is always the winner
+        // sortedUsers의 첫 번째 항목을 승자로 전달 (null 가능성 처리)
+        WinnerSection(winner = sortedUsers.firstOrNull())
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -65,16 +63,18 @@ fun LeaderboardScreen(
         Column(
             verticalArrangement = Arrangement.spacedBy(20.dp) // Spacing between rank items
         ) {
-            scores.forEachIndexed { index, player ->
+            // 정렬된 사용자 리스트로 반복
+            sortedUsers.forEachIndexed { index, player ->
                 // Animate each item's appearance
                 AnimatedVisibility(
                     visible = index < visibleItems,
                     enter = slideInVertically(
-                        initialOffsetY = { it / 2 }, // Start from halfway down
+                        initialOffsetY = { it / 2 },
                         animationSpec = tween(durationMillis = 500)
                     ) + fadeIn(animationSpec = tween(durationMillis = 500)),
-                    exit = fadeOut(animationSpec = tween(durationMillis = 300)) // Optional exit animation
+                    exit = fadeOut(animationSpec = tween(durationMillis = 300))
                 ) {
+                    // RankItem에 PeerUser 객체 전달
                     RankItem(rank = index + 1, player = player)
                 }
             }
@@ -88,13 +88,13 @@ fun LeaderboardScreen(
             onClick = { onNextClick() },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFF48FB1) // Pinkish color from image
+                containerColor = Color(0xFFF48FB1)
             ),
-            shape = MaterialTheme.shapes.medium // Or RoundedCornerShape(8.dp)
+            shape = MaterialTheme.shapes.medium
         ) {
             Text(
                 text = "다음",
-                color = Color.White, // Text color looks white
+                color = Color.White,
                 fontSize = 16.sp
             )
         }
@@ -102,31 +102,37 @@ fun LeaderboardScreen(
 }
 
 @Composable
-fun WinnerSection(winner: PlayerScore) {
+fun WinnerSection(winner: PeerUser?) { // PlayerScore 대신 PeerUser?, Nullable 처리
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
-            painter = painterResource(id = R.drawable.ic_crown), // Replace with your crown drawable
+            painter = painterResource(id = R.drawable.ic_crown),
             contentDescription = "Winner Crown",
-            modifier = Modifier.size(150.dp) // Adjust size as needed
+            modifier = Modifier.size(150.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Filled.Person,
-                contentDescription = "Person Icon"
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = winner.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium // Slightly bolder
-            )
-        }
+        // 승자 정보가 있을 때만 표시
+        winner?.let {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = "Person Icon"
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = it.nickName, // nickName 사용
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                // 필요하다면 승자 점수도 표시
+                // Spacer(modifier = Modifier.width(8.dp))
+                // Text(text = "(${it.totalScore} PT)", fontSize = 16.sp)
+            }
+        } ?: Spacer(modifier = Modifier.height(24.dp)) // 승자 없으면 빈 공간
     }
 }
 
 @Composable
-fun RankItem(rank: Int, player: PlayerScore) {
+fun RankItem(rank: Int, player: PeerUser) { // PlayerScore 대신 PeerUser 사용
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -145,20 +151,21 @@ fun RankItem(rank: Int, player: PlayerScore) {
 
         // Player Name (takes up available space)
         Text(
-            text = player.name,
-            modifier = Modifier.weight(1f), // Occupy remaining horizontal space
+            text = player.nickName, // nickName 사용
+            modifier = Modifier.weight(1f),
             fontSize = 16.sp
         )
 
         // Score
         Text(
-            text = "${player.score}PT",
+            text = "${player.totalScore}PT", // totalScore 사용
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.DarkGray // Slightly less prominent than black
+            color = Color.DarkGray
         )
     }
 }
+
 
 @Composable
 fun RankIndicator(rank: Int) {
