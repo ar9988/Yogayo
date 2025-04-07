@@ -89,12 +89,12 @@ class MultiPlayViewModel @Inject constructor(
                     }
                 }
                 if (intent.message.type == "game_state") {
-                    // initiate mesh network 는 host만 한다. state만 바꿔준다.
                     Timber.d("Game state: ${intent.message}")
                     val state = (intent.message as GameStateMessage).state
                     if (state == 0) {
                         Timber.d("Game started")
                         processIntent(MultiPlayIntent.GameStarted)
+                        initiateMeshNetwork()
                     }
                 }
             }
@@ -143,7 +143,6 @@ class MultiPlayViewModel @Inject constructor(
                     uiState.value.currentRoom!!.roomId.toString(),
                     4
                 )
-                initiateMeshNetwork()
             }
         }
     }

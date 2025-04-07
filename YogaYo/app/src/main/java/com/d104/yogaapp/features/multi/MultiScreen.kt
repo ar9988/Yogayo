@@ -261,7 +261,7 @@ fun MultiCourseCardHeader(room: Room) {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(0.5f)
                 ) {
-                    if (room.isPassword) {
+                    if (room.hasPassword) {
                         Icon(
                             imageVector = Icons.Default.Key,
                             contentDescription = "비밀번호 필요함",
