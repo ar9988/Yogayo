@@ -86,14 +86,10 @@ class MultiPlayViewModel @Inject constructor(
                 }
             }
 
-            // 타이머 종료 후 다음 동작으로 자동 전환
-//            if (state.value.timerProgress <= 0f) {
-////                if(state.value.isLogin&&!state.value.userCourse.tutorial){
-////                    val currentidx = state.value.currentPoseIndex
-////                    Timber.d("history:${state.value.poseHistories}")
-////                }
-//                processIntent(SoloYogaPlayIntent.GoToNextPose)
-//            }
+            // 타이머 종료 후
+            if (uiState.value.timerProgress <= 0f) {
+                sendRoundEndMessage()
+            }
         }
     }
 
@@ -112,6 +108,7 @@ class MultiPlayViewModel @Inject constructor(
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
                 if (intent.message.type == "round_end") {
                     sendScore()
+                    processIntent(MultiPlayIntent.RoundEnded)
                 }
                 if (intent.message.type == "image") {
                     sendImage()
@@ -167,13 +164,39 @@ class MultiPlayViewModel @Inject constructor(
                         Timber.d("User left: $myId")
                         closeWebSocketUseCase()
                         closeWebRTCUseCase()
+                        processIntent(MultiPlayIntent.Exit)
                     } else {
                         Timber.d("Failed to send user left message")
                     }
                 }
             }
 
+            is MultiPlayIntent.GameStarted -> {
+                timerJob?.cancel()
+                startTimer()
+            }
+            is MultiPlayIntent.RoundStarted -> {
+                timerJob?.cancel()
+                startTimer()
+            }
             else -> {}
+        }
+    }
+    override fun onCleared() {
+        Timber.d("ViewModel cleared. Closing WebRTC and WebSocket.")
+        // 여기서 확실하게 리소스 해제
+        closeWebSocketUseCase() // UseCase 내부에서 이미 종료되었는지 확인 로직이 있다면 더 좋음
+        closeWebRTCUseCase()  // UseCase 내부에서 이미 종료되었는지 확인 로직이 있다면 더 좋음
+        super.onCleared()
+    }
+    private fun sendRoundEndMessage(){
+        viewModelScope.launch {
+            val id = getUserIdUseCase()
+            sendSignalingMessageUseCase(
+                id,
+                uiState.value.currentRoom!!.roomId.toString(),
+                6
+            )
         }
     }
 
@@ -219,7 +242,7 @@ class MultiPlayViewModel @Inject constructor(
         viewModelScope.launch {
             sendWebRTCUseCase(
                 message = ScoreUpdateMessage(
-                    score = uiState.value.second,
+                    score = uiState.value.score,
                     time = uiState.value.second
                 )
             )

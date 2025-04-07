@@ -1,5 +1,6 @@
 package com.d104.domain.usecase
 
+import com.d104.domain.model.EndRoundMessage
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.UserJoinedMessage
@@ -16,7 +17,7 @@ class SendSignalingMessageUseCase @Inject constructor(
     private val dataStoreRepository: DataStoreRepository,
     private val json:Json
 ){
-    suspend operator fun invoke(fromPeerId:String,destination: String, type: Int): Boolean { // 반환 타입을 Boolean으로 변경하여 성공 여부 전달
+    suspend operator fun invoke(fromPeerId:String,destination: String, type: Int, round:Int = -1): Boolean { // 반환 타입을 Boolean으로 변경하여 성공 여부 전달
         return try {
             val user = dataStoreRepository.getUser().first() ?: run {
                 return false // 사용자 정보 없으면 실패 반환
@@ -57,6 +58,17 @@ class SendSignalingMessageUseCase @Inject constructor(
                 4 -> {
                     messageToSend = GameStateMessage(
                         state = 0,
+                        fromPeerId = fromPeerId
+                    )
+                }
+                5->{
+                    messageToSend = GameStateMessage(
+                        state = round,
+                        fromPeerId = fromPeerId
+                    )
+                }
+                6 -> {
+                    messageToSend = EndRoundMessage(
                         fromPeerId = fromPeerId
                     )
                 }

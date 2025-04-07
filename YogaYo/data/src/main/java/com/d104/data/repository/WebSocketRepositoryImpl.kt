@@ -246,7 +246,8 @@ class WebSocketRepositoryImpl @Inject constructor(
             return false
         }
         // '/app/...' 형태의 destination 확인 필요
-        val sendFrame = StompUtils.buildSendFrame("/app/room/" + destination, message)
+        Log.d("StompRepo", "Sending message : $message")
+        val sendFrame = StompUtils.buildSendFrame("/app/room/$destination", message)
         val success = webSocketService.send(sendFrame)
         if (!success) {
             Log.e("StompRepo", "Failed to send message frame to $destination")
