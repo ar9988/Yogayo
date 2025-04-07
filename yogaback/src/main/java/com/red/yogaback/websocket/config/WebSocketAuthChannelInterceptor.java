@@ -9,6 +9,8 @@ import com.red.yogaback.repository.UserRepository;
 import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.security.jwt.JWTUtil;
 import com.red.yogaback.websocket.service.SocketRoomService;
+import com.red.yogaback.websocket.service.UserSession;
+import com.red.yogaback.websocket.service.UserSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -21,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
@@ -33,15 +34,17 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final SocketRoomService socketRoomService;
+    private final UserSessionService userSessionService;
 
     // JWTUtil을 의존성 주입받음
     @Autowired
     public WebSocketAuthChannelInterceptor(JWTUtil jwtUtil, UserRepository userRepository,RoomRepository roomRepository,
-                                           SocketRoomService socketRoomService) {
+                                           SocketRoomService socketRoomService,UserSessionService userSessionService ) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
         this.socketRoomService = socketRoomService;
+        this.userSessionService = userSessionService;
     }
 
     /**
@@ -55,7 +58,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
      */
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        // STOMP 메시지 헤더에 접근하기 위해 StompHeaderAccessor를 사용합니다.
+        // STOMP 헤더 접근
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
         if (accessor != null && StompCommand.DISCONNECT.equals(accessor.getCommand())){
             Long userId = SecurityUtil.getCurrentMemberId();
@@ -84,7 +87,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
                 // Improvement: 토큰 추출 로직을 별도의 메소드로 분리하면 가독성이 좋아질 수 있음.
                 // "Bearer " 접두사가 있는 경우 접두사를 제거하여 실제 토큰만 추출합니다.
                 if (authHeader != null && authHeader.toLowerCase().startsWith("bearer ")) {
-                    token = authHeader.substring(7); // "Bearer " 이후 부분이 실제 토큰
+                    token = authHeader.substring(7); // "Bearer " 이후의 실제 토큰
                 } else {
                     // Improvement: 접두사 체크 없이 바로 토큰을 사용하면 예상치 못한 문제가 발생할 수 있음.
                     token = authHeader;
@@ -100,7 +103,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             try {
                 // 토큰이 만료되었는지 확인
                 if (jwtUtil.isExpired(token)) {
-                    logger.warn("Expired token"); // Improvement: 보안상 토큰 값 자체를 로그에 남기지 않는 것이 좋음.
+                    logger.warn("Expired token");
                     throw new IllegalArgumentException("토큰이 만료되었습니다.");
                 }
                 // 토큰에서 사용자 정보를 추출
@@ -108,11 +111,17 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
                 String userNickName = jwtUtil.getUserNickName(token);
                 String userProfile = jwtUtil.getUserProfile(token);
 
-                // 추출한 정보를 세션 속성에 저장하여 이후에 사용
+                // 세션 속성에 사용자 정보 저장
                 accessor.getSessionAttributes().put("userId", String.valueOf(memberId));
                 accessor.getSessionAttributes().put("userNickName", userNickName);
                 accessor.getSessionAttributes().put("userProfile", userProfile);
-                logger.info("Token validated for user: {}", memberId);
+
+                // 세션 등록 (아직 roomId 정보는 없으므로 빈 문자열)
+                String sessionId = accessor.getSessionId();
+                UserSession userSession = new UserSession(String.valueOf(memberId), "", userNickName, userProfile);
+                userSessionService.addSession(sessionId, userSession);
+
+                logger.info("Token validated and session registered for user: {}", memberId);
             } catch (Exception e) {
                 // Improvement: 구체적인 인증 예외 처리를 위해 커스텀 예외 사용 고려
                 logger.error("Token validation error: {}", e.getMessage());
