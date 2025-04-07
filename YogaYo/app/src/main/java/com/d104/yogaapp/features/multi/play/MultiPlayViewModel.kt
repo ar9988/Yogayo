@@ -119,9 +119,9 @@ class MultiPlayViewModel @Inject constructor(
                 if (intent.message.type == "user_joined") {
                     Timber.d("User joined: ${intent.message}")
                     val peerId = (intent.message as UserJoinedMessage).fromPeerId
-//                    if (!uiState.value.userList.keys.contains(peerId)) {
-//                        sendJoinMessage()
-//                    }
+                    if (!uiState.value.userList.keys.contains(peerId)) {
+                        sendJoinMessage()
+                    }
                     if (uiState.value.currentRoom!!.roomMax == uiState.value.userList.size) {
                         Timber.d("Game started")
                         sendStartMessage()
