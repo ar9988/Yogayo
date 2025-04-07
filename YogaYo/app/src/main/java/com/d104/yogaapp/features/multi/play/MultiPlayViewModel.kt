@@ -26,7 +26,6 @@ import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCUseCase
 import com.d104.domain.utils.StompConnectionState
 import com.d104.yogaapp.utils.bitmapToBase64
-import com.google.rpc.context.AttributeContext.Peer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -48,7 +47,7 @@ class MultiPlayViewModel @Inject constructor(
     private val multiPlayReducer: MultiPlayReducer,
     private val connectWebSocketUseCase: ConnectWebSocketUseCase,
     private val closeWebSocketUseCase: CloseWebSocketUseCase,
-    private val initializeWebRTCUseCase: InitializeWebRTCUseCase,
+    initializeWebRTCUseCase: InitializeWebRTCUseCase,
     private val closeWebRTCUseCase: CloseWebRTCUseCase,
     private val observeWebRTCMessageUseCase: ObserveWebRTCMessageUseCase,
     private val handleSignalingMessage: HandleSignalingMessage,
@@ -165,7 +164,7 @@ class MultiPlayViewModel @Inject constructor(
                         myId,
                         uiState.value.currentRoom!!.roomId.toString(), 3
                     )){
-                        Timber.d("User left: ${myId}")
+                        Timber.d("User left: $myId")
                         closeWebSocketUseCase()
                         closeWebRTCUseCase()
                     } else {
@@ -230,7 +229,7 @@ class MultiPlayViewModel @Inject constructor(
     private fun initiateMeshNetwork() {
         viewModelScope.launch {
             val myId = getUserIdUseCase()
-            uiState.value.userList.forEach { it ->
+            uiState.value.userList.forEach {
                 if (it.key < myId)
                     initiateConnectionUseCase(myId, it.value.id)
             }
@@ -310,7 +309,7 @@ class MultiPlayViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            observeChunkImageUseCase().collect { it ->
+            observeChunkImageUseCase().collect {
                 withContext(Dispatchers.IO) {
                     val bitmap = try {
                         BitmapFactory.decodeByteArray(it, 0, it.size)

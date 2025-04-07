@@ -100,15 +100,6 @@ class MultiPlayReducer @Inject constructor() {
                         }
                         currentState.copy(userList = newUserList)
                     }
-//                    "game_started" -> currentState.copy(
-//                        gameState = GameState.Playing
-//                    )
-                    "round_start" -> currentState.copy(
-                        roundIndex = currentState.roundIndex + 1,
-                        gameState = GameState.Playing
-                        //기타 스테이트 처리
-                    )
-
                     "round_end" -> currentState.copy(
                         gameState = GameState.RoundResult
                     )
@@ -126,14 +117,16 @@ class MultiPlayReducer @Inject constructor() {
                 //yoga 리스트에서 0번 인덱스로 설정하기
                 currentState.copy(
                     gameState = GameState.Playing,
-                    roundIndex = 0
+                    roundIndex = 0,
+                    currentPose = currentState.currentRoom!!.userCourse.poses[0],
                 )
             }
 
             is MultiPlayIntent.RoundStarted -> {
                 currentState.copy(
                     gameState = GameState.Playing,
-                    roundIndex = intent.state
+                    roundIndex = intent.state,
+                    currentPose = currentState.currentRoom!!.userCourse.poses[intent.state],
                 )
             }
 

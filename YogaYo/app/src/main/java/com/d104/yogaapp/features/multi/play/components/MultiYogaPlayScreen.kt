@@ -32,15 +32,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.d104.domain.model.PeerUser
@@ -64,14 +61,8 @@ fun MultiYogaPlayScreen(
     pose: YogaPose,
     onAccuracyUpdate:(Float,Float)->Unit = {_,_->}
 ) {
-    // TTS 초기화 및 상태 관리
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
     // TTS 인스턴스 생성
     val textToSpeech = remember { mutableStateOf<TextToSpeech?>(null) }
-    var currentDescriptionIndex by remember { mutableStateOf(-1) } // -1로 시작하면 아직 설명 시작 전
-    var isReadingPoseName by remember { mutableStateOf(false) } // 포즈 이름 읽는 중인지 상태
     val isTtsReady by remember { mutableStateOf(false) }
     when (gameState) {
         GameState.RoundResult -> {
@@ -259,7 +250,7 @@ fun MultiYogaPlayScreen(
                                     contentDescription = "타이머",
                                     modifier = Modifier
                                         .size(54.dp)
-                                        .offset(x = (-6).dp, y = -4.dp), // 약간 왼쪽으로 이동
+                                        .offset(x = (-6).dp, y = (-4).dp), // 약간 왼쪽으로 이동
                                     contentScale = ContentScale.Fit
                                 )
                             }
