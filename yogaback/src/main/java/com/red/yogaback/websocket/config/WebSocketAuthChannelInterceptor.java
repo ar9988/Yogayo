@@ -64,7 +64,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             Long userId = SecurityUtil.getCurrentMemberId();
             User user = userRepository.findById(userId).orElseThrow(()->
                     new RuntimeException(""));
-            Room room = roomRepository.findByUser(user);
+            Room room = roomRepository.findByUsersContaining(user);
             socketRoomService.removeParticipant(room.getRoomId().toString());
         }
 
@@ -72,7 +72,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             Long userId = SecurityUtil.getCurrentMemberId();
             User user = userRepository.findById(userId).orElseThrow(()->
                     new RuntimeException(""));
-            Room room = roomRepository.findByUser(user);
+            Room room = roomRepository.findByUsersContaining(user);
             socketRoomService.addParticipant(room.getRoomId().toString());
         }
         // CONNECT 명령에 대해서만 JWT 토큰 인증 로직을 수행합니다.
