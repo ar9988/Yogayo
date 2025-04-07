@@ -104,6 +104,18 @@ class MultiPlayReducer @Inject constructor() {
                         }
                         currentState.copy(userList = newUserList)
                     }
+                    "user_not_ready" -> {
+                        val userReadyMessage = intent.message as UserReadyMessage
+                        val newUserList = currentState.userList.toMutableMap().apply {
+                            this[userReadyMessage.fromPeerId]?.let { user ->
+                                put(
+                                    userReadyMessage.fromPeerId,
+                                    user.copy(isReady = userReadyMessage.isReady)
+                                )
+                            }
+                        }
+                        currentState.copy(userList = newUserList)
+                    }
                     "round_end" -> currentState.copy(
                         gameState = GameState.RoundResult
                     )
@@ -119,11 +131,13 @@ class MultiPlayReducer @Inject constructor() {
 
             is MultiPlayIntent.GameStarted -> {
                 //yoga 리스트에서 0번 인덱스로 설정하기
+                Timber.d("game_started")
                 currentState.copy(
                     gameState = GameState.Playing,
                     roundIndex = 0,
                     currentPose = currentState.currentRoom!!.userCourse.poses[0],
                 )
+
             }
 
             is MultiPlayIntent.RoundEnded -> {

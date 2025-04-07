@@ -145,7 +145,9 @@ fun MultiPlayScreen(
                     when (uiState.gameState) {
                         GameState.Waiting -> {
                             WaitingScreen(
-                                userList = uiState.userList
+                                myId = uiState.myId,
+                                userList = uiState.userList,
+                                onReadyClick = { viewModel.processIntent(MultiPlayIntent.ReadyClick) }
                             )
                         }
 

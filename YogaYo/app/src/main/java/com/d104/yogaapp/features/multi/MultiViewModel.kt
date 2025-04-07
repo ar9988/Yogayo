@@ -88,6 +88,21 @@ class MultiViewModel @Inject constructor(
     }
 
     private fun createRoom() {
+        // 먼저 selectedCourse가 null인지 확인합니다.
+        if (uiState.value.roomTitle == "") {
+            processIntent(MultiIntent.CreateRoomFail("방 제목을 입력해주세요")) // 사용자에게 보여줄 메시지 수정 가능
+            Timber.w("createRoom cancelled: title is null.") // 로그 기록
+            return // 더 이상 진행하지 않고 함수 종료
+        }
+
+        if (uiState.value.selectedCourse == null) {
+            // selectedCourse가 null이면 즉시 실패 처리하고 함수를 종료합니다.
+            processIntent(MultiIntent.CreateRoomFail("오류 발생: 코스를 선택해주세요.")) // 사용자에게 보여줄 메시지 수정 가능
+            Timber.w("createRoom cancelled: selectedCourse is null.") // 로그 기록
+            return // 더 이상 진행하지 않고 함수 종료
+        }
+
+        // selectedCourse가 null이 아닐 경우에만 방 생성 로직을 진행합니다.
         viewModelScope.launch {
             Timber.d("roomstate:${uiState.value.roomMax} ${uiState.value.roomPassword} ${uiState.value.isPassword}")
             createRoomUseCase(
@@ -95,8 +110,9 @@ class MultiViewModel @Inject constructor(
                 uiState.value.roomMax,
                 uiState.value.isPassword,
                 uiState.value.roomPassword,
-                uiState.value.selectedCourse!!
-            ).collect{ result->
+                // 이제 selectedCourse는 null이 아님이 보장됩니다. (하지만 안전하게 !! 제거 가능)
+                uiState.value.selectedCourse!! // 또는 그냥 uiState.value.selectedCourse 사용 가능
+            ).collect { result ->
                 result.fold(
                     onSuccess = { createRoomResult ->
                         when (createRoomResult) {
@@ -113,6 +129,7 @@ class MultiViewModel @Inject constructor(
                                 // 인증 실패 처리
                                 processIntent(MultiIntent.CreateRoomFail("인증 실패: ${createRoomResult.message}"))
                             }
+                            // 다른 성공/실패 케이스 처리 ...
                         }
                     },
                     onFailure = { throwable ->

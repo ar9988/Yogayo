@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -129,10 +130,6 @@ class MultiPlayViewModel @Inject constructor(
                     } else {
                         Timber.d("User already joined: $peerId")
                     }
-                    if (uiState.value.currentRoom!!.roomMax == uiState.value.userList.size) {
-                        Timber.d("Game started")
-                        sendStartMessage()
-                    }
                 }
                 if (intent.message.type == "game_state") {
                     Timber.d("Game state: ${intent.message}")
@@ -151,6 +148,15 @@ class MultiPlayViewModel @Inject constructor(
                 if (intent.message.type == "user_left") {
                     processIntent(MultiPlayIntent.UserLeft(intent.message.fromPeerId))
                 }
+                if (intent.message.type == "user_ready"){
+                    Timber.d("Received user_ready message for ID: ${intent.message.fromPeerId}")
+                    // --- 게임 시작 조건 확인 (user_ready 시 확인) ---
+                    checkAndSendStartMessageIfNeeded() // 게임 시작 조건 확인 로직 호출
+                }
+            }
+
+            is MultiPlayIntent.ReadyClick -> {
+                sendReadyMessage()
             }
 
             is MultiPlayIntent.ExitRoom -> {
@@ -162,8 +168,6 @@ class MultiPlayViewModel @Inject constructor(
                         uiState.value.currentRoom!!.roomId.toString(), 3
                     )){
                         Timber.d("User left: $myId")
-                        closeWebSocketUseCase()
-                        closeWebRTCUseCase()
                         processIntent(MultiPlayIntent.Exit)
                     } else {
                         Timber.d("Failed to send user left message")
@@ -189,6 +193,45 @@ class MultiPlayViewModel @Inject constructor(
         closeWebRTCUseCase()  // UseCase 내부에서 이미 종료되었는지 확인 로직이 있다면 더 좋음
         super.onCleared()
     }
+
+    private fun checkAndSendStartMessageIfNeeded() {
+        val currentState = _uiState.value // 현재 상태 가져오기
+
+        // currentRoom이 null이면 시작할 수 없음
+        val room = currentState.currentRoom ?: run {
+            Timber.w("checkAndSendStartMessageIfNeeded: currentRoom is null, cannot start game.")
+            return
+        }
+
+        // 조건 1: 모든 유저가 준비 상태인가?
+        val allUsersReady = currentState.userList.isNotEmpty() && // 유저 목록이 비어있지 않고
+                currentState.userList.values.all { it.isReady } // 모든 유저의 isReady가 true
+
+        // 조건 2: 현재 유저 수가 방 최대 인원과 같은가?
+        val roomIsFull = currentState.userList.size == room.roomMax
+
+        Timber.d("Checking start conditions: All Ready = $allUsersReady, Room Full = $roomIsFull (Current: ${currentState.userList.size}, Max: ${room.roomMax})")
+
+        // 두 조건이 모두 참일 때만 시작 메시지 전송
+        if (allUsersReady && roomIsFull) {
+            Timber.i("All conditions met! Sending start game message.")
+            sendStartMessage() // 게임 시작 메시지 전송 함수 호출
+        }
+    }
+
+    private fun sendReadyMessage() {
+        viewModelScope.launch {
+            val id = getUserIdUseCase()
+            uiState.value.userList[id]?.let {
+                sendSignalingMessageUseCase(
+                    id,
+                    uiState.value.currentRoom!!.roomId.toString(),
+                    if (it.isReady) 2 else 1
+                )
+            }
+        }
+    }
+
     private fun sendRoundEndMessage(){
         viewModelScope.launch {
             val id = getUserIdUseCase()
@@ -260,9 +303,7 @@ class MultiPlayViewModel @Inject constructor(
     }
 
     init {
-
         initializeWebRTCUseCase()
-
         viewModelScope.launch {
             try {
                 val roomId = uiState.map { it.currentRoom }
@@ -271,7 +312,18 @@ class MultiPlayViewModel @Inject constructor(
                     .roomId.toString()
 
                 Timber.d("Room ID acquired: $roomId. Setting up WebSocket connection and observation.")
+                val yogaPoses = (uiState.map { it.currentRoom }).filterNotNull().first().userCourse.poses
+                Timber.d("Yoga poses: $yogaPoses")
+                viewModelScope.launch {
+                    // myId 먼저 가져오기 (예시: .first() 사용 등으로 동기적으로 기다리거나)
+                    // 혹은 완료 후 Intent 호출
+                    val fetchedMyId = getUserIdUseCase() // 만약 동기적이지 않다면 아래처럼 launch 안에서 처리
+                    _uiState.update { it.copy(myId = fetchedMyId) } // 또는 processIntent 사용
+                    Timber.d("My ID set in ViewModel state: $fetchedMyId") // 로그 추가
 
+                    // 이후 Room ID 가져오고 웹소켓 연결 등 진행
+                    // ... (기존 웹소켓 로직) ...
+                }
                 // 연결 상태 관찰 및 Join 메시지 전송 (연결 시도와 함께 관리)
                 // observeWebSocketConnectionStateUseCase가 connectWebSocketUseCase 내부의 상태를 반영한다고 가정합니다.
                 // 별도의 launch를 사용하여 상태 변화를 감지하고 Join 메시지를 한 번만 보냅니다.

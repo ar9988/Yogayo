@@ -161,6 +161,7 @@ fun MultiScreen(
         roomPassword = uiState.roomPassword,
         onRoomTitleChange = { viewModel.processIntent(MultiIntent.UpdateRoomTitle(it)) },
         onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) },
+        onRoomPasswordChecked = { viewModel.processIntent(MultiIntent.UpdateRoomPasswordChecked(it)) },
         onConfirm = { viewModel.processIntent(MultiIntent.CreateRoom) },
         onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.CREATING)) },
         onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },

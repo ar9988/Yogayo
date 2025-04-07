@@ -22,7 +22,8 @@ data class MultiPlayState(
     val currentRoom: Room? = null,
     val bitmap: Bitmap? = null,
     val roundIndex: Int = 0,
-    val exit: Boolean = false
+    val exit: Boolean = false,
+    var myId: String? = null,
 )
 
 enum class GameState {
