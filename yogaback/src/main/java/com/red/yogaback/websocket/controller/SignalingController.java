@@ -18,6 +18,9 @@ import org.springframework.stereotype.Controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Controller
 public class SignalingController {
 
@@ -35,17 +38,17 @@ public class SignalingController {
     /**
      * 클라이언트가 "/app/room/{roomId}"로 메시지를 전송하면 해당 메시지를 받아서,
      * payload를 "/topic/room/{roomId}"로 브로드캐스트하는 메소드입니다.
-     *
+     * <p>
      * 동작:
-     *  - @MessageMapping: 클라이언트로부터 수신할 메시지의 경로를 지정합니다.
-     *  - @DestinationVariable: 경로상의 roomId 값을 변수로 사용합니다.
-     *  - @Payload: 클라이언트가 전송한 메시지의 내용을 RoomActionMessage 객체로 매핑합니다.
-     *  - StompHeaderAccessor: 메시지 헤더에서 세션 ID 등 추가 정보를 추출합니다.
-     *
+     * - @MessageMapping: 클라이언트로부터 수신할 메시지의 경로를 지정합니다.
+     * - @DestinationVariable: 경로상의 roomId 값을 변수로 사용합니다.
+     * - @Payload: 클라이언트가 전송한 메시지의 내용을 RoomActionMessage 객체로 매핑합니다.
+     * - StompHeaderAccessor: 메시지 헤더에서 세션 ID 등 추가 정보를 추출합니다.
+     * <p>
      * 개선방향:
-     *  - 현재 세션 검증 로직은 제거되어 있는데, 필요하다면 사용자 인증이나 권한 확인 로직을 추가할 수 있음.
-     *  - 메시지 payload에 대한 유효성 검증이나 필터링 처리가 필요할 수 있음.
-     *  - 로깅 메시지의 상세 수준 및 포맷을 프로젝트 전반에 맞게 일관되게 유지할 수 있음.
+     * - 현재 세션 검증 로직은 제거되어 있는데, 필요하다면 사용자 인증이나 권한 확인 로직을 추가할 수 있음.
+     * - 메시지 payload에 대한 유효성 검증이나 필터링 처리가 필요할 수 있음.
+     * - 로깅 메시지의 상세 수준 및 포맷을 프로젝트 전반에 맞게 일관되게 유지할 수 있음.
      */
     @MessageMapping("/room/{roomId}")
     public void broadcastRoomMessage(@DestinationVariable String roomId,
@@ -66,27 +69,25 @@ public class SignalingController {
         messagingTemplate.convertAndSend("/topic/room/" + roomId, actionMessage.getPayload());
         logger.info("Broadcasted message to /topic/room/{} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
 //        socketRoomService.addParticipant(roomId);
-        logger.info("actionMessage: {}", actionMessage.getPayload().toString() );
+        logger.info("actionMessage: {}", actionMessage.getPayload().toString());
         ObjectMapper mapper = new ObjectMapper();
-        ActionPayload payloadObj = mapper.readValue(actionMessage.getPayload().toString(), ActionPayload.class);
-        String type = payloadObj.getType();
-        logger.info("type: {}", type );
+        String type = parsingActionMessage(actionMessage.getPayload().toString());
+        logger.info("type: {}", type);
     }
 
-    public static class ActionPayload {
-        private String type;
-        private String fromPeerId;
-        private String userNickName;
+    public String parsingActionMessage(String raw) {
+        raw = raw.replaceAll("[{} ]", "");
+        String[] entries = raw.split(",");
 
-        // Getter/Setter
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
+        Map<String, String> map = new HashMap<>();
+        for (String entry : entries) {
+            String[] keyValue = entry.split("=");
+            if (keyValue.length == 2) {
+                map.put(keyValue[0], keyValue[1]);
+            }
+        }
 
-        public String getFromPeerId() { return fromPeerId; }
-        public void setFromPeerId(String fromPeerId) { this.fromPeerId = fromPeerId; }
-
-        public String getUserNickName() { return userNickName; }
-        public void setUserNickName(String userNickName) { this.userNickName = userNickName; }
+        return map.get("type");
     }
 
 
