@@ -75,9 +75,11 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
+
         try {
             StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
             String sessionId = headerAccessor.getSessionId();
+            logger.info(">> Disconnect listener entered for session: {}", sessionId);
             logger.debug("Disconnect event received for session: {}", sessionId);
 
             // 연결 정보 제거
