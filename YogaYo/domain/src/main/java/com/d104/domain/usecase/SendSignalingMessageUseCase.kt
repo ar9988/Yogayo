@@ -48,7 +48,7 @@ class SendSignalingMessageUseCase @Inject constructor(
                         type = "user_not_ready" // type 명확히 구분 필요
                     )
                 }
-                3 -> { // Left (주석은 4였으나 코드는 3)
+                3 -> {
                     messageToSend = UserLeftMessage(
                         fromPeerId = user.userId.toString(),
                         type = "user_left"

@@ -1,13 +1,14 @@
 package com.d104.yogaapp.features.multi.play
 
 import android.graphics.Bitmap
+import com.d104.domain.model.PeerUser
 import com.d104.domain.model.Room
 import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.YogaPose
 
 sealed class MultiPlayIntent {
-    data class UserJoined(val userId: String) : MultiPlayIntent()
+    data class UserJoined(val user: PeerUser) : MultiPlayIntent()
     data class UserLeft(val userId: String) : MultiPlayIntent()
     data class UserReady(val userId: String) : MultiPlayIntent()
     data class UserNotReady(val userId: String) : MultiPlayIntent()
@@ -23,7 +24,6 @@ sealed class MultiPlayIntent {
     data class UpdateTimerProgress(val progress: Float) : MultiPlayIntent()
     data class SendHistory(val pose: YogaPose,val accuracy: Float,val time: Float,val bitmap: Bitmap) : MultiPlayIntent()
     data class SetCurrentHistory(val accuracy: Float,val time: Float) : MultiPlayIntent()
-
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()
