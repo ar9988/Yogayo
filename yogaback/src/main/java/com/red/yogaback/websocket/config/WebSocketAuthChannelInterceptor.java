@@ -2,7 +2,13 @@
 // 유효한 토큰의 경우 사용자 정보를 세션에 저장합니다.
 package com.red.yogaback.websocket.config;
 
+import com.red.yogaback.model.Room;
+import com.red.yogaback.model.User;
+import com.red.yogaback.repository.RoomRepository;
+import com.red.yogaback.repository.UserRepository;
+import com.red.yogaback.security.SecurityUtil;
 import com.red.yogaback.security.jwt.JWTUtil;
+import com.red.yogaback.websocket.service.SocketRoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -15,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
@@ -23,11 +30,18 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketAuthChannelInterceptor.class);
 
     private final JWTUtil jwtUtil;
+    private final UserRepository userRepository;
+    private final RoomRepository roomRepository;
+    private final SocketRoomService socketRoomService;
 
     // JWTUtil을 의존성 주입받음
     @Autowired
-    public WebSocketAuthChannelInterceptor(JWTUtil jwtUtil) {
+    public WebSocketAuthChannelInterceptor(JWTUtil jwtUtil, UserRepository userRepository,RoomRepository roomRepository,
+                                           SocketRoomService socketRoomService) {
         this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
+        this.roomRepository = roomRepository;
+        this.socketRoomService = socketRoomService;
     }
 
     /**
@@ -43,7 +57,21 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         // STOMP 메시지 헤더에 접근하기 위해 StompHeaderAccessor를 사용합니다.
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor != null && StompCommand.DISCONNECT.equals(accessor.getCommand())){
+            Long userId = SecurityUtil.getCurrentMemberId();
+            User user = userRepository.findById(userId).orElseThrow(()->
+                    new RuntimeException(""));
+            Room room = roomRepository.findByUser(user);
+            socketRoomService.removeParticipant(room.getRoomId().toString());
+        }
 
+        if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())){
+            Long userId = SecurityUtil.getCurrentMemberId();
+            User user = userRepository.findById(userId).orElseThrow(()->
+                    new RuntimeException(""));
+            Room room = roomRepository.findByUser(user);
+            socketRoomService.addParticipant(room.getRoomId().toString());
+        }
         // CONNECT 명령에 대해서만 JWT 토큰 인증 로직을 수행합니다.
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             // "Authorization" 헤더를 리스트 형태로 추출
