@@ -233,6 +233,7 @@ class WebRTCManager @Inject constructor(
                 val state = dataChannel.state()
                 Log.d(TAG, "DataChannel $peerId: State changed to $state")
                 if (state == DataChannel.State.OPEN) {
+                    broadcastData("Hello from $peerId".toByteArray()) // 예시: 데이터 전송
                     // 데이터 채널 열림! 데이터 전송 가능
                 } else if (state == DataChannel.State.CLOSED) {
                     // 데이터 채널 닫힘
