@@ -77,6 +77,7 @@ public class WebSocketEventListener {
 
         // 구독 시 연결 정보 업데이트 (UserSession이 이미 등록되어 있다고 가정)
         UserSession userSession = userSessionService.getSession(sessionId);
+        logger.info("userSession : {}",userSession);
         if (userSession != null) {
             logger.info("userSession : {}",userSession);
             connectionService.updateConnection(sessionId, userSession.getRoomId(), userSession.getUserId());
