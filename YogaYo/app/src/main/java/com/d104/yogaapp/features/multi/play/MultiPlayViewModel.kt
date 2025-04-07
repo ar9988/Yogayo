@@ -175,7 +175,7 @@ class MultiPlayViewModel @Inject constructor(
         viewModelScope.launch {
             val myId = getUserIdUseCase()
             uiState.value.userList.forEach { it ->
-                if (it.key != myId)
+                if (it.key < myId)
                     initiateConnectionUseCase(myId, it.value.id)
             }
         }
