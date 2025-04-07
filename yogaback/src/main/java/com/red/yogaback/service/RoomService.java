@@ -100,7 +100,7 @@ public class RoomService {
             return new ArrayList<>();
         }
         return allRooms.stream().filter(room ->
-                room.getRoomState() == 1).map(room -> {
+                room.getRoomState() == 1L).map(room -> {
             User user = userRepository.findById(room.getCreatorId()).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
             RoomRequest roomRequest = new RoomRequest();
             roomRequest.setRoomId(room.getRoomId());

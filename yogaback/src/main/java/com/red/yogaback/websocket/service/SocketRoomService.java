@@ -5,9 +5,11 @@ import com.red.yogaback.repository.RoomRepository;
 import com.red.yogaback.service.RoomService;
 import com.red.yogaback.service.SseEmitterService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SocketRoomService {
@@ -37,6 +39,7 @@ public class SocketRoomService {
             room.setRoomCount(currentCount + 1);
             roomRepository.save(room);
             sseEmitterService.notifyRoomUpdate(roomService.getAllRooms(""));
+            log.info("방 들어옴 room : {}",room);
         }
     }
 
@@ -53,6 +56,8 @@ public class SocketRoomService {
                 }
                 roomRepository.save(room);
                 sseEmitterService.notifyRoomUpdate(roomService.getAllRooms(""));
+
+                log.info("방 나가기 room : {}",room);
             }
         }
     }
