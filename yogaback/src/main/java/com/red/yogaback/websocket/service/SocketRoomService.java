@@ -2,13 +2,17 @@ package com.red.yogaback.websocket.service;
 
 import com.red.yogaback.model.Room;
 import com.red.yogaback.repository.RoomRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SocketRoomService {
 
     private final RoomRepository roomRepository;
+    private static final Logger logger = LoggerFactory.getLogger(SocketRoomService.class);
 
     @Autowired
     public SocketRoomService(RoomRepository roomRepository) {
@@ -43,12 +47,18 @@ public class SocketRoomService {
      *  - 동시성 이슈 방지를 위해 데이터베이스 레벨의 증가 쿼리(예: @Modifying 쿼리)를 활용할 수 있습니다.
      *  - roomCount 변경 시 이벤트 발행(예: ApplicationEventPublisher)으로 다른 컴포넌트에 알릴 수 있습니다.
      */
+    @Transactional
     public void addParticipant(String roomIdStr) {
+        logger.debug("Adding participant to room: {}", roomIdStr);
         Room room = getRoom(roomIdStr);
         if (room != null) {
-            int currentCount = room.getRoomCount(); // null 체크 불필요
+            int currentCount = room.getRoomCount();
+            logger.debug("Current room count: {}", currentCount);
             room.setRoomCount(currentCount + 1);
             roomRepository.save(room);
+            logger.debug("Updated room count to: {}", room.getRoomCount());
+        } else {
+            logger.warn("Room not found: {}", roomIdStr);
         }
     }
 
@@ -61,18 +71,25 @@ public class SocketRoomService {
      *  - roomState를 enum 타입으로 관리하면 가독성과 안정성이 높아집니다.
      *  - 삭제 후 roomCount가 0일 때 방을 아예 삭제하거나 아카이브하는 로직을 추가할 수 있습니다.
      */
+    @Transactional
     public void removeParticipant(String roomIdStr) {
+        logger.debug("Removing participant from room: {}", roomIdStr);
         Room room = getRoom(roomIdStr);
         if (room != null) {
             int currentCount = room.getRoomCount();
+            logger.debug("Current room count: {}", currentCount);
             if (currentCount > 0) {
                 room.setRoomCount(currentCount - 1);
                 if (room.getRoomCount() == 0) {
-                    // 인원이 0이면 roomState를 0으로 업데이트
                     room.setRoomState(0L);
                 }
                 roomRepository.save(room);
+                logger.debug("Updated room count to: {}", room.getRoomCount());
+            } else {
+                logger.warn("Room count is already 0 or negative: {}", currentCount);
             }
+        } else {
+            logger.warn("Room not found: {}", roomIdStr);
         }
     }
 }

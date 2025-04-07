@@ -73,25 +73,29 @@ public class WebSocketEventListener {
             String roomId = userSession.getRoomId();
             String userId = userSession.getUserId();
 
+            logger.debug("Attempting to remove participant - roomId: {}, userId: {}", roomId, userId);
+
             try {
                 // DB 업데이트는 별도의 try-catch로 처리
                 roomService.removeParticipant(roomId);
+                logger.debug("Successfully removed participant from room");
             } catch (Exception e) {
-                logger.error("Failed to update room participant count: {}", e.getMessage());
+                logger.error("Failed to update room participant count: {}", e.getMessage(), e);
             }
 
             // 메시지 발송도 실패할 수 있으므로 별도 처리
             try {
                 messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
                         userId + "님이 나갔습니다.");
+                logger.debug("Successfully sent leave message");
             } catch (Exception e) {
-                logger.error("Failed to send leave message: {}", e.getMessage());
+                logger.error("Failed to send leave message: {}", e.getMessage(), e);
             }
 
             userSessionService.removeSession(sessionId);
             
         } catch (Exception e) {
-            logger.error("Error handling WebSocket disconnect: {}", e.getMessage());
+            logger.error("Error handling WebSocket disconnect: {}", e.getMessage(), e);
         }
     }
 
