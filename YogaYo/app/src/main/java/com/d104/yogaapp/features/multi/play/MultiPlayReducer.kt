@@ -113,8 +113,17 @@ class MultiPlayReducer @Inject constructor() {
             }
 
             is MultiPlayIntent.GameStarted -> {
+                //yoga 리스트에서 0번 인덱스로 설정하기
                 currentState.copy(
-                    gameState = GameState.Playing
+                    gameState = GameState.Playing,
+                    roundIndex = 0
+                )
+            }
+
+            is MultiPlayIntent.RoundStarted -> {
+                currentState.copy(
+                    gameState = GameState.Playing,
+                    roundIndex = intent.state
                 )
             }
 
