@@ -17,11 +17,26 @@ class MultiPlayReducer @Inject constructor() {
                 Timber.d("user_left ${intent.userId}")
                 currentState.copy(userList = newUserList)
             }
+
             is MultiPlayIntent.UpdateCameraPermission -> currentState.copy(
                 cameraPermissionGranted = intent.granted
             )
 
-            is MultiPlayIntent.UserJoined -> currentState.copy()
+            is MultiPlayIntent.UserJoined -> {
+                val user = intent.user
+                val newUserList = currentState.userList.toMutableMap().apply {
+                    put(
+                        user.id, PeerUser(
+                            user.id,
+                            user.nickName
+                        )
+                    )
+                }
+                Timber.d("user_joined ${user.id}")
+                currentState.copy(userList = newUserList)
+
+            }
+
             is MultiPlayIntent.ClickMenu -> currentState.copy(
                 menuClicked = !currentState.menuClicked
             )
@@ -72,24 +87,15 @@ class MultiPlayReducer @Inject constructor() {
 
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
                 when (intent.message.type) {
-                    "user_joined" -> {
-                        val userJoinedMessage = intent.message as UserJoinedMessage
-                        val newPeerId = userJoinedMessage.fromPeerId
-                        val newUserList = currentState.userList.toMutableMap().apply {
-                            put(newPeerId, PeerUser(
-                                newPeerId,
-                                userJoinedMessage.userNickName
-                            ))
-                        }
-                        Timber.d("user_joined $newPeerId")
-                        currentState.copy(userList = newUserList)
-                    }
 
                     "user_ready" -> {
                         val userReadyMessage = intent.message as UserReadyMessage
                         val newUserList = currentState.userList.toMutableMap().apply {
                             this[userReadyMessage.fromPeerId]?.let { user ->
-                                put(userReadyMessage.fromPeerId, user.copy(isReady = userReadyMessage.isReady))
+                                put(
+                                    userReadyMessage.fromPeerId,
+                                    user.copy(isReady = userReadyMessage.isReady)
+                                )
                             }
                         }
                         currentState.copy(userList = newUserList)
@@ -98,16 +104,19 @@ class MultiPlayReducer @Inject constructor() {
 //                        gameState = GameState.Playing
 //                    )
                     "round_start" -> currentState.copy(
-                        roundIndex = currentState.roundIndex+1,
+                        roundIndex = currentState.roundIndex + 1,
                         gameState = GameState.Playing
                         //기타 스테이트 처리
                     )
+
                     "round_end" -> currentState.copy(
                         gameState = GameState.RoundResult
                     )
+
                     "game_end" -> currentState.copy(
                         gameState = GameState.GameResult
                     )
+
                     else -> currentState
                 }
             }
@@ -140,7 +149,7 @@ class MultiPlayReducer @Inject constructor() {
                 )
             }
 
-            is MultiPlayIntent.UpdateScore ->{
+            is MultiPlayIntent.UpdateScore -> {
                 val score = intent.scoreUpdateMessage.score
                 val userId = intent.id
                 // 기존 사용자 데이터 가져오기

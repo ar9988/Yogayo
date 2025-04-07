@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
+import com.d104.domain.model.PeerUser
 import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
@@ -25,6 +26,7 @@ import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCUseCase
 import com.d104.domain.utils.StompConnectionState
 import com.d104.yogaapp.utils.bitmapToBase64
+import com.google.rpc.context.AttributeContext.Peer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -97,7 +99,6 @@ class MultiPlayViewModel @Inject constructor(
     }
 
     fun processIntent(intent: MultiPlayIntent) {
-
         val newState = multiPlayReducer.reduce(_uiState.value, intent)
         _uiState.value = newState
         when (intent) {
@@ -119,8 +120,18 @@ class MultiPlayViewModel @Inject constructor(
                 if (intent.message.type == "user_joined") {
                     Timber.d("User joined: ${intent.message}")
                     val peerId = (intent.message as UserJoinedMessage).fromPeerId
+                    val nickname = intent.message.userNickName
                     if (!uiState.value.userList.keys.contains(peerId)) {
+                        processIntent(MultiPlayIntent.UserJoined(PeerUser(
+                            id = peerId,
+                            nickName = nickname,
+                            isReady = false,
+                            totalScore = 0,
+                            roundScore = 0.0f
+                        )))
                         sendJoinMessage()
+                    } else {
+                        Timber.d("User already joined: $peerId")
                     }
                     if (uiState.value.currentRoom!!.roomMax == uiState.value.userList.size) {
                         Timber.d("Game started")
@@ -150,12 +161,16 @@ class MultiPlayViewModel @Inject constructor(
                 // 방 나가기 처리
                 viewModelScope.launch {
                     val myId = getUserIdUseCase()
-                    sendSignalingMessageUseCase(
+                    if(sendSignalingMessageUseCase(
                         myId,
                         uiState.value.currentRoom!!.roomId.toString(), 3
-                    )
-                    closeWebSocketUseCase()
-                    closeWebRTCUseCase()
+                    )){
+                        Timber.d("User left: ${myId}")
+                        closeWebSocketUseCase()
+                        closeWebRTCUseCase()
+                    } else {
+                        Timber.d("Failed to send user left message")
+                    }
                 }
             }
 
@@ -163,11 +178,6 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
-    override fun onCleared() {
-        closeWebSocketUseCase()
-        closeWebRTCUseCase()
-        super.onCleared()
-    }
 
     private fun sendJoinMessage() {
         viewModelScope.launch {
