@@ -31,7 +31,9 @@ class SoloYogaPlayReducer @Inject constructor() {
                 state.copy(
                     timerProgress = 1f,
                     isPlaying = true,
-                    isCountingDown = true
+                    isCountingDown = true,
+                    remainingTime = 0f,
+                    currentAccuracy = 0f,
                 )
             }
             is SoloYogaPlayIntent.UpdateTimerProgress -> {

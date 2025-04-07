@@ -150,7 +150,8 @@ fun YogaPlayScreen(
 
                             }
                         }
-                    }
+                    },
+                    isReset = timerProgress==1f
                 )
 
                 // 일시정지/재생 버튼
@@ -216,7 +217,8 @@ fun CameraPreview(
     onSendResult: (YogaPose,Float,Float, Bitmap) -> Unit={_,_,_,_->},
     viewModel: CameraViewModel = hiltViewModel(),
     isCountingDown: Boolean = false,
-    onRessultFeedback: (Float,Float,String) -> Unit={_,_,_->}
+    onRessultFeedback: (Float,Float,String) -> Unit={_,_,_->},
+    isReset:Boolean = false
 ) {
 //    Timber.d("camera countDown ${isCountingDown}4")
     val context = LocalContext.current
@@ -341,7 +343,7 @@ fun CameraPreview(
                 onSendResult(
                     viewModel.currentPose,
                     viewModel.bestAccuracy,
-                    viewModel.remainingPoseTime,
+                    Math.min(viewModel.remainingPoseTime,20.0f),
                     bitmap
                 )
             }
@@ -351,12 +353,16 @@ fun CameraPreview(
         }
     }
 
+    LaunchedEffect(isReset) {
+        if(isReset){
+            viewModel.resetData()
+        }
+    }
     LaunchedEffect(isCountingDown) {
         viewModel.setAnalysisPaused(isCountingDown)
     }
 
     LaunchedEffect(pose) {
-
         viewModel.initPose(pose)
     }
 

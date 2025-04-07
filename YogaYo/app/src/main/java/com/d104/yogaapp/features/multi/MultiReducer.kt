@@ -1,6 +1,5 @@
 package com.d104.yogaapp.features.multi
 
-import timber.log.Timber
 import javax.inject.Inject
 
 class MultiReducer @Inject constructor() {
@@ -112,6 +111,10 @@ class MultiReducer @Inject constructor() {
 
             is MultiIntent.ClearErrorMessage -> currentState.copy(
                 errorMessage = null
+            )
+
+            is MultiIntent.UpdateRoomMaxCount -> currentState.copy(
+                roomMax = intent.maxCount
             )
         }
     }

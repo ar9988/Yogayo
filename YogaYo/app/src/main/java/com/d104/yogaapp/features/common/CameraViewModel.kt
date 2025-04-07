@@ -123,9 +123,14 @@ class CameraViewModel @Inject constructor(
     fun initPose(pose:YogaPose){
         currentPose = pose
         _currentIdx.value = idToIndex(pose.poseId)
+        resetData()
+    }
+
+    fun resetData(){
         _rawAccuracy.value = 0f
         bestAccuracy = 0f
         remainingPoseTime = 0F
+        bestResultBitmap?.recycle()
         bestResultBitmap = null
         lastProcessedFrameTimestampMs = -1L
     }

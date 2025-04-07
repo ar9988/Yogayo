@@ -160,7 +160,8 @@ fun MultiScreen(
         onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.CREATING)) },
         onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },
         onEditCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
-        userCourses = uiState.yogaCourses
+        userCourses = uiState.yogaCourses,
+        onMaxCountChanged = {viewModel.processIntent(MultiIntent.UpdateRoomMaxCount(it))}
     )
     // 방 참가 다이얼로그
     EnterRoomDialog(

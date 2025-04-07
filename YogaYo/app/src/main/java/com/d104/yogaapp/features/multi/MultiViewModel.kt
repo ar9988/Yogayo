@@ -89,6 +89,7 @@ class MultiViewModel @Inject constructor(
 
     private fun createRoom() {
         viewModelScope.launch {
+            Timber.d("roomstate:${uiState.value.roomMax} ${uiState.value.roomPassword} ${uiState.value.isPassword}")
             createRoomUseCase(
                 uiState.value.roomTitle,
                 uiState.value.roomMax,

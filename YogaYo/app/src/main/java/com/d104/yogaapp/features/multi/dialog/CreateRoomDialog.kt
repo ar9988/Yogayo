@@ -50,11 +50,13 @@ fun CreateRoomDialog(
     roomPassword: String,
     onRoomTitleChange: (String) -> Unit,
     onRoomPasswordChange: (String) -> Unit,
+    onMaxCountChanged:(Int)->Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onCourseSelect: (UserCourse) -> Unit,
     userCourses: List<UserCourse>,
-    onEditCourse: () -> Unit
+    onEditCourse: () -> Unit,
+
 ) {
     var peopleExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
@@ -115,6 +117,14 @@ fun CreateRoomDialog(
                                         text = { Text(option) },
                                         onClick = {
                                             selectedMaxCount = option
+                                            var count = 2
+                                            when(option) {
+                                                "1 명" -> count = 1
+                                                "2 명" -> count = 2
+                                                "3 명" -> count = 3
+                                                "4 명" -> count = 4
+                                            }
+                                            onMaxCountChanged(count)
                                             peopleExpanded = false
                                         }
                                     )
