@@ -2,18 +2,20 @@ package com.red.yogaback.websocket.service;
 
 import com.red.yogaback.model.Room;
 import com.red.yogaback.repository.RoomRepository;
+import com.red.yogaback.service.RoomService;
+import com.red.yogaback.service.SseEmitterService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class SocketRoomService {
 
     private final RoomRepository roomRepository;
+    private final SseEmitterService sseEmitterService;
+    private final RoomService roomService;
 
-    @Autowired
-    public SocketRoomService(RoomRepository roomRepository) {
-        this.roomRepository = roomRepository;
-    }
 
     // 문자열 형태의 roomId를 Long으로 변환하여 Room 엔티티를 조회합니다.
     public Room getRoom(String roomIdStr) {
@@ -34,6 +36,7 @@ public class SocketRoomService {
             // 방 생성 시 roomCount가 1로 시작하도록 설정되어 있다면, 추가 입장 시 증가
             room.setRoomCount(currentCount + 1);
             roomRepository.save(room);
+            sseEmitterService.notifyRoomUpdate(roomService.getAllRooms(""));
         }
     }
 
@@ -49,6 +52,7 @@ public class SocketRoomService {
                     room.setRoomState(0L);
                 }
                 roomRepository.save(room);
+                sseEmitterService.notifyRoomUpdate(roomService.getAllRooms(""));
             }
         }
     }
