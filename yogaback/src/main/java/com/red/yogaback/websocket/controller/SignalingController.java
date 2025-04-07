@@ -73,9 +73,9 @@ public class SignalingController {
         ObjectMapper mapper = new ObjectMapper();
         String type = parsingActionMessage(actionMessage.getPayload().toString());
         logger.info("type: {}", type);
-        if (type.equals("user_joined")){
-            socketRoomService.addParticipant(roomId);
-        }
+//        if (type.equals("user_joined")){
+//            socketRoomService.addParticipant(roomId);
+//        }
 
     }
 
