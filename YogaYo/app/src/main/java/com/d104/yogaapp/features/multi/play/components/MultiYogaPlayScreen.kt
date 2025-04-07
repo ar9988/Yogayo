@@ -1,6 +1,7 @@
 package com.d104.yogaapp.features.multi.play.components
 
 import android.graphics.Bitmap
+import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,15 +29,22 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.d104.domain.model.PeerUser
+import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.CameraPreview
 import com.d104.yogaapp.features.multi.play.GameState
@@ -44,15 +52,27 @@ import com.d104.yogaapp.features.multi.play.GameState
 
 @Composable
 fun MultiYogaPlayScreen(
+    isCountingDown: Boolean = false,
     timerProgress: Float,
     isPlaying: Boolean,
     onPause: () -> Unit,
     leftContent: @Composable () -> Unit,
-    onImageCaptured: (Bitmap) -> Unit = {},
+    onSendResult: (YogaPose, Float, Float, Bitmap) -> Unit ={ _, _, _, _->},
     gameState: GameState,
     isMenuClicked: Boolean,
-    userList: Map<String, PeerUser>
+    userList: Map<String, PeerUser>,
+    pose: YogaPose,
+    onAccuracyUpdate:(Float,Float)->Unit = {_,_->}
 ) {
+    // TTS 초기화 및 상태 관리
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // TTS 인스턴스 생성
+    val textToSpeech = remember { mutableStateOf<TextToSpeech?>(null) }
+    var currentDescriptionIndex by remember { mutableStateOf(-1) } // -1로 시작하면 아직 설명 시작 전
+    var isReadingPoseName by remember { mutableStateOf(false) } // 포즈 이름 읽는 중인지 상태
+    val isTtsReady by remember { mutableStateOf(false) }
     when (gameState) {
         GameState.RoundResult -> {
             Box(
@@ -192,8 +212,25 @@ fun MultiYogaPlayScreen(
                         CameraPreview(
                             modifier = Modifier.fillMaxSize(),
                             isPlaying = isPlaying,
-//                            onImageCaptured = onImageCaptured,
-//                            poseId = 1.toString(),
+                            onSendResult = onSendResult,
+                            pose = pose,
+                            isCountingDown = isCountingDown,
+                            onRessultFeedback = {accuracy,time,feedback->
+                                onAccuracyUpdate(accuracy,time )
+                                if (feedback.isNotEmpty() && isTtsReady&&isPlaying) {
+                                    textToSpeech.value?.let{textToSpeech->
+                                        if(!textToSpeech.isSpeaking){
+                                            textToSpeech.speak(
+                                                feedback,
+                                                TextToSpeech.QUEUE_ADD, // QUEUE_FLUSH 대신 QUEUE_ADD 사용
+                                                null,
+                                                "text_${System.currentTimeMillis()}" // 고유한 식별자 사용
+                                            )
+                                        }
+
+                                    }
+                                }
+                            }
                         )
                         if (isPlaying) {
                             // 현재 등수 이미지 추가하기

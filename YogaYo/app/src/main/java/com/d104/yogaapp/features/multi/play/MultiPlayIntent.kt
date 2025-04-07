@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import com.d104.domain.model.Room
 import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.SignalingMessage
+import com.d104.domain.model.YogaPose
 
 sealed class MultiPlayIntent {
     data class UserJoined(val userId: String) : MultiPlayIntent()
@@ -19,6 +20,10 @@ sealed class MultiPlayIntent {
     data class ReceiveWebRTCImage(val bitmap:Bitmap) : MultiPlayIntent()
     data class UpdateScore(val id: String,val scoreUpdateMessage: ScoreUpdateMessage) : MultiPlayIntent()
     data class RoundStarted(val state: Int) : MultiPlayIntent()
+    data class UpdateTimerProgress(val progress: Float) : MultiPlayIntent()
+    data class SendHistory(val pose: YogaPose,val accuracy: Float,val time: Float,val bitmap: Bitmap) : MultiPlayIntent()
+    data class SetCurrentHistory(val accuracy: Float,val time: Float) : MultiPlayIntent()
+
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()

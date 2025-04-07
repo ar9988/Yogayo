@@ -4,6 +4,7 @@ import com.d104.domain.model.PeerUser
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
 import com.d104.domain.model.UserReadyMessage
+import timber.log.Timber
 import javax.inject.Inject
 
 class MultiPlayReducer @Inject constructor() {
@@ -74,6 +75,7 @@ class MultiPlayReducer @Inject constructor() {
                                 userJoinedMessage.userNickName
                             ))
                         }
+                        Timber.d("user_joined $newPeerId")
                         currentState.copy(userList = newUserList)
                     }
 
@@ -130,6 +132,12 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.ReceiveWebRTCImage -> {
                 currentState.copy(
                     bitmap = intent.bitmap
+                )
+            }
+
+            is MultiPlayIntent.UpdateTimerProgress -> {
+                currentState.copy(
+                    timerProgress = intent.progress
                 )
             }
 

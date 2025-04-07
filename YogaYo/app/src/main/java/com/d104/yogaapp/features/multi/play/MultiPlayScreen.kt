@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +41,7 @@ import com.d104.yogaapp.features.multi.play.components.WaitingScreen
 import com.d104.yogaapp.features.multi.play.result.DetailScreen
 import com.d104.yogaapp.features.multi.play.result.GalleryScreen
 import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
+import com.d104.yogaapp.features.solo.play.SoloYogaPlayIntent
 
 
 @Composable
@@ -158,10 +160,14 @@ fun MultiPlayScreen(
                         else -> {}
                     }
                 },
-                onImageCaptured = { bitmap ->
-                    viewModel.processIntent(MultiPlayIntent.CaptureImage(bitmap))
-                },
-                userList = uiState.userList
+                isCountingDown = uiState.isCountingDown,
+                onSendResult = {pose,accuracy, time, bitmap: Bitmap ->  viewModel.processIntent(
+                    MultiPlayIntent.SendHistory(pose,accuracy, time, bitmap))},
+                userList = uiState.userList,
+                pose = uiState.currentPose,
+                onAccuracyUpdate = {accuracy,time->
+                    viewModel.processIntent(MultiPlayIntent.SetCurrentHistory(accuracy,time))
+                }
             )
 
             // 일시정지 오버레이 표시

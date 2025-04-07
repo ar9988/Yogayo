@@ -27,6 +27,8 @@ import com.d104.domain.utils.StompConnectionState
 import com.d104.yogaapp.utils.bitmapToBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -59,8 +61,45 @@ class MultiPlayViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
+    private var currentTimerStep: Float = 1f
+    private val totalTimeMs = 20_000L //테스트용 5초
+    private var timerJob: Job? = null
+    private val intervalMs = 100L // 0.1초마다 업데이트
+    private val totalSteps = totalTimeMs / intervalMs
+    private fun startTimer() {
+        if (!uiState.value.isPlaying || !uiState.value.cameraPermissionGranted || uiState.value.currentRoom!!.userCourse.tutorial) return
+
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            // 현재 진행 상태에 맞는 단계 계산
+            val startStep = (currentTimerStep * totalSteps).toInt()
+
+            // 현재 단계부터 카운트다운 시작
+            for (step in startStep downTo 0) {
+                val progress = step.toFloat() / totalSteps
+                processIntent(MultiPlayIntent.UpdateTimerProgress(progress))
+                delay(intervalMs)
+
+                if (!uiState.value.isPlaying || !uiState.value.cameraPermissionGranted || uiState.value.isCountingDown) {
+                    break
+                }
+            }
+
+            // 타이머 종료 후 다음 동작으로 자동 전환
+//            if (state.value.timerProgress <= 0f) {
+////                if(state.value.isLogin&&!state.value.userCourse.tutorial){
+////                    val currentidx = state.value.currentPoseIndex
+////                    Timber.d("history:${state.value.poseHistories}")
+////                }
+//                processIntent(SoloYogaPlayIntent.GoToNextPose)
+//            }
+        }
+    }
 
     fun processIntent(intent: MultiPlayIntent) {
+
+        val newState = multiPlayReducer.reduce(_uiState.value, intent)
+        _uiState.value = newState
         when (intent) {
             is MultiPlayIntent.UpdateCameraPermission -> {
                 if (intent.granted) {
@@ -80,9 +119,9 @@ class MultiPlayViewModel @Inject constructor(
                 if (intent.message.type == "user_joined") {
                     Timber.d("User joined: ${intent.message}")
                     val peerId = (intent.message as UserJoinedMessage).fromPeerId
-                    if (!uiState.value.userList.keys.contains(peerId)) {
-                        sendJoinMessage()
-                    }
+//                    if (!uiState.value.userList.keys.contains(peerId)) {
+//                        sendJoinMessage()
+//                    }
                     if (uiState.value.currentRoom!!.roomMax == uiState.value.userList.size) {
                         Timber.d("Game started")
                         sendStartMessage()
@@ -96,15 +135,14 @@ class MultiPlayViewModel @Inject constructor(
                         Timber.d("Game started")
                         processIntent(MultiPlayIntent.GameStarted)
                         initiateMeshNetwork()
-                    } else if(state >= 1) {
+                    } else if (state >= 1) {
                         Timber.d("Round $state started")
                         processIntent(MultiPlayIntent.RoundStarted(state))
                     }
+                    startTimer()
                 }
-                else {
-                    processIntent(
-                        MultiPlayIntent.ReceiveWebSocketMessage(intent.message)
-                    )
+                if (intent.message.type == "user_left") {
+                    processIntent(MultiPlayIntent.UserLeft(intent.message.fromPeerId))
                 }
             }
 
@@ -123,8 +161,6 @@ class MultiPlayViewModel @Inject constructor(
 
             else -> {}
         }
-        val newState = multiPlayReducer.reduce(_uiState.value, intent)
-        _uiState.value = newState
     }
 
     override fun onCleared() {
@@ -136,7 +172,8 @@ class MultiPlayViewModel @Inject constructor(
     private fun sendJoinMessage() {
         viewModelScope.launch {
             val id = getUserIdUseCase()
-            sendSignalingMessageUseCase(id,
+            sendSignalingMessageUseCase(
+                id,
                 uiState.value.currentRoom!!.roomId.toString(),
                 0
             )
@@ -146,9 +183,10 @@ class MultiPlayViewModel @Inject constructor(
     private fun sendStartMessage() {
         viewModelScope.launch {
             val id = getUserIdUseCase()
-            if (uiState.value.gameState==GameState.Waiting&&id.toLong() == uiState.value.currentRoom!!.userId) {
+            if (uiState.value.gameState == GameState.Waiting && id.toLong() == uiState.value.currentRoom!!.userId) {
                 Timber.d("Sending start message")
-                sendSignalingMessageUseCase(id,
+                sendSignalingMessageUseCase(
+                    id,
                     uiState.value.currentRoom!!.roomId.toString(),
                     4
                 )
@@ -246,6 +284,7 @@ class MultiPlayViewModel @Inject constructor(
                             processChunkImageUseCase((it.second as ImageChunkMessage))
 //                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(base64ToBitmap((it.second as ImageChunkMessage).dataBase64)!!))
                         }
+
                         is ScoreUpdateMessage -> {
                             processIntent(
                                 MultiPlayIntent.UpdateScore(
@@ -275,3 +314,4 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 }
+//
