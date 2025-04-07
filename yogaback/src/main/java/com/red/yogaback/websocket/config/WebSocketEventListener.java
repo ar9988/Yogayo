@@ -61,41 +61,41 @@ public class WebSocketEventListener {
         try {
             StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
             String sessionId = headerAccessor.getSessionId();
+            logger.debug("Disconnect event received for session: {}", sessionId);
             
-            // 연결 종료 처리
+            // 1. 연결 정보 제거
             connectionService.removeConnection(sessionId);
+            logger.debug("Connection removed for session: {}", sessionId);
+            
+            // 2. 사용자 세션 정보 조회
             UserSession userSession = userSessionService.getSession(sessionId);
             if (userSession == null) {
                 logger.warn("Session not found for sessionId: {}", sessionId);
                 return;
             }
+            logger.debug("Found user session: {}", userSession);
             
             String roomId = userSession.getRoomId();
             String userId = userSession.getUserId();
 
-            logger.debug("Attempting to remove participant - roomId: {}, userId: {}", roomId, userId);
-
-            try {
-                // DB 업데이트는 별도의 try-catch로 처리
-                roomService.removeParticipant(roomId);
-                logger.debug("Successfully removed participant from room");
-            } catch (Exception e) {
-                logger.error("Failed to update room participant count: {}", e.getMessage(), e);
-            }
-
-            // 메시지 발송도 실패할 수 있으므로 별도 처리
-            try {
-                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
-                        userId + "님이 나갔습니다.");
-                logger.debug("Successfully sent leave message");
-            } catch (Exception e) {
-                logger.error("Failed to send leave message: {}", e.getMessage(), e);
-            }
-
+            // 3. 방 참가자 수 감소 전 로깅
+            logger.debug("Attempting to remove participant from room: {}", roomId);
+            roomService.removeParticipant(roomId);
+            logger.debug("Successfully removed participant from room: {}", roomId);
+            
+            // 4. 퇴장 메시지 전송
+            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
+                    userId + "님이 나갔습니다.");
+            logger.debug("Sent leave message for user: {} in room: {}", userId, roomId);
+            
+            // 5. 사용자 세션 정보 제거
             userSessionService.removeSession(sessionId);
+            logger.debug("Removed user session for: {}", sessionId);
             
         } catch (Exception e) {
             logger.error("Error handling WebSocket disconnect: {}", e.getMessage(), e);
+            // 스택 트레이스도 출력
+            logger.error("Full stack trace:", e);
         }
     }
 
@@ -131,9 +131,36 @@ public class WebSocketEventListener {
      */
     @EventListener
     public void handleWebSocketUnsubscribeListener(SessionUnsubscribeEvent event) {
-        // STOMP 헤더 접근자를 사용하여 세션 ID 추출
-        StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-        String sessionId = headerAccessor.getSessionId();
-        logger.info("Subscription removed for session: {}", sessionId);
+        try {
+            StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
+            String sessionId = headerAccessor.getSessionId();
+            logger.info("Subscription removed for session: {}", sessionId);
+
+            // 1. 사용자 세션 정보 조회
+            UserSession userSession = userSessionService.getSession(sessionId);
+            if (userSession != null) {
+                String roomId = userSession.getRoomId();
+                String userId = userSession.getUserId();
+
+                // 2. 방 참가자 수 감소
+                roomService.removeParticipant(roomId);
+
+                // 3. 방에 있는 다른 사용자들에게 퇴장 메시지 전송
+                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
+                        userId + "님이 나갔습니다.");
+
+                // 4. 연결 정보 제거
+                connectionService.removeConnection(sessionId);
+                
+                // 5. 사용자 세션 정보 제거
+                userSessionService.removeSession(sessionId);
+
+                // 6. 클라이언트에게 연결 종료 요청 전송
+                messagingTemplate.convertAndSendToUser(sessionId, "/queue/disconnect", 
+                    "Connection closed due to unsubscribe");
+            }
+        } catch (Exception e) {
+            logger.error("Error handling WebSocket unsubscribe: {}", e.getMessage(), e);
+        }
     }
 }
