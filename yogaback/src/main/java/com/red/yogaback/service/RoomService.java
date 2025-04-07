@@ -49,7 +49,7 @@ public class RoomService {
                 .roomMax(roomReq.getRoomMax())
                 .hasPassword(roomReq.isHasPassword())
                 .createdAt(System.currentTimeMillis())
-                .roomCount(1)
+                .roomCount(0)
                 .roomState(1L)
                 .build();
 
@@ -104,7 +104,7 @@ public class RoomService {
             User user = userRepository.findById(room.getCreatorId()).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
             RoomRequest roomRequest = new RoomRequest();
             roomRequest.setRoomId(room.getRoomId());
-            roomRequest.setRoomCount(room.getRoomCount() - 1);
+            roomRequest.setRoomCount(room.getRoomCount());
             roomRequest.setRoomMax(room.getRoomMax());
             roomRequest.setUserId(user.getUserId());
             roomRequest.setUserNickname(user.getUserNickname());
