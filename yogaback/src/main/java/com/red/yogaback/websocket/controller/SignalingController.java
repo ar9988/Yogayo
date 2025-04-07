@@ -1,5 +1,8 @@
 package com.red.yogaback.websocket.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.red.yogaback.service.RoomService;
 import com.red.yogaback.websocket.dto.RoomActionMessage;
 import com.red.yogaback.websocket.service.UserSession;
@@ -34,7 +37,7 @@ public class SignalingController {
     @MessageMapping("/room/{roomId}")
     public void broadcastRoomMessage(@DestinationVariable String roomId,
                                      @Payload RoomActionMessage actionMessage,
-                                     StompHeaderAccessor headerAccessor) {
+                                     StompHeaderAccessor headerAccessor) throws JsonProcessingException {
         String sessionId = headerAccessor.getSessionId();
 //        userSessionService.addSession(sessionId,new UserSession(
 //                String.valueOf(headerAccessor.getSessionAttributes().get("userId")),
@@ -49,7 +52,28 @@ public class SignalingController {
         messagingTemplate.convertAndSend("/topic/room/" + roomId, actionMessage.getPayload());
         logger.info("Broadcasted message to /topic/room/{} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
 //        socketRoomService.addParticipant(roomId);
-        logger.info("actionMessage: {}", actionMessage );
+        logger.info("actionMessage: {}", actionMessage.getPayload().toString() );
+        ObjectMapper mapper = new ObjectMapper();
+        ActionPayload payloadObj = mapper.readValue(actionMessage.getPayload().toString(), ActionPayload.class);
+        String type = payloadObj.getType();
+        logger.info("type: {}", type );
     }
+
+    public static class ActionPayload {
+        private String type;
+        private String fromPeerId;
+        private String userNickName;
+
+        // Getter/Setter
+        public String getType() { return type; }
+        public void setType(String type) { this.type = type; }
+
+        public String getFromPeerId() { return fromPeerId; }
+        public void setFromPeerId(String fromPeerId) { this.fromPeerId = fromPeerId; }
+
+        public String getUserNickName() { return userNickName; }
+        public void setUserNickName(String userNickName) { this.userNickName = userNickName; }
+    }
+
 
 }
