@@ -32,8 +32,21 @@ public class SignalingController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    // 새로운 엔드포인트: "/app/room/{roomId}"
-    // 받은 메시지를 그대로 "/topic/room/{roomId}"로 브로드캐스트합니다.
+    /**
+     * 클라이언트가 "/app/room/{roomId}"로 메시지를 전송하면 해당 메시지를 받아서,
+     * payload를 "/topic/room/{roomId}"로 브로드캐스트하는 메소드입니다.
+     *
+     * 동작:
+     *  - @MessageMapping: 클라이언트로부터 수신할 메시지의 경로를 지정합니다.
+     *  - @DestinationVariable: 경로상의 roomId 값을 변수로 사용합니다.
+     *  - @Payload: 클라이언트가 전송한 메시지의 내용을 RoomActionMessage 객체로 매핑합니다.
+     *  - StompHeaderAccessor: 메시지 헤더에서 세션 ID 등 추가 정보를 추출합니다.
+     *
+     * 개선방향:
+     *  - 현재 세션 검증 로직은 제거되어 있는데, 필요하다면 사용자 인증이나 권한 확인 로직을 추가할 수 있음.
+     *  - 메시지 payload에 대한 유효성 검증이나 필터링 처리가 필요할 수 있음.
+     *  - 로깅 메시지의 상세 수준 및 포맷을 프로젝트 전반에 맞게 일관되게 유지할 수 있음.
+     */
     @MessageMapping("/room/{roomId}")
     public void broadcastRoomMessage(@DestinationVariable String roomId,
                                      @Payload RoomActionMessage actionMessage,
@@ -46,9 +59,10 @@ public class SignalingController {
 //                String.valueOf(headerAccessor.getSessionAttributes().get("userProfile"))));
         logger.debug("Received message for room {} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
 
-        // 세션 검증 로직 제거
+        // 개선방향: 세션 검증 로직 제거 상태인데,
+        // 필요에 따라 userSessionService를 사용해 세션의 유효성을 검사하는 로직을 추가할 수 있습니다.
 
-        // 메시지를 그대로 브로드캐스트합니다.
+        // 메시지 payload를 그대로 해당 room의 토픽으로 브로드캐스트
         messagingTemplate.convertAndSend("/topic/room/" + roomId, actionMessage.getPayload());
         logger.info("Broadcasted message to /topic/room/{} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
 //        socketRoomService.addParticipant(roomId);
