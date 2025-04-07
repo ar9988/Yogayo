@@ -11,6 +11,7 @@ import com.d104.yogaapp.utils.BestPoseModelUtil
 import com.d104.yogaapp.utils.PoseLandmarkerHelper
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.inject.Inject
@@ -159,108 +161,234 @@ class CameraViewModel @Inject constructor(
     }
 
     override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
-        viewModelScope.launch {
-            // 첫 결과 수신 시 helper가 확실히 준비된 것으로 간주 가능
-            if (!_isHelperReady.value) {
-                _isHelperReady.value = true
-                Log.d("CameraViewModel", "First result received, ensuring helper is marked as ready.")
-            }
-            val img = resultBundle.image
-            _poseResult.value = resultBundle
-            val results = resultBundle.results
+        // <<--- IO 또는 Default Dispatcher 사용! --- >>
+        viewModelScope.launch(Dispatchers.IO) {
+            // ... (기존 로직 대부분 여기로 이동) ...
+            val img = resultBundle.image // 백그라운드에서 이미지 사용
+            _poseResult.value=resultBundle
 
-            // 입력 벡터 추출 및 전처리
-            val keypointsArray = results.firstOrNull()?.landmarks()?.firstOrNull()?.let { landmarks ->
+            val keypointsArray = resultBundle.results.firstOrNull()?.landmarks()?.firstOrNull()?.let { landmarks ->
                 val keypoints = extractKeypointsFromLandmarks(landmarks)
-                preprocessKeypointsWithPixels(keypoints)
+                normalizeKeypoints(keypoints)
             }
 
-            // 키포인트와 이미지가 유효한 경우에만 추론 실행
             if (keypointsArray != null && img != null) {
-                Log.d("CameraViewModel", "Running inference with keypoints size: ${keypointsArray.size}")
+                Log.d("CameraViewModel", "Running inference (BG Thread) with keypoints size: ${keypointsArray.size}")
+                // runInference는 이제 백그라운드에서 실행됨
                 val result = bestPoseModelUtil.runInference(keypointsArray, img)
 
-                // 결과 처리
-                result?.let {bestModelResult->
-                    val accuracyArray  = bestModelResult.first
-                    accuracyArray?.let{
-                        Log.d("CameraViewModel", "Inference result: ${accuracyArray.contentToString()}")
+                result?.let { bestModelResult ->
+                    val accuracyArray = bestModelResult.first
+                    val inferenceTime = bestModelResult.second // TFLite 추론 시간
+
+                    accuracyArray?.let {
+                        Log.d("CameraViewModel", "Inference result: ${it.contentToString()}, Time: ${inferenceTime}ms")
+
                         val currentTimestampMs = System.currentTimeMillis()
-                        val totalInferenceTime = currentTimestampMs-lastProcessedFrameTimestampMs
-                        Log.d("CameraViewModel", "Total inferenceTime: ${totalInferenceTime}")
-                        val accuracy = accuracyArray[currentIdx.value]
-                        _rawAccuracy.update { accuracy }
-                        if(accuracy>=0.5f&&lastProcessedFrameTimestampMs!=-1L){//이부분 나중에 조절하기 지금은 1퍼부더 맞는 동작
-                            remainingPoseTime+=totalInferenceTime / 1000.0F
-                        }
-                        if(accuracy>bestAccuracy){
-                            bestResultBitmap?.recycle()
-                            bestResultBitmap=img
-                            bestAccuracy=accuracy
-                        }else{
-                            resultBundle.image?.recycle()
-                        }
+                        // 이 totalInferenceTime은 MediaPipe + TFLite + 중간 처리 시간 포함
+                        // 좀 더 정확히 하려면 MediaPipe 시작 시간부터 측정 필요
+                        val totalProcessingTime = currentTimestampMs - lastProcessedFrameTimestampMs
+                        Log.d("CameraViewModel", "Total Processing Time (since last frame processed): ${totalProcessingTime}ms")
 
+                        val accuracy = it[currentIdx.value] // currentIdx는 Main 스레드 값 접근 시 주의 필요, 필요시 withContext(Main) 사용
+
+                        // UI 업데이트는 Main 스레드로 전환
+                        withContext(Dispatchers.Main) {
+                            _rawAccuracy.value = accuracy // Main 스레드에서 LiveData 업데이트 시 value 사용
+                            if (accuracy >= 0.5f && lastProcessedFrameTimestampMs != -1L) {
+                                remainingPoseTime += totalProcessingTime / 1000.0F // Main 스레드에서 업데이트
+                            }
+                            if (accuracy > bestAccuracy) {
+                                // bestResultBitmap 관리 로직 (Main 스레드에서 안전하게 처리)
+                                bestResultBitmap?.recycle() // 이전 비트맵 해제
+                                // 중요: img는 백그라운드 스레드에서 왔으므로, Main에서 사용하려면 복사본이 안전할 수 있음
+                                // 또는 img의 생명주기를 명확히 관리해야 함.
+                                // 여기서는 일단 img를 직접 사용하나, 문제가 생기면 복사 고려
+                                bestResultBitmap = img
+                                bestAccuracy = accuracy
+                            } else {
+                                // 최고 점수가 아니면 여기서 img 해제
+                                img?.recycle() // <<--- 중요: 여기서 해제 필요!
+                            }
+                            // lastProcessedFrameTimestampMs 업데이트도 Main에서
+                            lastProcessedFrameTimestampMs = currentTimestampMs
+                        } // end withContext(Dispatchers.Main)
+                    } ?: run {
+                        // accuracyArray가 null일 때, img 해제 필요
+                        img?.recycle()
                     }
-
-
+                } ?: run {
+                    // TFLite 추론 실패 시, img 해제 필요
+                    img?.recycle()
                 }
             } else {
-                Log.w("CameraViewModel", "Skipped inference: keypointsArray=${keypointsArray != null}, img=${img != null}")
+                Log.w("CameraViewModel", "Skipped inference (BG Thread): keypointsArray=${keypointsArray != null}, img=${img != null}")
+                // 추론 건너뛸 때도 img 해제 필요
+                img?.recycle()
             }
 
-            _error.value = null // 성공적인 결과 수신 시 이전 에러 메시지 클리어
-            lastProcessedFrameTimestampMs = System.currentTimeMillis()
-        }
-
-
+            // _isHelperReady 업데이트도 Main 스레드에서 하는 것이 안전
+            if (!_isHelperReady.value) {
+                withContext(Dispatchers.Main) { _isHelperReady.value = true }
+            }
+        } // end viewModelScope.launch(Dispatchers.IO)
     }
 
-    fun preprocessKeypointsWithPixels(
+    fun normalizeKeypoints(
         keypoints: List<Keypoint>,
-        imageWidth: Int = 224,
-        imageHeight: Int = 224,
-        visibilityThreshold: Float = 0.5f,
+        imageWidth: Int = 480,
+        imageHeight: Int = 480,
+        visibilityThreshold: Float = 0.3f,
         maskValue: Float = -1.0f
     ): FloatArray {
-        val vector = mutableListOf<Float>()
+        // 어깨(11, 12), 골반(23, 24)
+        val s1 = keypoints[11]
+        val s2 = keypoints[12]
+        val h1 = keypoints[23]
+        val h2 = keypoints[24]
 
-        val x11 = keypoints[11].x * imageWidth
-        val x12 = keypoints[12].x * imageWidth
-        val y11 = keypoints[11].y * imageHeight
-        val y12 = keypoints[12].y * imageHeight
-        val v11 = keypoints[11].visibility
-        val v12 = keypoints[12].visibility
+        val allVisible = listOf(s1, s2, h1, h2).all { it.visibility >= visibilityThreshold }
 
-        val (xCenter, yCenter, scale) = if (v11 >= visibilityThreshold && v12 >= visibilityThreshold) {
-            val centerX = (x11 + x12) / 2f
-            val centerY = (y11 + y12) / 2f
-            val shoulderDist = kotlin.math.sqrt((x11 - x12).pow(2) + (y11 - y12).pow(2)) + 1e-6f
-            Triple(centerX, centerY, shoulderDist)
+        val center: Pair<Float, Float>
+        val scale: Float
+
+        if (allVisible) {
+            val x11 = s1.x * imageWidth
+            val y11 = s1.y * imageHeight
+            val x12 = s2.x * imageWidth
+            val y12 = s2.y * imageHeight
+            val x23 = h1.x * imageWidth
+            val y23 = h1.y * imageHeight
+            val x24 = h2.x * imageWidth
+            val y24 = h2.y * imageHeight
+
+            val shoulderCenter = Pair((x11 + x12) / 2f, (y11 + y12) / 2f)
+            val hipCenter = Pair((x23 + x24) / 2f, (y23 + y24) / 2f)
+            center = Pair((shoulderCenter.first + hipCenter.first) / 2f,
+                (shoulderCenter.second + hipCenter.second) / 2f)
+
+            scale = kotlin.math.sqrt(
+                (shoulderCenter.first - hipCenter.first).pow(2) +
+                        (shoulderCenter.second - hipCenter.second).pow(2)
+            ) + 1e-6f
         } else {
-            Triple(null, null, null)
+            center = Pair(0f, 0f)
+            scale = 1f
         }
 
-        for (i in 0 until 33) {
-            val x = keypoints[i].x * imageWidth
-            val y = keypoints[i].y * imageHeight
-            val v = keypoints[i].visibility
+        // 정규화된 keypoint 벡터 생성
+        val vector = FloatArray(33 * 3)
 
-            if (v < visibilityThreshold || xCenter == null || scale == null) {
-                vector.add(maskValue)
-                vector.add(maskValue)
-                vector.add(v)
+        for (i in 0 until 33) {
+            val kp = keypoints[i]
+            val v = kp.visibility
+            val x = kp.x * imageWidth
+            val y = kp.y * imageHeight
+
+            if (v < visibilityThreshold || !allVisible) {
+                vector[i * 3] = maskValue
+                vector[i * 3 + 1] = maskValue
+                vector[i * 3 + 2] = v
             } else {
-                val normX = (x - xCenter) / scale
-                val normY = (y - (yCenter?:0f)) / scale
-                vector.add(normX)
-                vector.add(normY)
-                vector.add(v)
+                vector[i * 3] = (x - center.first) / scale
+                vector[i * 3 + 1] = (y - center.second) / scale
+                vector[i * 3 + 2] = v
             }
         }
 
-        return vector.toFloatArray()
+        return vector
     }
+//    fun normalizeKeypoints(
+//        keypoints: List<Keypoint>,  // (x, y, visibility)
+//        imageWidth: Int = 480,
+//        imageHeight: Int = 480,
+//        visibilityThreshold: Float = 0.5f,
+//        maskValue: Float = -1.0f,
+//        minScale: Float = 20.0f
+//    ): FloatArray {
+//        val vector = mutableListOf<Float>()
+//
+//        val (x11, y11, v11) = keypoints[11]
+//        val (x12, y12, v12) = keypoints[12]
+//
+//        val px11 = x11 * imageWidth
+//        val py11 = y11 * imageHeight
+//        val px12 = x12 * imageWidth
+//        val py12 = y12 * imageHeight
+//
+//        val (xCenter, yCenter, scale) = if (v11 >= visibilityThreshold && v12 >= visibilityThreshold) {
+//            val cx = (px11 + px12) / 2f
+//            val cy = (py11 + py12) / 2f
+//            val dist = Math.hypot((px11 - px12).toDouble(), (py11 - py12).toDouble()).toFloat()
+//            Triple(cx, cy, maxOf(dist, minScale))
+//        } else {
+//            Triple(null, null, null)
+//        }
+//
+//        for ((x, y, v) in keypoints) {
+//            val px = x * imageWidth
+//            val py = y * imageHeight
+//            if (v < visibilityThreshold || xCenter == null || yCenter == null || scale == null) {
+//                vector.add(maskValue)
+//                vector.add(maskValue)
+//                vector.add(v)
+//            } else {
+//                val xOut = (px - xCenter) / scale
+//                val yOut = (py - yCenter) / scale
+//                vector.add(xOut)
+//                vector.add(yOut)
+//                vector.add(v)
+//            }
+//        }
+//
+//        return vector.toFloatArray()
+//    }
+
+//    fun preprocessKeypointsWithPixels(
+//        keypoints: List<Keypoint>,
+//        imageWidth: Int = 224,
+//        imageHeight: Int = 224,
+//        visibilityThreshold: Float = 0.5f,
+//        maskValue: Float = -1.0f
+//    ): FloatArray {
+//        val vector = mutableListOf<Float>()
+//
+//        val x11 = keypoints[11].x * imageWidth
+//        val x12 = keypoints[12].x * imageWidth
+//        val y11 = keypoints[11].y * imageHeight
+//        val y12 = keypoints[12].y * imageHeight
+//        val v11 = keypoints[11].visibility
+//        val v12 = keypoints[12].visibility
+//
+//        val (xCenter, yCenter, scale) = if (v11 >= visibilityThreshold && v12 >= visibilityThreshold) {
+//            val centerX = (x11 + x12) / 2f
+//            val centerY = (y11 + y12) / 2f
+//            val shoulderDist = kotlin.math.sqrt((x11 - x12).pow(2) + (y11 - y12).pow(2)) + 1e-6f
+//            Triple(centerX, centerY, shoulderDist)
+//        } else {
+//            Triple(null, null, null)
+//        }
+//
+//        for (i in 0 until 33) {
+//            val x = keypoints[i].x * imageWidth
+//            val y = keypoints[i].y * imageHeight
+//            val v = keypoints[i].visibility
+//
+//            if (v < visibilityThreshold || xCenter == null || scale == null) {
+//                vector.add(maskValue)
+//                vector.add(maskValue)
+//                vector.add(v)
+//            } else {
+//                val normX = (x - xCenter) / scale
+//                val normY = (y - (yCenter?:0f)) / scale
+//                vector.add(normX)
+//                vector.add(normY)
+//                vector.add(v)
+//            }
+//        }
+//
+//        return vector.toFloatArray()
+//    }
     fun extractKeypointsFromLandmarks(landmarks: List<NormalizedLandmark>): List<Keypoint> {
         return landmarks.map { lm ->
             Keypoint(

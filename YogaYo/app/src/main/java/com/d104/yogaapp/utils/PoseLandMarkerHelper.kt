@@ -363,7 +363,7 @@ class PoseLandmarkerHelper @Inject constructor(
     private fun returnLivestreamResult(result: PoseLandmarkerResult, input: MPImage) {
         val finishTimeMs = SystemClock.uptimeMillis()
         val inferenceTime = finishTimeMs - result.timestampMs()
-        Log.d(TAG,"Mediapipe inference inferenceTime=${inferenceTime}")
+        Log.d("inference","Mediapipe inference inferenceTime=${inferenceTime}")
 
         val associatedBitmap = bitmapCache.remove(result.timestampMs())
 

@@ -80,7 +80,7 @@ fun AppEntry() { // 앱 진입점 Composable 함수
     }
 
     if (showSplashScreen) {
-        SplashScreen() // 위에서 만든 스플래시 Composable 호출
+//        SplashScreen() // 위에서 만든 스플래시 Composable 호출
     } else {
         MainNavigation()
     }
@@ -90,18 +90,8 @@ fun AppEntry() { // 앱 진입점 Composable 함수
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-//        val splashScreen = installSplashScreen()
-
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-
-//        var keepSplashOnScreen = true // 예시 플래그
-//        splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
-//
-//        lifecycleScope.launchWhenCreated {
-//            delay(1000) // 실제 앱에서는 이런 고정 딜레이보다 조건 확인 권장
-//            keepSplashOnScreen = false
-//        }
-//        enableEdgeToEdge()
         setContent {
             YogaYoTheme {
                 Surface (

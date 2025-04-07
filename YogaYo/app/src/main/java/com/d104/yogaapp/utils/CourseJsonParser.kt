@@ -11,9 +11,6 @@ import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
-import org.tensorflow.lite.support.metadata.schema.NormalizationOptions
-import org.tensorflow.lite.support.metadata.schema.ProcessUnitOptions
-import org.tensorflow.lite.support.metadata.schema.TensorMetadata
 import org.tensorflow.lite.support.metadata.MetadataExtractor
 import java.io.FileInputStream
 import java.lang.reflect.Type
@@ -87,7 +84,7 @@ class CourseJsonParser @Inject constructor(
         }
     }
 
-    fun printModelMetadata(modelPath: String = "all_poses_raw_best_model.tflite") {
+    fun printModelMetadata(modelPath: String = "all_poses_plus_fixed_best_model_plus.tflite") {
         try {
             val fileDescriptor = context.assets.openFd(modelPath)
             val inputStream = FileInputStream(fileDescriptor.fileDescriptor)

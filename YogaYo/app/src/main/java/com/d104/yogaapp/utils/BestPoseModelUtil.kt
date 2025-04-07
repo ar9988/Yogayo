@@ -7,6 +7,12 @@ import android.os.SystemClock
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.gpu.GpuDelegate
+import org.tensorflow.lite.nnapi.NnApiDelegate
+import org.tensorflow.lite.support.common.ops.NormalizeOp
+import org.tensorflow.lite.support.image.ImageProcessor
+import org.tensorflow.lite.support.image.TensorImage
+import org.tensorflow.lite.support.image.ops.ResizeOp
 import java.io.FileInputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -23,27 +29,28 @@ class BestPoseModelUtil @Inject constructor(
     private var interpreter: Interpreter? = null
 
     // 모델의 기대 입력 크기 (확인된 정보 기반)
-    private val modelPath = "all_poses_raw_best_model.tflite"
+    private val modelPath = "all_poses_plus_fixed_best_model_plus.tflite"
     private val keypointInputSize = 99
-    private val imageInputHeight = 224
-    private val imageInputWidth = 224
+    private val imageInputHeight = 480
+    private val imageInputWidth = 480
     private val imageInputChannels = 3
     private val outputSize = 7 // 출력 shape [1, 7] 에서 7
-
+    private var nnApiDelegate: NnApiDelegate? = null
+    private var gpuDelegate: GpuDelegate? = null
     init {
         try {
             val modelBuffer = loadModelFile(context, modelPath)
             val options = Interpreter.Options()
             // 필요시 NNAPI 또는 GPU Delegate 설정
-            // val nnApiDelegate = NnApiDelegate()
-            // options.addDelegate(nnApiDelegate)
-            // val gpuDelegate = GpuDelegate()
-            // options.addDelegate(gpuDelegate)
+//            nnApiDelegate = NnApiDelegate()
+//            options.addDelegate(nnApiDelegate)
+            gpuDelegate = GpuDelegate()
+            options.addDelegate(gpuDelegate)
             interpreter = Interpreter(modelBuffer, options)
             Log.d("ModelInit", "Interpreter 초기화 성공")
 
             // (선택 사항) 초기화 시 실제 Shape 확인 로그
-            logInputOutputShapes()
+//            logInputOutputShapes()
 
         } catch (e: IOException) {
             Log.e("ModelInit", "모델 로드 또는 Interpreter 초기화 실패", e)
@@ -104,51 +111,67 @@ class BestPoseModelUtil @Inject constructor(
     /**
      * 입력 1: Image [1, 224, 224, 3] float32 준비
      */
-    private fun prepareImageInputBuffer(bitmap: Bitmap): ByteBuffer {
-        // 1. 비트맵 리사이즈 (모델 입력 크기에 맞게)
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, imageInputWidth, imageInputHeight, true)
+//    private fun prepareImageInputBuffer(bitmap: Bitmap): ByteBuffer {
+//        // 1. 비트맵 리사이즈 (모델 입력 크기에 맞게)
+//        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, imageInputWidth, imageInputHeight, true)
+//
+//        // 2. ByteBuffer 할당: 1 * 224 * 224 * 3 * 4 bytes
+//        val byteBuffer = ByteBuffer.allocateDirect(1 * imageInputHeight * imageInputWidth * imageInputChannels * 4)
+//        byteBuffer.order(ByteOrder.nativeOrder())
+//        byteBuffer.rewind()
+//
+//        // 3. Bitmap 픽셀 데이터를 ByteBuffer에 넣기 (float32, HWC 순서)
+//        val intValues = IntArray(imageInputWidth * imageInputHeight)
+//        resizedBitmap.getPixels(intValues, 0, imageInputWidth, 0, 0, imageInputWidth, imageInputHeight)
+//
+//        var pixel = 0
+//        for (i in 0 until imageInputHeight) {
+//            for (j in 0 until imageInputWidth) {
+//                val value = intValues[pixel++]
+//                // RGB 값을 추출하여 float32로 변환 후 ByteBuffer에 넣기
+//                // !!! 중요 !!!: 모델 학습 시 사용된 정규화(Normalization) 방식을 동일하게 적용해야 합니다.
+//                //              메타데이터가 없으므로 일반적인 방식 중 하나를 가정합니다.
+//                // 예시 1: [0, 1] 범위로 스케일링
+//                byteBuffer.putFloat(((value shr 16) and 0xFF) / 255.0f) // Red
+//                byteBuffer.putFloat(((value shr 8) and 0xFF) / 255.0f)  // Green
+//                byteBuffer.putFloat((value and 0xFF) / 255.0f)          // Blue
+//
+//                // 예시 2: [-1, 1] 범위로 스케일링
+//                // byteBuffer.putFloat((((value shr 16) and 0xFF) / 127.5f) - 1.0f)
+//                // byteBuffer.putFloat((((value shr 8) and 0xFF) / 127.5f) - 1.0f)
+//                // byteBuffer.putFloat(((value and 0xFF) / 127.5f) - 1.0f)
+//
+//                // 예시 3: 특정 평균/표준편차 사용 (값이 있다면)
+//                // val IMAGE_MEAN = 127.5f
+//                // val IMAGE_STD = 127.5f
+//                // byteBuffer.putFloat(((Color.red(value) - IMAGE_MEAN) / IMAGE_STD))
+//                // byteBuffer.putFloat(((Color.green(value) - IMAGE_MEAN) / IMAGE_STD))
+//                // byteBuffer.putFloat(((Color.blue(value) - IMAGE_MEAN) / IMAGE_STD))
+//            }
+//        }
+//
+//        // 리사이즈된 비트맵 메모리 해제 (더 이상 필요 없다면)
+//        if (!resizedBitmap.isRecycled && resizedBitmap != bitmap) { // 원본과 다를 경우에만
+//            resizedBitmap.recycle()
+//        }
+//
+//        return byteBuffer
+//    }
 
-        // 2. ByteBuffer 할당: 1 * 224 * 224 * 3 * 4 bytes
-        val byteBuffer = ByteBuffer.allocateDirect(1 * imageInputHeight * imageInputWidth * imageInputChannels * 4)
-        byteBuffer.order(ByteOrder.nativeOrder())
-        byteBuffer.rewind()
+    private fun prepareImageInputBufferWithSupportLib(bitmap: Bitmap): ByteBuffer {
+        val tensorImage = TensorImage.fromBitmap(bitmap)
 
-        // 3. Bitmap 픽셀 데이터를 ByteBuffer에 넣기 (float32, HWC 순서)
-        val intValues = IntArray(imageInputWidth * imageInputHeight)
-        resizedBitmap.getPixels(intValues, 0, imageInputWidth, 0, 0, imageInputWidth, imageInputHeight)
+        // ImageProcessor 설정 (리사이즈, 정규화 등)
+        val imageProcessor = ImageProcessor.Builder()
+            .add(ResizeOp(imageInputHeight, imageInputWidth, ResizeOp.ResizeMethod.BILINEAR))
+            // 모델 학습 시 사용한 정규화 방식 적용 (예: 0~1)
+            .add(NormalizeOp(0.0f, 255.0f))
+            // 또는 다른 정규화 방식 (예: -1~1)
+            // .add(NormalizeOp(127.5f, 127.5f))
+            .build()
 
-        var pixel = 0
-        for (i in 0 until imageInputHeight) {
-            for (j in 0 until imageInputWidth) {
-                val value = intValues[pixel++]
-                // RGB 값을 추출하여 float32로 변환 후 ByteBuffer에 넣기
-                // !!! 중요 !!!: 모델 학습 시 사용된 정규화(Normalization) 방식을 동일하게 적용해야 합니다.
-                //              메타데이터가 없으므로 일반적인 방식 중 하나를 가정합니다.
-                // 예시 1: [0, 1] 범위로 스케일링
-                byteBuffer.putFloat(((value shr 16) and 0xFF) / 255.0f) // Red
-                byteBuffer.putFloat(((value shr 8) and 0xFF) / 255.0f)  // Green
-                byteBuffer.putFloat((value and 0xFF) / 255.0f)          // Blue
-
-                // 예시 2: [-1, 1] 범위로 스케일링
-                // byteBuffer.putFloat((((value shr 16) and 0xFF) / 127.5f) - 1.0f)
-                // byteBuffer.putFloat((((value shr 8) and 0xFF) / 127.5f) - 1.0f)
-                // byteBuffer.putFloat(((value and 0xFF) / 127.5f) - 1.0f)
-
-                // 예시 3: 특정 평균/표준편차 사용 (값이 있다면)
-                // val IMAGE_MEAN = 127.5f
-                // val IMAGE_STD = 127.5f
-                // byteBuffer.putFloat(((Color.red(value) - IMAGE_MEAN) / IMAGE_STD))
-                // byteBuffer.putFloat(((Color.green(value) - IMAGE_MEAN) / IMAGE_STD))
-                // byteBuffer.putFloat(((Color.blue(value) - IMAGE_MEAN) / IMAGE_STD))
-            }
-        }
-
-        // 리사이즈된 비트맵 메모리 해제 (더 이상 필요 없다면)
-        if (!resizedBitmap.isRecycled && resizedBitmap != bitmap) { // 원본과 다를 경우에만
-            resizedBitmap.recycle()
-        }
-
-        return byteBuffer
+        val processedImage = imageProcessor.process(tensorImage)
+        return processedImage.buffer // 바로 ByteBuffer 얻기
     }
 
     fun runInference(keypoints: FloatArray, bitmap: Bitmap): Pair<FloatArray?,Long>? {
@@ -159,7 +182,8 @@ class BestPoseModelUtil @Inject constructor(
 
         // 입력 버퍼 준비
         val keypointInputBuffer = prepareKeypointInputBuffer(keypoints)
-        val imageInputBuffer = prepareImageInputBuffer(bitmap)
+//        val imageInputBuffer = prepareImageInputBuffer(bitmap)
+        val imageInputBuffer = prepareImageInputBufferWithSupportLib(bitmap)
 
         // 입력 배열 생성 (인덱스 순서 중요: 0번=키포인트, 1번=이미지)
         val inputs = arrayOf<Any>(keypointInputBuffer, imageInputBuffer)
@@ -203,6 +227,8 @@ class BestPoseModelUtil @Inject constructor(
 
     fun close() {
         interpreter?.close()
+        nnApiDelegate?.close()
+        gpuDelegate?.close()
         interpreter = null
         Log.d("ModelProcessor", "Interpreter closed.")
     }

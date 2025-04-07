@@ -71,6 +71,7 @@ import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.yogaapp.features.common.CourseCard
 import com.d104.yogaapp.features.common.CustomCourseDialog
+import com.d104.yogaapp.ui.theme.SplashFontFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -151,13 +152,12 @@ fun SoloScreen(
                             .padding(top = 16.dp, bottom = 8.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Image(
-                            modifier = Modifier
-                                .height(16.dp)
-                                .width(24.dp),
-                            painter = painterResource(id = R.drawable.ic_yoga),
-                            contentDescription = "logo img",
-                            contentScale = ContentScale.FillBounds
+                        Text(
+                            text = "요가요",
+                            color = PrimaryColor,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = SplashFontFamily // 커스텀 폰트
                         )
                     }
                 }
