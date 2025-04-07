@@ -19,6 +19,7 @@ firebasePerfKtx = "21.0.4"
 protoliteWellKnownTypes = "18.0.0"
 vico = "1.14.0"
 litertMetadata = "1.2.0"
+litertGpu = "1.2.0"
 
 
 
@@ -51,6 +52,7 @@ vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
 vico-core = { group = "com.patrykandpatrick.vico", name = "core", version.ref = "vico" }
 litert-metadata = { group = "com.google.ai.edge.litert", name = "litert-metadata", version.ref = "litertMetadata" }
+litert-gpu = { group = "com.google.ai.edge.litert", name = "litert-gpu", version.ref = "litertGpu" }
 
 
 [plugins]
