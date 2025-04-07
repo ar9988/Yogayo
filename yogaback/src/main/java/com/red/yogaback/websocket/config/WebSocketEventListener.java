@@ -64,7 +64,7 @@ public class WebSocketEventListener {
                 connectionService.registerConnection(sessionId, roomId, userSession.getUserId());
                 // 방 참가자 수 증가 및 입장 메시지 전송
                 roomService.addParticipant(roomId);
-                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userJoined",
+                messagingTemplate.convertAndSend("/topic/room/" + roomId,
                         userSession.getUserNickName() + "님이 들어왔습니다.");
                 logger.info("Processed subscription for room: {} and session: {}", roomId, sessionId);
             } else {
@@ -94,7 +94,7 @@ public class WebSocketEventListener {
 
             // 방 참가자 수 감소 및 퇴장 메시지 전송
             roomService.removeParticipant(roomId);
-            messagingTemplate.convertAndSend("/topic/room/" + roomId + "/userLeft",
+            messagingTemplate.convertAndSend("/topic/room/" + roomId,
                     userNickName + "님이 나갔습니다.");
             // 세션 정보 제거
             userSessionService.removeSession(sessionId);
