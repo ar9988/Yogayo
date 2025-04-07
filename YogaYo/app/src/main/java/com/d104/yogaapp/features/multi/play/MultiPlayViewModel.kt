@@ -90,12 +90,21 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if (intent.message.type == "game_state") {
                     Timber.d("Game state: ${intent.message}")
+                    //state = yoga의 index 해당하는 index로 게임 라운드 진행.
                     val state = (intent.message as GameStateMessage).state
                     if (state == 0) {
                         Timber.d("Game started")
                         processIntent(MultiPlayIntent.GameStarted)
                         initiateMeshNetwork()
+                    } else if(state >= 1) {
+                        Timber.d("Round $state started")
+                        processIntent(MultiPlayIntent.RoundStarted(state))
                     }
+                }
+                else {
+                    processIntent(
+                        MultiPlayIntent.ReceiveWebSocketMessage(intent.message)
+                    )
                 }
             }
 
@@ -237,7 +246,6 @@ class MultiPlayViewModel @Inject constructor(
                             processChunkImageUseCase((it.second as ImageChunkMessage))
 //                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(base64ToBitmap((it.second as ImageChunkMessage).dataBase64)!!))
                         }
-
                         is ScoreUpdateMessage -> {
                             processIntent(
                                 MultiPlayIntent.UpdateScore(
@@ -246,6 +254,7 @@ class MultiPlayViewModel @Inject constructor(
                                 )
                             )
                         }
+
                     }
                 }
             }

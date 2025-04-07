@@ -18,7 +18,7 @@ sealed class MultiPlayIntent {
     data class ReceiveWebSocketMessage(val message: SignalingMessage) : MultiPlayIntent()
     data class ReceiveWebRTCImage(val bitmap:Bitmap) : MultiPlayIntent()
     data class UpdateScore(val id: String,val scoreUpdateMessage: ScoreUpdateMessage) : MultiPlayIntent()
-
+    data class RoundStarted(val state: Int) : MultiPlayIntent()
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()
