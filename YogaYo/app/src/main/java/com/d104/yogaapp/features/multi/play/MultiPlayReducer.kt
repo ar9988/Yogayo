@@ -10,7 +10,13 @@ import javax.inject.Inject
 class MultiPlayReducer @Inject constructor() {
     fun reduce(currentState: MultiPlayState, intent: MultiPlayIntent): MultiPlayState {
         return when (intent) {
-            is MultiPlayIntent.UserLeft -> currentState.copy()
+            is MultiPlayIntent.UserLeft -> {
+                val newUserList = currentState.userList.toMutableMap().apply {
+                    remove(intent.userId)
+                }
+                Timber.d("user_left ${intent.userId}")
+                currentState.copy(userList = newUserList)
+            }
             is MultiPlayIntent.UpdateCameraPermission -> currentState.copy(
                 cameraPermissionGranted = intent.granted
             )
@@ -79,14 +85,6 @@ class MultiPlayReducer @Inject constructor() {
                         currentState.copy(userList = newUserList)
                     }
 
-                    "user_left" -> {
-                        val userLeftMessage = intent.message as UserLeftMessage
-                        val newUserList = currentState.userList.toMutableMap().apply {
-                            remove(userLeftMessage.fromPeerId)
-                        }
-                        currentState.copy(userList = newUserList)
-                    }
-
                     "user_ready" -> {
                         val userReadyMessage = intent.message as UserReadyMessage
                         val newUserList = currentState.userList.toMutableMap().apply {
@@ -113,6 +111,7 @@ class MultiPlayReducer @Inject constructor() {
                     else -> currentState
                 }
             }
+
 
             is MultiPlayIntent.GameStarted -> {
                 //yoga 리스트에서 0번 인덱스로 설정하기
