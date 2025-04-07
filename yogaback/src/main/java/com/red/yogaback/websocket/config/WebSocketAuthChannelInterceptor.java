@@ -38,8 +38,8 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
 
     // JWTUtil을 의존성 주입받음
     @Autowired
-    public WebSocketAuthChannelInterceptor(JWTUtil jwtUtil, UserRepository userRepository,RoomRepository roomRepository,
-                                           SocketRoomService socketRoomService,UserSessionService userSessionService ) {
+    public WebSocketAuthChannelInterceptor(JWTUtil jwtUtil, UserRepository userRepository, RoomRepository roomRepository,
+                                           SocketRoomService socketRoomService, UserSessionService userSessionService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
@@ -51,30 +51,15 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
      * 클라이언트의 STOMP CONNECT 메시지를 가로채 JWT 토큰의 유효성을 검사하고,
      * 토큰에서 추출한 사용자 정보를 세션 속성에 저장하는 메소드입니다.
      *
-     * @param message  클라이언트가 보낸 메시지
-     * @param channel  메시지가 전송될 채널
-     * @return         원본 메시지 (변경 없이 반환)
+     * @param message 클라이언트가 보낸 메시지
+     * @param channel 메시지가 전송될 채널
+     * @return 원본 메시지 (변경 없이 반환)
      * @throws IllegalArgumentException 토큰이 없거나 유효하지 않을 경우 발생
      */
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         // STOMP 헤더 접근
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-        if (accessor != null && StompCommand.DISCONNECT.equals(accessor.getCommand())){
-            Long userId = SecurityUtil.getCurrentMemberId();
-            User user = userRepository.findById(userId).orElseThrow(()->
-                    new RuntimeException(""));
-            Room room = roomRepository.findByUsersContaining(user);
-            socketRoomService.removeParticipant(room.getRoomId().toString());
-        }
-
-        if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())){
-            Long userId = SecurityUtil.getCurrentMemberId();
-            User user = userRepository.findById(userId).orElseThrow(()->
-                    new RuntimeException(""));
-            Room room = roomRepository.findByUsersContaining(user);
-            socketRoomService.addParticipant(room.getRoomId().toString());
-        }
         // CONNECT 명령에 대해서만 JWT 토큰 인증 로직을 수행합니다.
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             // "Authorization" 헤더를 리스트 형태로 추출

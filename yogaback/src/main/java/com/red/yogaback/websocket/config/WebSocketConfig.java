@@ -55,8 +55,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // "/ws" 엔드포인트에 대해 STOMP 연결을 허용하고, 모든 출처에 대해 접근 허용
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .setAllowedOriginPatterns("*");
+//                .withSockJS();
     }
 
     /**

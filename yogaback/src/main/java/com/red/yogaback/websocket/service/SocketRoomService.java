@@ -21,7 +21,6 @@ public class SocketRoomService {
     private final SseEmitterService sseEmitterService;
     private final RoomService roomService;
     private static final Logger logger = LoggerFactory.getLogger(SocketRoomService.class);
-
     /**
      * 문자열 형태의 roomId를 Long으로 변환하여 Room 엔티티를 조회합니다.
      *

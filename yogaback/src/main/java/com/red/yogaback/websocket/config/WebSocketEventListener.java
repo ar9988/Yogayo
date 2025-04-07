@@ -80,7 +80,10 @@ public class WebSocketEventListener {
             String sessionId = headerAccessor.getSessionId();
             logger.debug("Disconnect event received for session: {}", sessionId);
 
+            // 연결 정보 제거
+
             UserSession userSession = userSessionService.getSession(sessionId);
+
             if (userSession == null) {
                 logger.warn("Session not found for sessionId: {}", sessionId);
                 return;
@@ -89,23 +92,18 @@ public class WebSocketEventListener {
             String userNickName = userSession.getUserNickName();
             logger.debug("Found user session: {}", userSession);
 
-            // 1) 방 참가자 수 감소
+            // 방 참가자 수 감소 및 퇴장 메시지 전송
             roomService.removeParticipant(roomId);
-            // 2) 퇴장 메시지 전송
             messagingTemplate.convertAndSend("/topic/room/" + roomId,
                     userNickName + "님이 나갔습니다.");
-
-            // 3) 연결 정보 제거
-            connectionService.removeConnection(sessionId);
-            // 4) 세션 정보 제거
+            // 세션 정보 제거
             userSessionService.removeSession(sessionId);
-
+            connectionService.removeConnection(sessionId);
             logger.debug("Processed disconnect for session: {}", sessionId);
         } catch (Exception e) {
             logger.error("Error handling WebSocket disconnect: {}", e.getMessage(), e);
         }
     }
-
 
     @EventListener
     public void handleWebSocketUnsubscribeListener(SessionUnsubscribeEvent event) {
