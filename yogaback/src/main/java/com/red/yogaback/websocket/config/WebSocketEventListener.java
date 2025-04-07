@@ -37,6 +37,8 @@ public class WebSocketEventListener {
     @Autowired
     private WebSocketConnectionService connectionService;
 
+
+
     /**
      * 클라이언트가 WebSocket 연결을 성공했을 때 호출되는 이벤트 리스너.
      * 개선방향:
@@ -65,6 +67,7 @@ public class WebSocketEventListener {
             // 연결 종료 처리
             connectionService.removeConnection(sessionId);
             UserSession userSession = userSessionService.getSession(sessionId);
+
             if (userSession == null) {
                 logger.warn("Session not found for sessionId: {}", sessionId);
                 return;
