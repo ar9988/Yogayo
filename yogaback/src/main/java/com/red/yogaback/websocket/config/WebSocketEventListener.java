@@ -81,7 +81,7 @@ public class WebSocketEventListener {
             logger.debug("Disconnect event received for session: {}", sessionId);
 
             // 연결 정보 제거
-            connectionService.removeConnection(sessionId);
+
             UserSession userSession = userSessionService.getSession(sessionId);
 
             if (userSession == null) {
@@ -98,6 +98,7 @@ public class WebSocketEventListener {
                     userNickName + "님이 나갔습니다.");
             // 세션 정보 제거
             userSessionService.removeSession(sessionId);
+            connectionService.removeConnection(sessionId);
             logger.debug("Processed disconnect for session: {}", sessionId);
         } catch (Exception e) {
             logger.error("Error handling WebSocket disconnect: {}", e.getMessage(), e);

@@ -143,6 +143,7 @@ public class RoomService {
         if (findRoom.getPassword().equals(roomEnterReq.getPassword())) {
             findUser.setRoom(findRoom);
             findRoom.setRoomCount(findRoom.getRoomCount() + 1);
+            sseEmitterService.notifyRoomUpdate(getAllRooms(""));
         } else {
             throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
