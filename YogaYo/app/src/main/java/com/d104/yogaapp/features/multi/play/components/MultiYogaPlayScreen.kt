@@ -192,9 +192,8 @@ fun MultiYogaPlayScreen(
                         CameraPreview(
                             modifier = Modifier.fillMaxSize(),
                             isPlaying = isPlaying,
-                            onImageCaptured = onImageCaptured,
-                            poseId = 1.toString(),
-                            shouldCapture = timerProgress == 0.5f
+//                            onImageCaptured = onImageCaptured,
+//                            poseId = 1.toString(),
                         )
                         if (isPlaying) {
                             // 현재 등수 이미지 추가하기

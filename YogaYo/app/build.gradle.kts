@@ -66,6 +66,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.camera.core)
     implementation(libs.firebase.perf.ktx)
+    implementation(libs.litert.metadata)
+    implementation(libs.litert.gpu)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -131,6 +133,13 @@ dependencies {
 
     //MediaPipe
     implementation ("com.google.mediapipe:tasks-vision:0.10.14")
+
+    //TensorFlowLite
+    implementation("org.tensorflow:tensorflow-lite-support:0.5.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.17.0")
+
+            //splashicon
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
 
 

@@ -1,17 +1,18 @@
 package com.d104.yogaapp.features.mypage.posehistory
 
 import android.widget.Toast
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CheckCircleOutline
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
@@ -25,9 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -37,48 +36,19 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.d104.domain.model.ChartData
 import com.d104.domain.model.YogaHistory
 import com.d104.yogaapp.R // 앱의 리소스 경로 확인
 import com.d104.yogaapp.features.common.YogaAccuracyTimeChart
 import com.d104.yogaapp.features.common.YogaPoseDetailDialog
 import com.d104.yogaapp.features.solo.play.DownloadState
 import com.d104.yogaapp.ui.theme.GrayCardColor
-import com.d104.yogaapp.ui.theme.Neutral50
 import com.d104.yogaapp.ui.theme.PastelBlue
-import com.d104.yogaapp.ui.theme.PastelGreen
-import com.d104.yogaapp.ui.theme.PastelLigtBlue
 import com.d104.yogaapp.ui.theme.PastelRed
-import com.d104.yogaapp.ui.theme.PrimaryColor
 import com.d104.yogaapp.ui.theme.White
-import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
-import com.patrykandpatrick.vico.compose.chart.Chart
-import com.patrykandpatrick.vico.compose.chart.line.lineChart
-import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollState
-import com.patrykandpatrick.vico.compose.component.textComponent
-import com.patrykandpatrick.vico.compose.dimensions.dimensionsOf
-import com.patrykandpatrick.vico.core.axis.AxisItemPlacer
-import com.patrykandpatrick.vico.core.axis.AxisPosition
-import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
-import com.patrykandpatrick.vico.core.axis.vertical.VerticalAxis
-import com.patrykandpatrick.vico.core.chart.draw.ChartDrawContext
-import com.patrykandpatrick.vico.core.chart.line.LineChart
-import com.patrykandpatrick.vico.core.context.MeasureContext
-import com.patrykandpatrick.vico.core.entry.ChartEntry
-import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
-import com.patrykandpatrick.vico.core.entry.entryModelOf
-import com.patrykandpatrick.vico.core.entry.entryOf
-import com.patrykandpatrick.vico.core.marker.Marker
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import kotlin.math.max
-import kotlin.math.min
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,6 +61,13 @@ fun PoseHistoryScreen(
 
     var selectedHistoryForDialog by remember { mutableStateOf<YogaHistory?>(null) }
     val context = LocalContext.current
+
+    var selectedSortOption by remember { mutableStateOf(CombinedSortOption.DATE_DESC) } // 기본: 최신순
+    var dropdownExpanded by remember { mutableStateOf(false) } // 드롭다운 메뉴 확장 상태
+    val sortedHistories = remember(state.poseDetail.histories, selectedSortOption) {
+        sortHistories(state.poseDetail.histories, selectedSortOption)
+    }
+
 
     LaunchedEffect(state.downloadState) {
         when (state.downloadState) {
@@ -217,6 +194,9 @@ fun PoseHistoryScreen(
                                 )
                             }
 
+
+
+
                             // 7. 요가 기록 리스트 아이템들 - 패딩 추가
                             if (poseDetail.histories.isEmpty()) {
                                 item {
@@ -229,8 +209,92 @@ fun PoseHistoryScreen(
                                     )
                                 }
                             } else {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            // 버튼 영역에도 좌우 패딩(16.dp)을 동일하게 적용
+                                            .padding(horizontal = 16.dp)
+                                            // 필요하다면 버튼 상하 패딩 추가 (예: vertical = 8.dp)
+                                            .padding(vertical = 4.dp) // 리스트 아이템과의 간격 조절
+                                    ) {
+                                        // 2. 안쪽 Box: 실제 버튼과 드롭다운 메뉴를 포함하며, 오른쪽 정렬됨
+                                        Box(
+                                            // *** Modifier.align(Alignment.CenterEnd) 추가 ***
+                                            // 바깥 Box 내에서 오른쪽 중앙으로 정렬
+                                            modifier = Modifier.align(Alignment.CenterEnd)
+                                        ) {
+                                            IconButton(onClick = { dropdownExpanded = true }) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    // 현재 선택된 정렬 아이콘 표시 (Sort 아이콘 사용 예시)
+                                                    Icon(
+                                                        // imageVector = selectedSortOption.icon, // 또는 고정 아이콘 사용
+                                                        imageVector = Icons.AutoMirrored.Filled.Sort, // 일반 정렬 아이콘
+                                                        contentDescription = "현재 정렬: ${selectedSortOption.displayName}",
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    // 드롭다운 화살표
+                                                    Icon(
+                                                        imageVector = Icons.Default.ArrowDropDown,
+                                                        contentDescription = "정렬 옵션 변경"
+                                                    )
+                                                }
+                                            }
+
+                                            // 드롭다운 메뉴 (위치는 버튼 기준으로 자동 조절됨)
+                                            DropdownMenu(
+                                                expanded = dropdownExpanded,
+                                                onDismissRequest = { dropdownExpanded = false }
+                                            ) {
+                                                CombinedSortOption.values().forEach { option ->
+                                                    DropdownMenuItem(
+                                                        // *** text 파라미터 수정 ***
+                                                        text = {
+                                                            // Row를 사용하여 텍스트와 아이콘을 가로로 배치
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically // 수직 중앙 정렬
+                                                            ) {
+                                                                // 1. 옵션 표시 이름 텍스트
+                                                                Text(option.displayName)
+
+                                                                // 2. 텍스트와 아이콘 사이 간격 (선택적)
+                                                                Spacer(modifier = Modifier.width(4.dp)) // 작은 간격 추가
+
+                                                                // 3. 정렬 방향 아이콘 (오름차순/내림차순)
+                                                                Icon(
+                                                                    imageVector = if (option.order == SortOrder.ASCENDING)
+                                                                        Icons.Default.ArrowUpward // 오름차순 아이콘
+                                                                    else
+                                                                        Icons.Default.ArrowDownward, // 내림차순 아이콘
+                                                                    contentDescription = if (option.order == SortOrder.ASCENDING) "오름차순" else "내림차순",
+                                                                    // 아이콘 크기나 색상 조절 (선택적)
+                                                                    modifier = Modifier.size(16.dp), // 아이콘 크기 약간 작게
+                                                                    tint = LocalContentColor.current.copy(alpha = 0.6f) // 기본 텍스트 색상보다 약간 연하게
+                                                                )
+                                                            }
+                                                        },
+                                                        onClick = {
+                                                            selectedSortOption = option // 상태 업데이트
+                                                            dropdownExpanded = false // 메뉴 닫기
+                                                        },
+                                                        // *** leadingIcon 파라미터 제거 ***
+                                                        // leadingIcon = { /* 기존 코드 제거 */ },
+
+                                                        // 현재 선택된 항목 강조 (기존과 동일)
+                                                        modifier = if (selectedSortOption == option) Modifier.background(
+                                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                                                        ) else Modifier
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                // --- 드롭다운 버튼 끝 ---
+
+
                                 items(
-                                    items = poseDetail.histories,
+                                    items = sortedHistories,
                                     key = { it.createdAt ?: it.hashCode() }
                                 ) { record ->
                                     // YogaPoseRecordItem 자체는 패딩 없이 호출하고,
@@ -410,7 +474,7 @@ fun YogaPoseRecordItem(
                 MetricWithIcon(
                     icon = Icons.Outlined.Timer, // 예시 아이콘
                     label = "수행 시간",
-                    value = formatDuration(record.poseTime)
+                    String.format("%.2f초", record.poseTime)
                 )
             }
         }
@@ -474,52 +538,42 @@ fun formatDuration(seconds: Float): String {
     return String.format(Locale.getDefault(), "%02d:%02d", minutes, remainingSeconds)
 }
 
-//@Composable
-//internal fun rememberMarker(
-//    valueFormatter: DefaultCartesianMarker.ValueFormatter =
-//        DefaultCartesianMarker.ValueFormatter.default(),
-//    showIndicator: Boolean = true,
-//): CartesianMarker {
-//    val labelBackgroundShape = markerCorneredShape(CorneredShape.Corner.Rounded)
-//    val labelBackground =
-//        rememberShapeComponent(
-//            fill = fill(MaterialTheme.colorScheme.background),
-//            shape = labelBackgroundShape,
-//            strokeThickness = 1.dp,
-//            strokeFill = fill(MaterialTheme.colorScheme.outline),
-//        )
-//    val label =
-//        rememberTextComponent(
-//            color = MaterialTheme.colorScheme.onSurface,
-//            textAlignment = Layout.Alignment.ALIGN_CENTER,
-//            padding = insets(8.dp, 4.dp),
-//            background = labelBackground,
-//            minWidth = TextComponent.MinWidth.fixed(40.dp),
-//        )
-//    val indicatorFrontComponent =
-//        rememberShapeComponent(fill(MaterialTheme.colorScheme.surface), CorneredShape.Pill)
-//    val guideline = rememberAxisGuidelineComponent()
-//    return rememberDefaultCartesianMarker(
-//        label = label,
-//        valueFormatter = valueFormatter,
-//        indicator =
-//        if (showIndicator) {
-//            { color ->
-//                LayeredComponent(
-//                    back = ShapeComponent(fill(color.copy(alpha = 0.15f)), CorneredShape.Pill),
-//                    front =
-//                    LayeredComponent(
-//                        back = ShapeComponent(fill = fill(color), shape = CorneredShape.Pill),
-//                        front = indicatorFrontComponent,
-//                        padding = insets(5.dp),
-//                    ),
-//                    padding = insets(10.dp),
-//                )
-//            }
-//        } else {
-//            null
-//        },
-//        indicatorSize = 36.dp,
-//        guideline = guideline,
-//    )
-//}
+enum class SortCriteria(val displayName: String) {
+    DATE("시간순"),
+    ACCURACY("정확도순"),
+    POSE_TIME("운동 시간순")
+}
+
+// 정렬 순서를 나타내는 enum
+enum class SortOrder {
+    ASCENDING, DESCENDING
+}
+
+enum class CombinedSortOption(
+    val displayName: String,
+    val criteria: SortCriteria,
+    val order: SortOrder,
+) {
+    DATE_DESC("시간순", SortCriteria.DATE, SortOrder.DESCENDING),
+    DATE_ASC("시간순", SortCriteria.DATE, SortOrder.ASCENDING),
+    ACCURACY_DESC("정확도순", SortCriteria.ACCURACY, SortOrder.DESCENDING),
+    ACCURACY_ASC("정확도순", SortCriteria.ACCURACY, SortOrder.ASCENDING),
+    TIME_DESC("유지 시간순", SortCriteria.POSE_TIME, SortOrder.DESCENDING),
+    TIME_ASC("유지 시간순", SortCriteria.POSE_TIME, SortOrder.ASCENDING)
+}
+private fun sortHistories(
+    histories: List<YogaHistory>,
+    sortOption: CombinedSortOption // 파라미터를 통합 옵션으로 변경
+): List<YogaHistory> {
+    val comparator = when (sortOption.criteria) { // 옵션에서 기준(criteria) 사용
+        SortCriteria.DATE -> compareBy<YogaHistory, Long?>(nullsLast()) { it.createdAt }
+        SortCriteria.ACCURACY -> compareBy { it.accuracy }
+        SortCriteria.POSE_TIME -> compareBy { it.poseTime }
+    }
+
+    return if (sortOption.order == SortOrder.DESCENDING) { // 옵션에서 순서(order) 사용
+        histories.sortedWith(comparator.reversed())
+    } else {
+        histories.sortedWith(comparator)
+    }
+}

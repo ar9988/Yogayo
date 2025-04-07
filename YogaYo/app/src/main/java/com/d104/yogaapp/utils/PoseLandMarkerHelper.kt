@@ -10,8 +10,10 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.camera.core.ImageProxy
+import com.d104.domain.model.Keypoint
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -23,6 +25,12 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import javax.inject.Inject
 import kotlin.math.min
+import kotlin.math.pow
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import com.google.mediapipe.framework.image.ByteBufferExtractor
+import java.util.concurrent.ConcurrentHashMap
+
 
 /**
  * MediaPipe Pose Landmarker 작업을 처리하는 헬퍼 클래스.
@@ -40,6 +48,7 @@ class PoseLandmarkerHelper @Inject constructor(
     var currentDelegate: Int = DELEGATE_CPU
     var runningMode: RunningMode = RunningMode.LIVE_STREAM
     var numPoses: Int = DEFAULT_NUM_POSES // 감지할 최대 포즈 수
+    private val bitmapCache = ConcurrentHashMap<Long, Bitmap>()
 
     // 결과 및 에러를 전달할 리스너 (ViewModel에서 설정)
     var poseLandmarkerHelperListener: LandmarkerListener? = null
@@ -293,6 +302,8 @@ class PoseLandmarkerHelper @Inject constructor(
             return
         }
 
+        bitmapCache[frameTime] = rotatedBitmap
+
         // Bitmap -> MPImage 변환
         val mpImage = BitmapImageBuilder(rotatedBitmap).build()
 
@@ -352,15 +363,33 @@ class PoseLandmarkerHelper @Inject constructor(
     private fun returnLivestreamResult(result: PoseLandmarkerResult, input: MPImage) {
         val finishTimeMs = SystemClock.uptimeMillis()
         val inferenceTime = finishTimeMs - result.timestampMs()
-        Timber.d("InferenceTime: ${inferenceTime}\n Result:${result}")
+        Log.d("inference","Mediapipe inference inferenceTime=${inferenceTime}")
+
+        val associatedBitmap = bitmapCache.remove(result.timestampMs())
 
         // 리스너가 null이 아닐 때만 호출
+        if (associatedBitmap == null) {
+            Log.w(TAG, "Result timestamp ${result.timestampMs()} 에 해당하는 Bitmap을 캐시에서 찾을 수 없습니다.")
+            // 비트맵 없이 결과를 전달하거나 에러 처리
+            poseLandmarkerHelperListener?.onResults(
+                ResultBundle(
+                    listOf(result),
+                    inferenceTime,
+                    input.height,
+                    input.width,
+                    image = null // Bitmap 없음
+                )
+            )
+            return
+        }
         poseLandmarkerHelperListener?.onResults(
             ResultBundle(
-                listOf(result), // 결과를 항상 List로 감싸서 전달
+                listOf(result),
                 inferenceTime,
                 input.height,
-                input.width
+                input.width,
+                // 가져온 Bitmap의 복사본을 전달 (수정 방지 및 안전한 생명주기 관리)
+                image = associatedBitmap.copy(associatedBitmap.config, true)
             )
         )
     }
@@ -393,7 +422,14 @@ class PoseLandmarkerHelper @Inject constructor(
         return poseLandmarker == null
     }
 
-    // --- 상수 및 데이터 클래스 ---
+
+
+    fun clear() {
+        bitmapCache.values.forEach { it.recycle() } // 캐시된 모든 비트맵 해제
+        bitmapCache.clear()
+        // poseLandmarker?.close() 등 다른 리소스 정리
+    }
+
 
     companion object {
         const val TAG = "PoseLandmarkerHelper"
@@ -428,6 +464,7 @@ class PoseLandmarkerHelper @Inject constructor(
         val inferenceTime: Long,
         val inputImageHeight: Int,
         val inputImageWidth: Int,
+        val image:Bitmap?
     )
 
     /**

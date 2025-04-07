@@ -10,8 +10,10 @@ data class SoloYogaPlayState(
     val timerProgress: Float = 1.0f, // 1.0 = 100% (20초), 0.0 = 0% (0초)
     val cameraPermissionGranted: Boolean = false,
     val isResult: Boolean = false,
+    val isSkipped: Boolean = false,
     val isGuide: Boolean = true,
-    val currentAccuracy: Float = 0.71f,
+    val currentAccuracy: Float = 0f,
+    val remainingTime: Float = 0f,
     val isCountingDown: Boolean = false,
     val poseHistories:MutableList<YogaHistory> = mutableListOf(),
     val downloadState: DownloadState = DownloadState.Default,

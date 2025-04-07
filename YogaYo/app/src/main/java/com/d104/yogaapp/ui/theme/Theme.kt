@@ -14,7 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.core.view.WindowCompat
+import com.d104.yogaapp.R
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -64,3 +68,6 @@ fun YogaYoTheme(
         content = content
     )
 }
+val SplashFontFamily = FontFamily(
+    Font(R.font.gumi_romance, FontWeight.Normal), // 필요 시 일반 굵기 폰트
+)

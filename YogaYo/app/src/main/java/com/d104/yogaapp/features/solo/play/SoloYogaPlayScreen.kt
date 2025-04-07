@@ -42,9 +42,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +63,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
@@ -79,6 +84,7 @@ import com.d104.yogaapp.features.common.YogaAnimationScreen
 import com.d104.yogaapp.features.common.YogaPlayScreen
 import com.d104.yogaapp.ui.theme.Neutral40
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -100,11 +106,16 @@ fun SoloYogaPlayScreen(
     val state by viewModel.state.collectAsState()
     val currentPose by viewModel.currentPose.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
 //    // 화면 설정 (가로 모드, 전체 화면)
+
     if (!state.isResult) {
         // 요가 플레이 중이거나 가이드 중일 때만 가로 모드로 설정
         RotateScreen(context)
+    }
+    if(state.isPlaying&&state.userCourse.tutorial&&!state.isCountingDown&&state.remainingTime>=10){
+        viewModel.processIntent(SoloYogaPlayIntent.GoToNextPose)
     }
 
     LaunchedEffect(state.downloadState) {
@@ -119,6 +130,26 @@ fun SoloYogaPlayScreen(
                 viewModel.processIntent(SoloYogaPlayIntent.ResetDownloadState)
             }
             else -> {}
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    if(state.isPlaying&&!state.isCountingDown) {
+                        viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause)
+                    }
+                }
+                else->{
+
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        // 컴포저블이 사라질 때 Observer 해제
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -140,9 +171,9 @@ fun SoloYogaPlayScreen(
 
     // 뒤로가기 처리
     BackHandler {
-        val activity = context as? Activity
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        onBackPressed()
+        if(state.isPlaying&&!state.isCountingDown){
+            viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause)
+        }
     }
 
     // 권한에 따른 UI 표시
@@ -197,13 +228,17 @@ fun SoloYogaPlayScreen(
         }else{
             Box(modifier = Modifier.fillMaxSize()) {
                 YogaPlayScreen(
+                    pose = currentPose,
                     timerProgress = state.timerProgress,
                     isPlaying = state.isPlaying,
                     onPause = { viewModel.processIntent(SoloYogaPlayIntent.TogglePlayPause) },
                     leftContent = {YogaAnimationScreen(pose = currentPose, accuracy = state.currentAccuracy, isPlaying = state.isPlaying)},
-                    onImageCaptured = {bitmap: Bitmap ->  viewModel.processIntent(SoloYogaPlayIntent.CaptureImage(bitmap))},
-                    isCountingDown = state.isCountingDown
-
+                    onSendResult = {pose,accuracy, time, bitmap: Bitmap ->  viewModel.processIntent(SoloYogaPlayIntent.SendHistory(pose,accuracy, time, bitmap))},
+                    isCountingDown = state.isCountingDown,
+                    isTutorial = state.userCourse.tutorial,
+                    onAccuracyUpdate = {accuracy,time->
+                        viewModel.processIntent(SoloYogaPlayIntent.SetCurrentHistory(accuracy,time))
+                    }
                 )
 
                 // 일시정지 오버레이 표시
@@ -360,7 +395,6 @@ fun PoseGuideScreen(
 ) {
     // TTS 초기화 및 상태 관리
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
 
     // TTS 인스턴스 생성
@@ -513,35 +547,130 @@ fun CountdownOverlay(
     seconds: Int = 5,
     onCountdownFinished: () -> Unit
 ) {
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
+
     // 전체 카운트다운 진행 상태 (1.0에서 0.0으로)
     val progress = remember { Animatable(1f) }
     // 현재 보여지는 초 값
     var displayedSecond by remember { mutableIntStateOf(seconds) }
+    // 현재 진행 중인 애니메이션 Job
+    var animationJob by remember { mutableStateOf<Job?>(null) }
+    // 남은 애니메이션 시간 (밀리초 단위)
+    var remainingDurationMillis by remember { mutableLongStateOf(seconds * 1000L) }
+    // 일시정지 상태 플래그
+    var isPaused by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = Unit) {
-        // 초기화
-        progress.snapTo(1f)
+    // onCountdownFinished 콜백이 recomposition 시에도 최신 상태를 유지하도록 함
+    val currentOnCountdownFinished by rememberUpdatedState(onCountdownFinished)
 
-        // 전체 시간에 걸쳐 부드럽게 애니메이션
-        progress.animateTo(
-            targetValue = 0f,
-            animationSpec = tween(
-                durationMillis = seconds * 1000,
-                easing = LinearEasing
-            )
-        )
+    // Lifecycle 이벤트를 감지하여 애니메이션 제어
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    isPaused = true
+                    // 현재 애니메이션 중지
+                    animationJob?.cancel()
+                    // 남은 시간 계산 (현재 progress 값 기준)
+                    // progress.value는 1.0(시작) ~ 0.0(끝) 이므로, 남은 비율임
+                    remainingDurationMillis = (progress.value * (seconds * 1000L)).toLong()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    if (isPaused) { // 일시정지 상태에서 재개될 때만 실행
+                        isPaused = false
+                        if (remainingDurationMillis > 0) {
+                            // 중단된 지점부터 남은 시간만큼 애니메이션 재시작
+                            animationJob = coroutineScope.launch {
+                                progress.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(
+                                        durationMillis = remainingDurationMillis.toInt(),
+                                        easing = LinearEasing
+                                    )
+                                )
+                                // 애니메이션 정상 종료 시 콜백 호출
+                                if (!isPaused) { // 재개 후 다시 바로 pause 되지 않았는지 확인
+                                    currentOnCountdownFinished()
+                                }
+                            }
+                        } else if (remainingDurationMillis <= 0 && progress.value > 0f) {
+                            // 만약 pause 시점에 이미 시간이 다 되었어야 하는데 progress가 0이 아니었다면
+                            // 즉시 완료 처리
+                            coroutineScope.launch {
+                                progress.snapTo(0f) // 즉시 0으로 설정
+                                currentOnCountdownFinished()
+                            }
+                        }
+                    }
+                }
+                // 앱 종료 등 다른 Lifecycle 이벤트 처리 필요 시 추가
+                Lifecycle.Event.ON_DESTROY -> {
+                    animationJob?.cancel() // 확실하게 취소
+                }
+                else -> { /* 다른 이벤트 무시 */ }
+            }
+        }
 
-        // 카운트다운 종료
-        onCountdownFinished()
+        // Observer 등록
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // 컴포저블이 사라질 때 Observer 해제
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // 컴포저블 제거 시 애니메이션 확실히 취소
+            animationJob?.cancel()
+        }
     }
 
-    // 숫자 표시를 업데이트하는 LaunchedEffect
-    LaunchedEffect(key1 = progress.value) {
-        // 현재 진행 상태를 기반으로 표시할 초 계산
-        val currentSeconds = (progress.value * seconds).toInt()
-        // 보여지는 숫자가 실제 남은 시간과 다를 때만 업데이트
-        if (currentSeconds < displayedSecond && currentSeconds >= 0) {
+    // 초기 애니메이션 시작 (앱이 처음 시작되거나 seconds 값이 변경될 때)
+    LaunchedEffect(seconds) {
+        // 초기화 (seconds 값이 바뀌면 처음부터 다시 시작)
+        progress.snapTo(1f)
+        remainingDurationMillis = seconds * 1000L
+        isPaused = false // 상태 초기화
+        animationJob?.cancel() // 이전 애니메이션 취소 (seconds 변경 시)
+
+        // ON_RESUME 에서 시작하므로 여기서 바로 시작할 필요 없음
+        // 단, 앱이 시작될 때 Lifecycle 상태가 이미 RESUMED 일 수 있으므로
+        // 초기 상태 확인 후 시작하는 로직이 ON_RESUME 핸들러에 포함되어 있어야 함.
+        // 만약 초기 상태가 RESUMED라면 ON_RESUME 이벤트가 발생하지 않을 수 있으므로,
+        // 초기 시작 로직을 여기에 추가하거나, 현재 Lifecycle 상태를 확인하여 시작할 수 있음.
+        // 아래 코드는 현재 상태가 RESUMED일 경우를 대비한 안전장치
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            // isPaused가 false이고 remainingDuration이 양수일 때 시작
+            if (!isPaused && remainingDurationMillis > 0) {
+                animationJob = coroutineScope.launch {
+                    progress.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(
+                            durationMillis = remainingDurationMillis.toInt(),
+                            easing = LinearEasing
+                        )
+                    )
+                    // 애니메이션 정상 종료 시 콜백 호출
+                    if (!isPaused) { // 종료 시점에 pause 상태가 아닌지 확인
+                        currentOnCountdownFinished()
+                    }
+                }
+            }
+        }
+    }
+
+
+    // 숫자 표시를 업데이트하는 LaunchedEffect (기존 로직 유지)
+    LaunchedEffect(progress.value) {
+        // 현재 진행 상태를 기반으로 표시할 초 계산 (약간의 오차 감안 + 0초 포함)
+        val currentSeconds = ((progress.value * seconds) - 0.001f).coerceAtLeast(0f).toInt()
+        // 표시되는 숫자가 실제 남은 시간보다 크거나 같을 때만 업데이트 (숫자가 줄어드는 것만 반영)
+        if (displayedSecond > currentSeconds) {
             displayedSecond = currentSeconds
+        }
+        // progress가 거의 0에 도달했을 때 displayedSecond도 0이 되도록 보정
+        if (progress.value < 0.01f && displayedSecond > 0) {
+            displayedSecond = 0
+        } else if (progress.targetValue == 1f && progress.value == 1f) { // 초기화 시
+            displayedSecond = seconds
         }
     }
 
@@ -564,30 +693,28 @@ fun CountdownOverlay(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 카운트다운 원형 프로그레스
             Box(
                 modifier = Modifier.size(120.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // 원형 프로그레스 배경 (회색)
                 CircularProgressIndicator(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White.copy(alpha = 0.3f),
                     strokeWidth = 8.dp,
-                    progress = { 1f }
+                    progress = { 1f } // 항상 100%
                 )
-
-                // 원형 프로그레스 애니메이션 (컬러)
                 CircularProgressIndicator(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White,
                     strokeWidth = 8.dp,
-                    progress = { progress.value }
+                    progress = { progress.value } // 애니메이션 진행률
                 )
-
-                // 숫자 카운트다운 (1부터 시작하도록 +1)
+                // 숫자 카운트다운 (0초까지 표시되도록)
                 Text(
-                    text = (displayedSecond + 1).toString(),
+                    // 초기에 seconds 값, 진행 중에는 계산된 값+1, 마지막 0초 표시
+                    text = if (progress.value == 1f && seconds > 0) seconds.toString()
+                    else if (displayedSecond == 0 && progress.value < 0.1f) "1" // 마지막 1초 표시 보정
+                    else (displayedSecond + 1).toString(),
                     style = MaterialTheme.typography.displayLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold

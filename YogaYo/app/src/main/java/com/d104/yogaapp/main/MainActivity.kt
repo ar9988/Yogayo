@@ -31,13 +31,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -60,14 +65,33 @@ import com.d104.yogaapp.features.solo.SoloScreen
 import com.d104.yogaapp.features.solo.play.SoloYogaPlayScreen
 import com.d104.yogaapp.ui.theme.YogaYoTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import timber.log.Timber
+
+
+@Composable
+fun AppEntry() { // 앱 진입점 Composable 함수
+    var showSplashScreen by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        // 예: 2.5초 동안 스플래시 표시
+        delay(2500L)
+        showSplashScreen = false
+    }
+
+    if (showSplashScreen) {
+//        SplashScreen() // 위에서 만든 스플래시 Composable 호출
+    } else {
+        MainNavigation()
+    }
+}
 
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             YogaYoTheme {
                 Surface (
@@ -86,6 +110,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
 
 
     // 화면 전환 시 바텀바 표시 여부 설정
@@ -378,3 +403,5 @@ fun TabItem(
         }
     }
 }
+
+
