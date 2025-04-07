@@ -1,5 +1,6 @@
 package com.red.yogaback.websocket.controller;
 
+import com.red.yogaback.service.RoomService;
 import com.red.yogaback.websocket.dto.RoomActionMessage;
 import com.red.yogaback.websocket.service.UserSession;
 import com.red.yogaback.websocket.service.UserSessionService;
@@ -17,7 +18,6 @@ import org.slf4j.LoggerFactory;
 @Controller
 public class SignalingController {
 
-    // SLF4J 로거 초기화
     private static final Logger logger = LoggerFactory.getLogger(SignalingController.class);
 
     @Autowired
@@ -48,8 +48,12 @@ public class SignalingController {
     public void broadcastRoomMessage(@DestinationVariable String roomId,
                                      @Payload RoomActionMessage actionMessage,
                                      StompHeaderAccessor headerAccessor) {
-        // 세션 ID를 메시지 헤더에서 추출
         String sessionId = headerAccessor.getSessionId();
+//        userSessionService.addSession(sessionId,new UserSession(
+//                String.valueOf(headerAccessor.getSessionAttributes().get("userId")),
+//                roomId,
+//                String.valueOf(headerAccessor.getSessionAttributes().get("userNickName")),
+//                String.valueOf(headerAccessor.getSessionAttributes().get("userProfile"))));
         logger.debug("Received message for room {} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
 
         // 개선방향: 세션 검증 로직 제거 상태인데,
@@ -58,5 +62,8 @@ public class SignalingController {
         // 메시지 payload를 그대로 해당 room의 토픽으로 브로드캐스트
         messagingTemplate.convertAndSend("/topic/room/" + roomId, actionMessage.getPayload());
         logger.info("Broadcasted message to /topic/room/{} from session {}: {}", roomId, sessionId, actionMessage.getPayload());
+//        socketRoomService.addParticipant(roomId);
+        logger.info("actionMessage: {}", actionMessage );
     }
+
 }
