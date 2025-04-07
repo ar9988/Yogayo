@@ -30,7 +30,6 @@ class BestPoseModelUtil @Inject constructor(
 
     // 모델의 기대 입력 크기 (확인된 정보 기반)
     private val modelPath = "all_poses_plus_fixed_best_model_plus.tflite"
-//    private val modelPath = "all_poses_raw_best_model_old.tflite"
     private val keypointInputSize = 99
     private val imageInputHeight = 480
     private val imageInputWidth = 480

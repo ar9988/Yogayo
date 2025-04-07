@@ -84,7 +84,7 @@ class CourseJsonParser @Inject constructor(
         }
     }
 
-    fun printModelMetadata(modelPath: String = "all_poses_raw_best_model_old.tflite") {
+    fun printModelMetadata(modelPath: String = "all_poses_plus_fixed_best_model_plus.tflite") {
         try {
             val fileDescriptor = context.assets.openFd(modelPath)
             val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
