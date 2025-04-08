@@ -7,14 +7,12 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 class SendWebRTCUseCase @Inject constructor(
-    private val webRTCRepository: WebRTCRepository
+    private val webRTCRepository: WebRTCRepository,
+    private val json:Json
 ) {
     suspend operator fun invoke(message: DataChannelMessage) {
         webRTCRepository.sendBroadcastData(
-            message.toByteArray(json = Json{
-                ignoreUnknownKeys = true
-                encodeDefaults = true
-            })
+            message.toByteArray(json)
         )
     }
 }
