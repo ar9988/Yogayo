@@ -47,25 +47,34 @@ class LobbyRepositoryImpl @Inject constructor(
     override suspend fun enterRoom(roomId: Long, password: String): Flow<Result<EnterResult>> {
         return flow {
             try {
-                val enterRoomRequestDto = EnterRoomRequestDto(
-                    roomId,
-                    password
-                )
-                val signUpResult =
-                    enterRoomMapper.map(multiApiService.enterRoom(enterRoomRequestDto))
-                emit(Result.success(signUpResult))
-            } catch (e: HttpException) {
-                val errorResult = when (e.code()) {
-                    400 -> {
-                        val errorBody = ErrorUtils.parseHttpError(e)
-                        EnterResult.Error.BadRequest(errorBody?.message ?: "Bad Request")
-                    }
+                val enterRoomRequestDto = EnterRoomRequestDto(roomId, password)
+                val apiResponse = multiApiService.enterRoom(enterRoomRequestDto)
 
-                    else -> {
-                        EnterResult.Error.Unauthorized("Unknown Error")
-                    }
+                val enterResult: EnterResult = enterRoomMapper.map(apiResponse)
+
+                // Mapper 결과에 따라 분기
+                if (enterResult is EnterResult.Success) {
+                    // API 성공 & 비즈니스 로직 성공
+                    emit(Result.success(enterResult)) // Result.success(EnterResult.Success)
+                } else {
+                    // API 성공 & 비즈니스 로직 실패 (비번 틀림 등)
+                    // 이 경우도 API 호출 자체는 성공했으므로 Result.success로 감싸지만,
+                    // 내부 값은 EnterResult.Error 타입임을 ViewModel에서 인지해야 함.
+                    emit(Result.success(enterResult)) // Result.success(EnterResult.Error.BadRequest)
                 }
-                emit(Result.success(errorResult))
+
+            } catch (e: HttpException) {
+                // --- API 호출 자체가 실패한 경우 ---
+                val errorMessage = try { // 에러 메시지 파싱 시도
+                    ErrorUtils.parseHttpError(e)?.message ?: "HTTP Error Code: ${e.code()}"
+                } catch (parseError: Exception) {
+                    "HTTP Error Code: ${e.code()} (Error body parsing failed)"
+                }
+                // Result.failure를 사용하여 API 호출 실패를 명확히 전달
+                emit(Result.failure(RuntimeException("방 입장 중 오류 발생: $errorMessage", e))) // 원본 예외(e)를 포함
+
+            } catch (e: Exception) { // HttpException 외의 다른 예외 (네트워크 연결 끊김 등)
+                emit(Result.failure(RuntimeException("방 입장 중 예상치 못한 오류 발생: ${e.message}", e)))
             }
         }
     }

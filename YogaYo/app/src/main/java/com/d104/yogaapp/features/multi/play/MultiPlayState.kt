@@ -10,7 +10,7 @@ data class MultiPlayState(
     val cameraPermissionGranted: Boolean = false,
     val menuClicked: Boolean = false,
     val isPlaying: Boolean = true,
-    val timerProgress: Float = 1.0f, // 1.0 = 100% (20초), 0.0 = 0% (0초)
+    val timerProgress: Float = 1.0f,
     val isCountingDown: Boolean = false,
     val currentPose: YogaPose = YogaPose(0, "", "", 0, listOf("나무 자세 설명"), "", 0,""),
     val currentAccuracy: Float = 0.0f,

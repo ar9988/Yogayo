@@ -71,7 +71,7 @@ class MultiPlayViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
     private var currentTimerStep: Float = 1f
-    private val totalTimeMs = 20_000L //테스트용 5초
+    private val totalTimeMs = 5_000L //테스트용 5초
     private var timerJob: Job? = null
     private val intervalMs = 100L // 0.1초마다 업데이트
     private val totalSteps = totalTimeMs / intervalMs
@@ -353,7 +353,7 @@ class MultiPlayViewModel @Inject constructor(
                 Timber.w("Host's 10s delay finished, but state is no longer RoundResult (${stateAfter10s.gameState}). Aborting.")
                 return@launch
             }
-
+            // 로직 점검
             val nextRoundIndex = stateAfter10s.roundIndex + 1
             val poses = stateAfter10s.currentRoom?.userCourse?.poses
 

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.CreateRoomResult
+import com.d104.domain.model.EnterResult
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
@@ -73,9 +74,6 @@ class MultiViewModel @Inject constructor(
                 _uiState.value.page = emptyList()
                 loadRooms(newState.roomSearchText,newState.pageIndex)
             }
-            is MultiIntent.SelectRoom -> {
-                processIntent(MultiIntent.UpdateRoomPassword(""))
-            }
             is MultiIntent.ClickCreateRoomButton -> {
                 processIntent(MultiIntent.UpdateRoomTitle(""))
                 processIntent(MultiIntent.UpdateRoomPassword(""))
@@ -110,16 +108,18 @@ class MultiViewModel @Inject constructor(
                 uiState.value.roomMax,
                 uiState.value.isPassword,
                 uiState.value.roomPassword,
-                // 이제 selectedCourse는 null이 아님이 보장됩니다. (하지만 안전하게 !! 제거 가능)
-                uiState.value.selectedCourse!! // 또는 그냥 uiState.value.selectedCourse 사용 가능
+                uiState.value.selectedCourse!!
             ).collect { result ->
                 result.fold(
                     onSuccess = { createRoomResult ->
                         when (createRoomResult) {
                             is CreateRoomResult.Success -> {
                                 // 방 생성 성공 처리
+                                Timber.d("CreateRoom Success1: ${uiState.value.roomPassword}")
                                 processIntent(MultiIntent.SelectRoom(createRoomResult.room))
+                                Timber.d("CreateRoom Success2: ${uiState.value.roomPassword}")
                                 processIntent(MultiIntent.EnterRoom)
+                                Timber.d("CreateRoom Success3: ${uiState.value.roomPassword}")
                             }
                             is CreateRoomResult.Error.BadRequest -> {
                                 // 잘못된 요청 처리
@@ -142,16 +142,37 @@ class MultiViewModel @Inject constructor(
     }
 
     private fun enterRoom(){
+        Timber.tag("EnterRoom").d("Entering room with ID: ${uiState.value.selectedRoom?.roomId} and password: ${uiState.value.roomPassword}")
         viewModelScope.launch {
-            enterRoomUseCase(uiState.value.selectedRoom!!.roomId, uiState.value.roomPassword).collect{ result->
-                result.onSuccess {
-                    processIntent(MultiIntent.EnterRoomComplete)
+            enterRoomUseCase(uiState.value.selectedRoom!!.roomId, uiState.value.roomPassword).collect { result ->
+                result.onSuccess { enterResult -> // API 호출 성공 시 진입
+                    Timber.tag("EnterRoom").d("API Call Success. EnterResult: $enterResult") // 여기 로그는 BadRequest로 찍힘
+                    // --- 여기가 중요 ---
+                    if (enterResult is EnterResult.Success) {
+                        // enterResult가 EnterResult.Success 타입일 때만 이 블록 안으로 들어와야 함
+                        Timber.tag("EnterRoom")
+                            .d(">>> EnterResult is Success type. Processing Complete.") // 확인용 로그 추가
+                        processIntent(MultiIntent.EnterRoomSuccess)
+
+                    } else if (enterResult is EnterResult.Error) {
+                        // enterResult가 EnterResult.Error 타입일 때만 이 블록 안으로 들어와야 함
+                        Timber.tag("EnterRoom").d(">>> EnterResult is Error type. Processing Fail.") // 확인용 로그 추가
+                        val errorMessage = when (enterResult) {
+                            is EnterResult.Error.BadRequest -> enterResult.message
+                            // 다른 EnterResult.Error 타입들... (필요 시 추가)
+                            // is EnterResult.Error.Unauthorized -> enterResult.message // 예시
+                            else -> "알 수 없는 입장 오류" // 모든 Error 타입을 처리하거나 기본 메시지
+                        }
+                        processIntent(MultiIntent.EnterRoomFail(errorMessage ?: "방 입장에 실패했습니다."))
+
+                    }
+
                 }
-                result.onFailure {
-                    processIntent(MultiIntent.EnterRoomFail(it.message ?: "방 입장에 실패했습니다."))
+                result.onFailure { exception -> // API 호출 자체가 실패했을 때 진입
+                    Timber.tag("EnterRoom").e(exception, "API Call Failed: ${exception.message}")
+                    processIntent(MultiIntent.EnterRoomFail(exception.message ?: "알 수 없는 오류로 방 입장에 실패했습니다."))
                 }
             }
-
         }
     }
 

@@ -81,7 +81,6 @@ fun MultiScreen(
             onNavigateMultiPlay(
                 uiState.selectedRoom!!
             )
-            viewModel.processIntent(MultiIntent.EnterRoomComplete)
             Timber.tag("MultiScreen")
                 .d("Navigating to MultiPlayScreen with room: ${uiState.enteringRoom}")
         }
