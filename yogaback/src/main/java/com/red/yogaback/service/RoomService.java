@@ -13,8 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -141,6 +139,9 @@ public class RoomService {
         Long userId = SecurityUtil.getCurrentMemberId();
         User findUser = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
         Room findRoom = roomRepository.findById(roomEnterReq.getRoomId()).orElseThrow(() -> new NoSuchElementException("방을 찾을 수 없습니다."));
+        if (findRoom.getRoomCount() == findRoom.getRoomMax()){
+            throw new RuntimeException("인원이 초과했습니다.");
+        }
         if (findRoom.getPassword().equals(roomEnterReq.getPassword())) {
             findUser.setRoom(findRoom);
             findRoom.setRoomCount(findRoom.getRoomCount() + 1);
