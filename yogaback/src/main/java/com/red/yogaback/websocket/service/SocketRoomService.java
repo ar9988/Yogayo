@@ -87,6 +87,7 @@ public class SocketRoomService {
                 if (room.getRoomCount() == 0) {
                     // 인원이 0이면 roomState를 0으로 업데이트
                     room.setRoomState(0L);
+                    logger.info("Room {} is now empty; state set to 0", roomIdStr);
                 }
                 roomRepository.save(room);
                 sseEmitterService.notifyRoomUpdate(roomService.getAllRooms(""));
