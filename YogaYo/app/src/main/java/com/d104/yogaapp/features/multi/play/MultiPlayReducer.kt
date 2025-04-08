@@ -168,7 +168,7 @@ class MultiPlayReducer @Inject constructor() {
             }
 
             is MultiPlayIntent.RoundStarted -> {
-                Timber.d("Reducer: Handling RoundStarted for state ${intent.state}")
+                Timber.d("Round: Handling RoundStarted for state ${intent.state}")
 
                 // 1. 모든 사용자의 roundScore를 0으로 초기화한 새로운 userList 생성
                 val updatedUserList = currentState.userList.mapValues { entry ->

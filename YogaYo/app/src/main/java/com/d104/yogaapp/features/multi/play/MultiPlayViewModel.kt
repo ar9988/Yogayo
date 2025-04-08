@@ -118,6 +118,7 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
+                Timber.d("Received WebSocket message: ${intent.message}")
                 if (intent.message.type == "round_end") {
                     sendScore()
                     processIntent(MultiPlayIntent.RoundEnded)
@@ -157,7 +158,7 @@ class MultiPlayViewModel @Inject constructor(
                         processIntent(MultiPlayIntent.RoundStarted(state))
                     } else if (state == -1) {
                         Timber.d("Game ended")
-                        processIntent(MultiPlayIntent.GameEnd)
+//                        processIntent(MultiPlayIntent.GameEnd)
                     }
                     startTimer()
                 }
@@ -207,6 +208,7 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             is MultiPlayIntent.RoundStarted -> {
+                Timber.d("Round started: ${intent.state}")
                 timerJob?.cancel()
                 cancelPlayTimer()
                 startTimer()
@@ -342,17 +344,18 @@ class MultiPlayViewModel @Inject constructor(
                 Timber.w("User list empty, skipping photo request.")
             }
 
-            // 3. 다음 라운드/게임 종료 결정을 위한 10초 대기 (사진 요청 후 시작)
-            Timber.i("Host ($myId) waiting 10 seconds before next round/game end decision.")
+            // 3. 다음 라운드/게임 종료 결정을 위한 5초 대기 (사진 요청 후 시작)
+            Timber.i("Host ($myId) waiting 5 seconds before next round/game end decision.")
             delay(5_000L)
 
-            // 4. 10초 후 다음 액션 결정 및 서버 메시지 전송
+            // 4. 5초 후 다음 액션 결정 및 서버 메시지 전송
             val stateAfter10s = _uiState.value // 10초 후 최신 상태 확인
             if (stateAfter10s.gameState != GameState.RoundResult) {
                 // 10초 동안 상태가 바뀌었다면 (예: 누군가 나감) 액션 중단
                 Timber.w("Host's 10s delay finished, but state is no longer RoundResult (${stateAfter10s.gameState}). Aborting.")
                 return@launch
             }
+            Timber.i("Round!!!", stateAfter10s.roundIndex)
             // 로직 점검
             val nextRoundIndex = stateAfter10s.roundIndex + 1
             val poses = stateAfter10s.currentRoom?.userCourse?.poses
@@ -360,11 +363,13 @@ class MultiPlayViewModel @Inject constructor(
             if (poses != null && nextRoundIndex < poses.size) {
                 // 다음 라운드 시작 요청
                 Timber.i("Host sending next round message for round: $nextRoundIndex")
+                Timber.i("$nextRoundIndex, ${poses.size}")
                 sendNextRoundMessage(nextRoundIndex)
             } else {
                 // 게임 종료 요청
                 Timber.i("Host sending game end message.")
-                sendGameEndMessage()
+                Timber.i("$nextRoundIndex, ${poses ?: "null"}")
+//                sendGameEndMessage()
             }
         }
     }
@@ -461,7 +466,6 @@ class MultiPlayViewModel @Inject constructor(
                     .filterNotNull() // currentRoom이 null이 아닐 때까지 기다림
                     .first()        // 첫 번째 non-null 값 사용
                     .roomId.toString()
-
                 Timber.d("Room ID acquired: $roomId. Setting up WebSocket connection and observation.")
                 val yogaPoses =
                     (uiState.map { it.currentRoom }).filterNotNull().first().userCourse.poses
