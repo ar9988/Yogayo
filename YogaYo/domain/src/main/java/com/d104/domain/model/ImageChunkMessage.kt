@@ -9,7 +9,6 @@ data class ImageChunkMessage(
     val chunkIndex: Int,
     val totalChunks: Int,
     val dataBase64: String, // Base64 인코딩된 이미지 청크 데이터
-    @SerialName("_type_")
     override val type: String = "image_chunk"
 ) : DataChannelMessage()
 
