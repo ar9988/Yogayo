@@ -115,11 +115,8 @@ class MultiViewModel @Inject constructor(
                         when (createRoomResult) {
                             is CreateRoomResult.Success -> {
                                 // 방 생성 성공 처리
-                                Timber.d("CreateRoom Success1: ${uiState.value.roomPassword}")
                                 processIntent(MultiIntent.SelectRoom(createRoomResult.room))
-                                Timber.d("CreateRoom Success2: ${uiState.value.roomPassword}")
                                 processIntent(MultiIntent.EnterRoom)
-                                Timber.d("CreateRoom Success3: ${uiState.value.roomPassword}")
                             }
                             is CreateRoomResult.Error.BadRequest -> {
                                 // 잘못된 요청 처리
@@ -157,12 +154,13 @@ class MultiViewModel @Inject constructor(
                     } else if (enterResult is EnterResult.Error) {
                         // enterResult가 EnterResult.Error 타입일 때만 이 블록 안으로 들어와야 함
                         Timber.tag("EnterRoom").d(">>> EnterResult is Error type. Processing Fail.") // 확인용 로그 추가
-                        val errorMessage = when (enterResult) {
-                            is EnterResult.Error.BadRequest -> enterResult.message
-                            // 다른 EnterResult.Error 타입들... (필요 시 추가)
-                            // is EnterResult.Error.Unauthorized -> enterResult.message // 예시
-                            else -> "알 수 없는 입장 오류" // 모든 Error 타입을 처리하거나 기본 메시지
-                        }
+//                        val errorMessage = when (enterResult) {
+//                            is EnterResult.Error.BadRequest -> enterResult.message
+//                            // 다른 EnterResult.Error 타입들... (필요 시 추가)
+//                            // is EnterResult.Error.Unauthorized -> enterResult.message // 예시
+//                            else -> "알 수 없는 입장 오류" // 모든 Error 타입을 처리하거나 기본 메시지
+//                        }
+                        val errorMessage = "입장 할 수 없습니다."
                         processIntent(MultiIntent.EnterRoomFail(errorMessage ?: "방 입장에 실패했습니다."))
 
                     }

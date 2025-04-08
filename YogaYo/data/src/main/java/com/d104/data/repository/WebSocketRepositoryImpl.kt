@@ -159,9 +159,10 @@ class WebSocketRepositoryImpl @Inject constructor(
                                 }
                             }
                             "ERROR" -> {
-                                Log.e("StompRepo", "STOMP ERROR frame received: $headers - $body")
                                 try {
-                                    close(StompErrorException("STOMP Error: ${headers["message"]} - $body"))
+//                                    close(StompErrorException("STOMP Error: ${headers["message"]} - $body"))
+
+                                    Log.e("StompRepo", "STOMP ERROR frame received: $headers - $body")
                                 }catch (e: Exception) {
                                     Log.e("StompRepo", "Error closing Flow in ERROR frame", e)
                                 }

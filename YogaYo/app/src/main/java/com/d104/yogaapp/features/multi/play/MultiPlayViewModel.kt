@@ -344,7 +344,7 @@ class MultiPlayViewModel @Inject constructor(
 
             // 3. 다음 라운드/게임 종료 결정을 위한 10초 대기 (사진 요청 후 시작)
             Timber.i("Host ($myId) waiting 10 seconds before next round/game end decision.")
-            delay(10_000L)
+            delay(5_000L)
 
             // 4. 10초 후 다음 액션 결정 및 서버 메시지 전송
             val stateAfter10s = _uiState.value // 10초 후 최신 상태 확인
@@ -465,7 +465,7 @@ class MultiPlayViewModel @Inject constructor(
                 Timber.d("Room ID acquired: $roomId. Setting up WebSocket connection and observation.")
                 val yogaPoses =
                     (uiState.map { it.currentRoom }).filterNotNull().first().userCourse.poses
-                Timber.d("Yoga poses: $yogaPoses")
+                Timber.d("Yoga poses: ${yogaPoses.size}")
                 viewModelScope.launch {
                     // myId 먼저 가져오기 (예시: .first() 사용 등으로 동기적으로 기다리거나)
                     // 혹은 완료 후 Intent 호출
