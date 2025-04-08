@@ -175,6 +175,10 @@ class MultiPlayViewModel @Inject constructor(
                 }
             }
 
+            is MultiPlayIntent.SetCurrentHistory -> {
+
+            }
+
             is MultiPlayIntent.ReadyClick -> {
                 sendReadyMessage()
             }

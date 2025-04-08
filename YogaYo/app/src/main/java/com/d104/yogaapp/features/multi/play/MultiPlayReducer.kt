@@ -138,6 +138,12 @@ class MultiPlayReducer @Inject constructor() {
                 }
             }
 
+            is MultiPlayIntent.SetCurrentHistory -> {
+                Timber.d("Reducer: Handling SetCurrentHistory with accuracy ${intent.accuracy} and time ${intent.time}")
+                currentState.copy(
+                    accuracy = intent.accuracy,
+                )
+            }
 
             is MultiPlayIntent.GameStarted -> {
                 //yoga 리스트에서 0번 인덱스로 설정하기
@@ -181,7 +187,8 @@ class MultiPlayReducer @Inject constructor() {
                         gameState = GameState.Playing, // 게임 상태를 Playing으로
                         roundIndex = intent.state,      // 현재 라운드 인덱스 업데이트
                         currentPose = nextPose,         // 현재 포즈 업데이트 (안전하게 가져온 값 사용)
-                        userList = updatedUserList      // 점수가 초기화된 사용자 목록으로 교체
+                        userList = updatedUserList,
+                        timerProgress = 1.0f // 점수가 초기화된 사용자 목록으로 교체
                     )
                 } else {
                     // 다음 포즈 정보를 가져올 수 없는 경우 (오류 상황)
