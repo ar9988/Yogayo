@@ -15,8 +15,6 @@ data class MultiPlayState(
     val currentPose: YogaPose = YogaPose(0, "", "", 0, listOf("나무 자세 설명"), "", 0,""),
     val currentAccuracy: Float = 0.0f,
     val gameState: GameState = GameState.Waiting,
-    val second : Float = 0.0f, // 1.0 = 3초, 0.0 = 0초,
-    val score : Float = 0.0f,
     val selectedPoseId :Int = 0,
     val currentRoom: Room? = null,
     val bitmap: Bitmap? = null,

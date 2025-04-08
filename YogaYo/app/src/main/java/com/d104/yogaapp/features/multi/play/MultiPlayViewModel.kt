@@ -458,11 +458,49 @@ class MultiPlayViewModel @Inject constructor(
 
     private fun sendImage() {
         viewModelScope.launch {
+            val currentState = uiState.value
+
+            // 1. 사용할 비트맵 결정: 상태에 있으면 사용, 없으면 drawable에서 로드
+            val bitmapToUse: Bitmap? = if (currentState.bitmap != null) {
+                Timber.d("Using bitmap from UI state for WebRTC send.")
+                currentState.bitmap
+            } else {
+                Timber.w("UI state bitmap is null. Attempting to load default image from drawable for WebRTC send.")
+                // Drawable 리소스 로드 시도 (IO 작업이므로 withContext 사용 권장)
+                withContext(Dispatchers.IO) {
+                    // sendImageToServer와 동일한 기본 이미지를 사용하거나 다른 이미지를 지정할 수 있습니다.
+                    loadBitmapFromDrawable(context, R.drawable.ic_launcher_foreground) // <<<--- 기본 이미지 리소스 ID 지정
+                }
+            }
+
+            // 2. 비트맵 확보 실패 시 처리
+            if (bitmapToUse == null) {
+                Timber.e("Failed to get bitmap (neither from state nor drawable). Cannot send image via WebRTC.")
+                // 오류 처리: 사용자에게 알림, 로그만 남기기 등
+                return@launch // 코루틴 실행 중단
+            }
+
+            // 3. 결정된 비트맵을 Base64로 인코딩
+            // bitmapToBase64 함수가 null을 반환할 수 있는지 확인 필요
+            // 만약 null 반환 가능하다면 추가 처리 필요
+            val imageBytesBase64: ByteArray? = withContext(Dispatchers.Default) { // 인코딩은 CPU 작업이므로 Default 디스패처 사용 가능
+                bitmapToBase64(bitmapToUse) // bitmapToUse는 null이 아님
+            }
+
+            // 4. Base64 인코딩 실패 시 처리
+            if (imageBytesBase64 == null) {
+                Timber.e("Failed to encode bitmap to Base64. Cannot send image via WebRTC.")
+                // 오류 처리
+                return@launch
+            }
+
+            // 5. WebRTC를 통해 이미지 전송
+            Timber.d("Sending image via WebRTC...")
             sendImageUseCase(
                 params = SendImageUseCase.Params(
-                    imageBytes = bitmapToBase64(uiState.value.bitmap!!)!!,
-                    targetPeerId = null,
-                    quality = 85
+                    imageBytes = imageBytesBase64, // null 이 아님이 보장됨
+                    targetPeerId = null, // null이면 모든 피어에게 전송 (UseCase 로직에 따라 다름)
+                    quality = 85 // 필요시 조정
                 )
             )
         }
@@ -472,8 +510,8 @@ class MultiPlayViewModel @Inject constructor(
         viewModelScope.launch {
             sendWebRTCUseCase(
                 message = ScoreUpdateMessage(
-                    score = uiState.value.score,
-                    time = uiState.value.second
+                    score = uiState.value.accuracy,
+                    time = uiState.value.time
                 )
             )
         }
