@@ -1,6 +1,5 @@
 // com/d104/data/remote/utils/StompUtils.kt
 package com.d104.data.remote.utils
-
 import android.util.Log
 
 object StompUtils {
@@ -39,14 +38,32 @@ object StompUtils {
         }
     }
 
+    /**
+     * Builds a SEND frame.
+     * The provided 'body' string will be wrapped inside a JSON object under the key "payload".
+     * e.g., if body is '{"type":"user_joined", "data":"..."}', the actual frame body will be
+     * '{"payload":{"type":"user_joined", "data":"..."}}'
+     *
+     * @param destination The STOMP destination.
+     * @param body The JSON string representing the inner payload content.
+     * @return The complete STOMP SEND frame as a String.
+     */
     fun buildSendFrame(destination: String, body: String): String {
-        // 헤더를 맵 형태로 정의
+        // Define headers
         val headers = mapOf(
             "destination" to destination,
-            "content-type" to "application/json;charset=UTF-8" // JSON 형식 사용
+            "content-type" to "application/json;charset=UTF-8" // JSON format
         )
 
-        return buildFrame("SEND", headers, body)
+        // Wrap the original body string inside a "payload" JSON object
+        // IMPORTANT: Assumes the input 'body' is already a valid JSON value representation (object, array, string, number, etc.)
+        val wrappedBody = """{"payload":$body}"""
+
+        Log.d("StompUtils", "Original body for SEND: $body")
+        Log.d("StompUtils", "Wrapped body for SEND: $wrappedBody")
+
+        // Build the frame using the wrapped body
+        return buildFrame("SEND", headers, wrappedBody)
     }
 
     private fun buildFrame(
@@ -54,30 +71,27 @@ object StompUtils {
         headers: Map<String, String> = emptyMap(),
         body: String = ""
     ): String {
-        Log.d("StompUtils", "Building Frame: $command with headers: $headers and body: $body")
+        // Keep the detailed log here for debugging frame construction
+        Log.d("StompUtils", "Building Frame: Command='$command', Headers='$headers', Body (first 100 chars)='${body.take(100)}'")
         return StringBuilder().apply {
-            append("$command\n")
-            headers.forEach { (k, v) -> append("$k:$v\n") }
-            append("\n") // 헤더-바디 구분
+            append(command)
+            append(EOL) // Use constant
+            headers.forEach { (k, v) -> append("$k:$v").append(EOL) } // Use constant
+            append(EOL) // Header-body separator
             append(body)
-            append(NULL)
+            append(NULL) // Use constant
         }.toString()
     }
     // Reverted buildDisconnectFrame using raw string
     fun buildDisconnectFrame(receiptId: String? = null): String {
-        val receiptHeader = receiptId?.let { "receipt:$it$EOL" } ?: ""
+        val headers = mutableMapOf<String, String>()
+        receiptId?.let { headers["receipt"] = it }
 
-        val frame = """
-            DISCONNECT
-            $receiptHeader
-            $NULL
-            """.trimIndent()
-
-        Log.v("StompUtils", "Building Frame: ${frame.replace(NULL, "\\0").take(300)}...")
-        return frame
+        return buildFrame("DISCONNECT", headers).also {
+            Log.v("StompUtils", "Building Frame: DISCONNECT (receipt: $receiptId)")
+        }
     }
 
-    // buildFrame helper is no longer needed with this approach
 
     // parseFrame remains the same as it deals with incoming frames
     fun parseFrame(frameText: String): Triple<String, Map<String, String>, String> {
@@ -121,7 +135,7 @@ object StompUtils {
                 Log.w("StompUtils", "Received frame part without trailing NULL: ${bodyWithNull.take(50)}...")
                 bodyWithNull
             }
-            Log.d("StompRepo","body is $body")
+            // Log removed from here as it was specific to StompRepo
 
             return Triple(command, headers, body)
         } catch (e: Exception) {

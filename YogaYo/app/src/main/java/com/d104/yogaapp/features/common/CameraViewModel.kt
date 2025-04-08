@@ -60,6 +60,12 @@ class CameraViewModel @Inject constructor(
     private val csvList = MutableStateFlow<List<FloatArray>>(emptyList())
 
     private val _rawAccuracy = MutableStateFlow(0f)
+    fun isCurrentPoseInitialized(): Boolean {
+        // ::currentPose는 KProperty 객체를 반환하며 isInitialized로 확인 가능
+        val initialized = ::currentPose.isInitialized
+        // Timber.v("Checking if currentPose is initialized: $initialized") // 필요시 로그 추가
+        return initialized
+    }
     val displayAccuracy = _rawAccuracy
         .sample(300)
         .stateIn(

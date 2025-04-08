@@ -14,6 +14,8 @@ import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
 import com.d104.domain.usecase.CloseWebSocketUseCase
 import com.d104.domain.usecase.ConnectWebSocketUseCase
+import com.d104.domain.usecase.GetBestPoseRecordsUseCase
+import com.d104.domain.usecase.GetMultiAllPhotoUseCase
 import com.d104.domain.usecase.GetUserIdUseCase
 import com.d104.domain.usecase.HandleSignalingMessage
 import com.d104.domain.usecase.InitializeWebRTCUseCase
@@ -69,7 +71,9 @@ class MultiPlayViewModel @Inject constructor(
     private val sendImageUseCase: SendImageUseCase,
     private val getUserIdUseCase: GetUserIdUseCase,
     private val postYogaPoseHistoryUseCase: PostYogaPoseHistoryUseCase,
-    private val imageStorageManager: ImageStorageManager
+    private val imageStorageManager: ImageStorageManager,
+    private val getBestPoseRecordsUseCase: GetBestPoseRecordsUseCase,
+    private val getMultiAllPhotoUseCase: GetMultiAllPhotoUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
@@ -99,6 +103,7 @@ class MultiPlayViewModel @Inject constructor(
 
             // 타이머 종료 후
             if (uiState.value.gameState != GameState.GameResult &&uiState.value.timerProgress <= 0f && (uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
+
                 sendRoundEndMessage()
             }
         }
@@ -123,9 +128,11 @@ class MultiPlayViewModel @Inject constructor(
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
                 Timber.d("Received WebSocket message: ${intent.message}")
                 if (intent.message.type == "round_end") {
-                    sendScore()
+
                     processIntent(MultiPlayIntent.RoundEnded)
+
                 }
+
                 if (intent.message.type == "user_joined") {
                     Timber.d("User joined: ${intent.message}")
                     val peerId = (intent.message as UserJoinedMessage).fromPeerId
@@ -155,15 +162,24 @@ class MultiPlayViewModel @Inject constructor(
                         Timber.d("Game started")
                         processIntent(MultiPlayIntent.GameStarted)
                         initiateMeshNetwork()
+                        startTimer()
                     } else if (state >= 1) {
                         Timber.d("Round $state started")
-                        sendImageToServer()
                         processIntent(MultiPlayIntent.RoundStarted(state))
+                        startTimer()
                     } else if (state == -1) {
                         Timber.d("Game ended")
                         processIntent(MultiPlayIntent.GameEnd)
+                        viewModelScope.launch {
+                            getBestPoseRecordsUseCase().collect { bestPoseRecords ->
+                                _uiState.update { currentState ->
+                                    currentState.copy(
+//                                        bestUrls = bestPoseRecords
+                                    )
+                                }
+                            }
+                        }
                     }
-                    startTimer()
                 }
                 if (intent.message.type == "user_left") {
                     processIntent(MultiPlayIntent.UserLeft(intent.message.fromPeerId))
@@ -185,19 +201,7 @@ class MultiPlayViewModel @Inject constructor(
 
             is MultiPlayIntent.ExitRoom -> {
                 // 방 나가기 처리
-                viewModelScope.launch {
-                    val myId = getUserIdUseCase()
-                    if (sendSignalingMessageUseCase(
-                            myId,
-                            uiState.value.currentRoom!!.roomId.toString(), 3
-                        )
-                    ) {
-                        Timber.d("User left: $myId")
-                        processIntent(MultiPlayIntent.Exit)
-                    } else {
-                        Timber.d("Failed to send user left message")
-                    }
-                }
+                sendLeftMessage()
             }
 
             is MultiPlayIntent.GameStarted -> {
@@ -213,12 +217,29 @@ class MultiPlayViewModel @Inject constructor(
                 startTimer()
             }
 
-            is MultiPlayIntent.ReceiveWebRTCImage -> {
-                Timber.d("Received WebRTC image")
+            is MultiPlayIntent.SendHistory -> {
+                Timber.d("Send history")
+                sendScore()
                 sendImageToServer()
             }
 
             else -> {}
+        }
+    }
+
+    private fun sendLeftMessage() {
+        viewModelScope.launch {
+            val myId = getUserIdUseCase()
+            if (sendSignalingMessageUseCase(
+                    myId,
+                    uiState.value.currentRoom!!.roomId.toString(), 3
+                )
+            ) {
+                Timber.d("User left: $myId")
+                processIntent(MultiPlayIntent.Exit)
+            } else {
+                Timber.d("Failed to send user left message")
+            }
         }
     }
 
@@ -386,10 +407,9 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             // 3. 다음 라운드/게임 종료 결정을 위한 5초 대기 (사진 요청 후 시작)
-            Timber.i("Host ($myId) waiting 5 seconds before next round/game end decision.")
-            delay(5_000L)
+            Timber.i("Host ($myId) waiting 10 seconds before next round/game end decision.")
+            delay(10_000L)
 
-            // 4. 5초 후 다음 액션 결정 및 서버 메시지 전송
             val stateAfter10s = _uiState.value // 10초 후 최신 상태 확인
             if (stateAfter10s.gameState != GameState.RoundResult) {
                 // 10초 동안 상태가 바뀌었다면 (예: 누군가 나감) 액션 중단
@@ -492,19 +512,29 @@ class MultiPlayViewModel @Inject constructor(
                 return@launch
             }
 
+            // *** 추가된 로그: Base64 인코딩된 데이터의 크기 확인 ***
+            Timber.d("sendImageToMeshNetwork: imageBytesBase64 size = ${imageBytesBase64.size}")
+
             // 5. WebRTC를 통해 이미지 전송
-            Timber.d("Sending image via WebRTC...")
+            Timber.d("Sending image via WebRTC...") // 이 로그는 이미 있음
             sendImageUseCase(
                 params = SendImageUseCase.Params(
                     imageBytes = imageBytesBase64, // null 이 아님이 보장됨
-                    targetPeerId = null, // null이면 모든 피어에게 전송 (UseCase 로직에 따라 다름)
-                    quality = 85 // 필요시 조정
+                    targetPeerId = null,
+                    quality = 85
                 )
             )
         }
     }
 
     private fun sendScore() {
+        processIntent(MultiPlayIntent.UpdateScore(
+            uiState.value.myId!!,
+            ScoreUpdateMessage(
+                score = uiState.value.time,
+                time = uiState.value.time
+            )
+        ))
         viewModelScope.launch {
             sendWebRTCUseCase(
                 message = ScoreUpdateMessage(
@@ -513,6 +543,8 @@ class MultiPlayViewModel @Inject constructor(
                 )
             )
         }
+
+        Timber.d("Sending score via WebRTC...${uiState.value.time}")
     }
 
     private fun requestPhoto(toPeerId: String) {
@@ -612,8 +644,8 @@ class MultiPlayViewModel @Inject constructor(
                 launch(Dispatchers.IO) { // 또는 Dispatchers.Default
                     when (it.second) {
                         is ImageChunkMessage -> {
+                            Timber.d("Received ImageChunkMessage: ${it.second}")
                             processChunkImageUseCase((it.second as ImageChunkMessage))
-//                            processIntent(MultiPlayIntent.ReceiveWebRTCImage(base64ToBitmap((it.second as ImageChunkMessage).dataBase64)!!))
                         }
 
                         is ScoreUpdateMessage -> {
@@ -625,21 +657,47 @@ class MultiPlayViewModel @Inject constructor(
                             )
                         }
 
+
                     }
                 }
+
+                Timber.d("Received WebRTC message: ${it.second}")
             }
         }
 
         viewModelScope.launch {
-            observeChunkImageUseCase().collect {
-                withContext(Dispatchers.IO) {
-                    val bitmap = try {
-                        BitmapFactory.decodeByteArray(it, 0, it.size)
-                    } catch (e: Exception) { /* ... */
+            Timber.d("Attempting to collect from observeChunkImageUseCase...") // Flow 구독 시작 로그
+            observeChunkImageUseCase().collect { byteArray -> // Flow<ByteArray> 구독
+                Timber.d("Collected completed image ByteArray from observeChunkImageUseCase! Size: ${byteArray.size}")
+
+                // IO 디스패처에서 비트맵 변환 수행
+                val bitmap: Bitmap? = withContext(Dispatchers.IO) {
+                    try {
+                        // BitmapFactory를 사용하여 ByteArray를 Bitmap으로 디코딩
+                        BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                    } catch (e: Exception) {
+                        // 디코딩 중 에러 발생 시 (예: 메모리 부족, 잘못된 바이트 배열 등)
+                        Timber.e(e, "Failed to decode ByteArray to Bitmap.")
+                        null // 실패 시 null 반환
+                    } catch (oom: OutOfMemoryError) {
+                        // 메모리 부족 에러는 별도 처리
+                        Timber.e(oom, "OutOfMemoryError while decoding ByteArray to Bitmap.")
+                        // TODO: 메모리 부족 상황에 대한 처리 (예: 사용자 알림, 리소스 정리 등)
+                        null // 실패 시 null 반환
                     }
-                    bitmap?.let {
-                        processIntent(MultiPlayIntent.ReceiveWebRTCImage(bitmap as Bitmap))
-                    }
+                }
+
+                // 비트맵 변환 결과 처리
+                if (bitmap != null) {
+                    // 성공적으로 Bitmap 생성됨
+                    Timber.d("Successfully decoded ByteArray to Bitmap. Sending ReceiveWebRTCImage intent.")
+                    // 생성된 Bitmap으로 Intent 전송
+                    processIntent(MultiPlayIntent.ReceiveWebRTCImage(bitmap))
+                } else {
+                    // Bitmap 생성 실패
+                    Timber.w("Bitmap decoding resulted in null. Skipping ReceiveWebRTCImage intent.")
+                    // 필요하다면 에러 상태 업데이트 또는 사용자 알림
+                    // processIntent(MultiPlayIntent.ShowError("이미지 로딩 실패"))
                 }
             }
         }

@@ -1,7 +1,5 @@
 package com.d104.data.remote.Service
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Base64 // 안드로이드 Base64 사용
 import android.util.Log
 import com.d104.domain.model.ImageChunkMessage
@@ -96,6 +94,7 @@ class ImageReassemblyService @Inject constructor() {
      * 완성된 버퍼로부터 이미지를 재조립하여 Flow로 방출합니다. (peerId 제거)
      */
     private suspend fun reassembleAndEmitImage(buffer: PeerImageBuffer) {
+        Log.d(TAG, "reassembleAndEmitImage started for buffer with ${buffer.receivedChunks.size}/${buffer.totalChunksExpected} chunks.")
         withContext(Dispatchers.IO) {
             try {
                 val outputStream = ByteArrayOutputStream()
@@ -113,8 +112,9 @@ class ImageReassemblyService @Inject constructor() {
 
                 if (success) {
                     val completeImageData = outputStream.toByteArray()
-                    Log.d(TAG, "Image reassembled successfully. Total size: ${completeImageData.size} bytes. Emitting ByteArray.")
+                    Log.d(TAG, "Image reassembled successfully. Size: ${completeImageData.size}. Attempting to emit.") // <<<--- 로그 추가
                     _completedImages.emit(completeImageData) // 완성된 ByteArray 방출
+                    Log.d(TAG, "Successfully emitted completed image ByteArray.") // <<<--- 로그 추가
 
                 } else {
                     Log.w(TAG, "Image reassembly skipped due to missing chunks.")

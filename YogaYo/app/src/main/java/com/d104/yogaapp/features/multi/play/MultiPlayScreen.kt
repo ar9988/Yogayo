@@ -166,7 +166,7 @@ fun MultiPlayScreen(
                         GameState.RoundResult -> {
                             RoundResultScreen(
                                 isLoading = uiState.isLoading,
-                                resultImage = painterResource(id = R.drawable.ic_crown),
+                                resultBitmap = uiState.bestBitmap,
                                 contentDescription = uiState.currentPose.poseName
                             )
                         }

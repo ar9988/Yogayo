@@ -18,6 +18,7 @@ data class MultiPlayState(
     val selectedPoseId :Int = 0,
     val currentRoom: Room? = null,
     val bitmap: Bitmap? = null,
+    val bestBitmap: Bitmap? = null,
     val roundIndex: Int = 0,
     val exit: Boolean = false,
     val myId: String? = null,

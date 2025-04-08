@@ -19,13 +19,15 @@ class MultiPlayReducer @Inject constructor() {
             }
 
             is MultiPlayIntent.SendHistory -> {
-                Timber.d("Reducer: Handling SendHistory with accuracy ${intent.accuracy} and time ${intent.time}")
+                Timber.d("Reducer: Handling SendHistory with ${intent.bitmap}")
                 currentState.copy(
                     accuracy = intent.accuracy,
                     time = intent.time,
+//                    time = currentState.myId!!.toFloat(), //test용 임의 값
                     bitmap = intent.bitmap,
                     beyondPose = intent.pose,
                 )
+
             }
 
             is MultiPlayIntent.UpdateCameraPermission -> currentState.copy(
@@ -126,10 +128,6 @@ class MultiPlayReducer @Inject constructor() {
                         }
                         currentState.copy(userList = newUserList)
                     }
-                    "round_end" -> currentState.copy(
-                        gameState = GameState.RoundResult
-                    )
-
                     "game_end" -> currentState.copy(
                         gameState = GameState.GameResult
                     )
@@ -148,22 +146,18 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.GameStarted -> {
                 //yoga 리스트에서 0번 인덱스로 설정하기
                 Timber.d("game_started")
-// Test 용 으로 주석
                 currentState.copy(
                     gameState = GameState.Playing,
                     roundIndex = 0,
                     currentPose = currentState.currentRoom!!.userCourse.poses[0],
                 )
-//                currentState.copy(
-//                    gameState = GameState.GameResult
-//                )
             }
 
             is MultiPlayIntent.RoundEnded -> {
                 currentState.copy(
                     gameState = GameState.RoundResult,
                     isLoading = true, // 로딩 시작!
-                    bitmap = null      // 이전 이미지 초기화
+                    bestBitmap = null      // 이전 이미지 초기화
                 )
             }
 
@@ -209,7 +203,7 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.ReceiveWebRTCImage -> {
                 Timber.d("Reducer: Received complete WebRTC image.")
                 currentState.copy(
-                    bitmap = intent.bitmap, // 수신된 비트맵으로 업데이트
+                    bestBitmap = intent.bitmap, // 수신된 비트맵으로 업데이트
                     isLoading = false      // 로딩 종료!
                 )
             }
@@ -228,7 +222,7 @@ class MultiPlayReducer @Inject constructor() {
             }
 
             is MultiPlayIntent.UpdateScore -> {
-                val score = intent.scoreUpdateMessage.score
+                val score = intent.scoreUpdateMessage.time
                 val userId = intent.id
                 // 기존 사용자 데이터 가져오기
                 val user = currentState.userList[userId]

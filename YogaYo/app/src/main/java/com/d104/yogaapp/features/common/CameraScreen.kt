@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.common
 
+import android.content.Context
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
@@ -34,6 +35,9 @@ import androidx.core.content.ContextCompat
 import com.d104.yogaapp.R
 import timber.log.Timber
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.speech.tts.TextToSpeech
 import android.util.Size
 import androidx.camera.core.ImageAnalysis
@@ -339,18 +343,49 @@ fun CameraPreview(
         }
         cameraProviderFuture.addListener(cameraListener, ContextCompat.getMainExecutor(context))
 
-        onDispose{
-            viewModel.bestResultBitmap?.let { bitmap ->
-                onSendResult(
-                    viewModel.currentPose,
-                    viewModel.bestAccuracy,
-                    Math.min(viewModel.remainingPoseTime,20.0f),
-                    bitmap
-                )
+        onDispose {
+            Timber.d("CameraPreview onDispose triggered.")
+
+            // *** ViewModel의 확인 함수를 먼저 호출하여 초기화 여부 확인 ***
+            if (viewModel.isCurrentPoseInitialized()) {
+                // currentPose가 초기화되었으므로 이제 안전하게 접근 가능
+                Timber.d("currentPose is initialized. Proceeding with onSendResult logic.")
+
+                val bitmapToSend = viewModel.bestResultBitmap ?: createPlaceholderBitmap(context)
+
+                bitmapToSend?.let { bitmap ->
+                    // 여기서 viewModel.currentPose 접근은 안전함
+                    val accuracyToSend = if (viewModel.bestResultBitmap == null) 0f else viewModel.bestAccuracy
+                    val timeToSend = if (viewModel.bestResultBitmap == null) 0f else Math.min(viewModel.remainingPoseTime, 20.0f)
+
+                    Timber.d("Calling onSendResult with bitmap. Accuracy: $accuracyToSend, Time: $timeToSend")
+                    onSendResult(
+                        viewModel.currentPose, // 안전한 접근
+                        accuracyToSend,
+                        timeToSend,
+                        bitmap
+                    )
+                } ?: run {
+                    Timber.w("CameraPreview onDispose: No bitmap found even after checking initialization.")
+                    // 비트맵이 없을 경우, 초기화된 currentPose와 함께 기본값으로 보낼지 결정
+                    // onSendResult(viewModel.currentPose, 0f, 0f, createPlaceholderBitmap(context)!!) // <- Placeholder가 null 아님을 보장해야 함
+                }
+
+            } else {
+                // currentPose가 초기화되지 않았음. 접근하면 안 됨.
+                Timber.w("CameraPreview onDispose: currentPose was NOT initialized. Skipping related logic.")
+                // 이 경우 onSendResult를 호출하지 않거나, Pose 정보 없이 기본값으로 호출?
+                // val bitmapToSend = createPlaceholderBitmap(context)
+                // bitmapToSend?.let { onSendResult(YogaPose.DEFAULT, 0f, 0f, it) } // YogaPose.DEFAULT 같은 기본값 필요
             }
-            cameraProvider?.unbindAll()
-            // cameraExecutor는 ViewModel에서 관리하므로 여기서 shutdown 불필요
-            Timber.d("CameraPreview disposed.")
+
+            // 카메라 언바인드는 Pose 초기화 여부와 상관없이 항상 실행
+            try {
+                cameraProvider?.unbindAll()
+                Timber.d("CameraPreview disposed and camera unbound.")
+            } catch (e: Exception) {
+                Timber.e(e, "Error during camera unbind in onDispose.")
+            }
         }
     }
 
@@ -417,6 +452,33 @@ fun CameraPreview(
         // 로딩 표시 (예시)
         if (isPlaying && !isHelperReady && errorMessage == null) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }
+    }
+}
+
+fun createPlaceholderBitmap(context: Context): Bitmap? {
+    // 1. 리소스에서 이미지 로드 (추천)
+    return try {
+        BitmapFactory.decodeResource(context.resources, R.drawable.tmp) // 적절한 기본 이미지 리소스로 변경
+    } catch (e: Exception) {
+        Timber.e(e, "Failed to load placeholder bitmap from resources.")
+        // 2. 간단한 색상 비트맵 생성 (리소스 없을 경우 대체)
+        try {
+            val width = 100
+            val height = 100
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val paint = Paint().apply { color =  android.graphics.Color.GRAY} // 회색 배경
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+            // 필요시 텍스트 추가
+            // paint.color = Color.WHITE
+            // paint.textSize = 20f
+            // paint.textAlign = Paint.Align.CENTER
+            // canvas.drawText("No Image", width / 2f, height / 2f, paint)
+            bitmap
+        } catch (e2: Exception) {
+            Timber.e(e2, "Failed to create fallback placeholder bitmap.")
+            null // 생성 실패 시 null 반환
         }
     }
 }
