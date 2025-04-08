@@ -10,6 +10,7 @@ spring:
       leak-detection-threshold: 2000  # 밀리초 단위
   jpa:
     hibernate:
+      batch_fetch_size: 100
       ddl-auto: update
     properties:
       hibernate:

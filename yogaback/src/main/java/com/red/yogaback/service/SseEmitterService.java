@@ -3,6 +3,7 @@ package com.red.yogaback.service;
 import com.red.yogaback.dto.request.RoomRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -63,7 +64,7 @@ public class SseEmitterService {
         return new SseEmitter(TIMEOUT);
 
     }
-
+//    @Async
     public void notifyRoomUpdate(List<RoomRequest> allRooms){
         if (emitterMap.isEmpty()){
             return;
