@@ -139,11 +139,15 @@ public class RoomService {
         Long userId = SecurityUtil.getCurrentMemberId();
         User findUser = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("유저를 찾을 수 없습니다."));
         Room findRoom = roomRepository.findById(roomEnterReq.getRoomId()).orElseThrow(() -> new NoSuchElementException("방을 찾을 수 없습니다."));
+        log.info("현재 인원: " + findRoom.getRoomCount());
+        log.info("최대 인원: " + findRoom.getRoomMax());
         if (findRoom.getRoomCount() == findRoom.getRoomMax()){
             log.info("현재 인원: " + findRoom.getRoomCount());
             log.info("최대 인원: " + findRoom.getRoomMax());
             throw new RuntimeException("인원이 초과했습니다.");
         }
+        log.info("입력 비밀번호: " + roomEnterReq.getPassword());
+        log.info("방 비밀번호: " + findRoom.getPassword());
         if (findRoom.getPassword().equals(roomEnterReq.getPassword())) {
             findUser.setRoom(findRoom);
             findRoom.setRoomCount(findRoom.getRoomCount() + 1);
