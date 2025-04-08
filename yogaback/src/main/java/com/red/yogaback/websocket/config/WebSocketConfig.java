@@ -1,91 +1,111 @@
-//Spring WebSocket 메시지 브로커 설정을 담당하며, STOMP 엔드포인트 등록, 메시지 브로커 설정,
-// 그리고 클라이언트 인바운드/아웃바운드 채널에 인터셉터를 등록합니다.
 package com.red.yogaback.websocket.config;
 
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.beans.factory.annotation.Qualifier;
+
+import com.red.yogaback.websocket.service.UserSessionService;
+import com.red.yogaback.websocket.service.WebSocketConnectionService;
+import com.red.yogaback.websocket.service.UserSession;
 
 @Configuration
 @EnableWebSocketMessageBroker
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, ApplicationContextAware {
 
-    // WebSocket 연결 시 인증 및 로깅 인터셉터를 주입받음
     private final WebSocketAuthChannelInterceptor authChannelInterceptor;
     private final StompLoggingInterceptor stompLoggingInterceptor;
+    private final TaskScheduler webSocketTaskScheduler;
+    private ApplicationContext applicationContext;
 
-    // 생성자 주입을 통해 인터셉터들을 할당
     @Autowired
-    public WebSocketConfig(WebSocketAuthChannelInterceptor authChannelInterceptor,
-                           StompLoggingInterceptor stompLoggingInterceptor) {
+    public WebSocketConfig(
+            WebSocketAuthChannelInterceptor authChannelInterceptor,
+            StompLoggingInterceptor stompLoggingInterceptor,
+            @Qualifier("webSocketTaskScheduler") TaskScheduler webSocketTaskScheduler
+    ) {
         this.authChannelInterceptor = authChannelInterceptor;
         this.stompLoggingInterceptor = stompLoggingInterceptor;
+        this.webSocketTaskScheduler = webSocketTaskScheduler;
     }
 
-    @Autowired
-    @Qualifier("webSocketTaskScheduler")
-    private TaskScheduler webSocketTaskScheduler;
-
-    /**
-     * 메시지 브로커 관련 설정.
-     * 개선방향:
-     *  - 추후 복잡한 메시지 라우팅이나 클러스터링 등 확장이 필요한 경우 별도의 브로커 설정을 고려할 수 있음.
-     */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic", "/queue")
-            .setHeartbeatValue(new long[]{10000, 10000})
-            .setTaskScheduler(webSocketTaskScheduler);
+                .setHeartbeatValue(new long[]{10000, 10000})
+                .setTaskScheduler(webSocketTaskScheduler);
         config.setApplicationDestinationPrefixes("/app");
     }
 
-    /**
-     * STOMP 엔드포인트 등록.
-     * 개선방향:
-     *  - CORS 정책을 더 세밀하게 제어할 수 있음 (현재는 모든 출처를 허용).
-     */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // "/ws" 엔드포인트에 대해 STOMP 연결을 허용하고, 모든 출처에 대해 접근 허용
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*");
-//                .withSockJS();
     }
 
-    /**
-     * 클라이언트에서 서버로 들어오는 메시지 채널에 인터셉터를 추가.
-     * 개선방향:
-     *  - 여러 인터셉터를 체인으로 구성하여, 향후 추가적인 처리나 인증 로직 확장이 용이함.
-     */
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        // 인증 인터셉터와 로깅 인터셉터를 함께 등록
-        registration.interceptors(authChannelInterceptor, stompLoggingInterceptor);
+        registration.interceptors(
+                authChannelInterceptor,
+                stompLoggingInterceptor,
+                // heartbeat 프레임 감지용 인라인 인터셉터
+                new ChannelInterceptor() {
+                    @Override
+                    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+                        StompHeaderAccessor accessor =
+                                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+                        if (accessor != null && SimpMessageType.HEARTBEAT.equals(accessor.getMessageType())) {
+                            String sessionId = accessor.getSessionId();
+                            // 런타임에 서비스 빈을 꺼내 사용
+                            UserSessionService userSessionService =
+                                    applicationContext.getBean(UserSessionService.class);
+                            WebSocketConnectionService connectionService =
+                                    applicationContext.getBean(WebSocketConnectionService.class);
+
+                            UserSession session = userSessionService.getSession(sessionId);
+                            if (session != null) {
+                                connectionService.updateConnection(
+                                        sessionId,
+                                        session.getRoomId(),
+                                        session.getUserId()
+                                );
+                            }
+                        }
+                        return message;
+                    }
+                }
+        );
     }
 
-    /**
-     * 클라이언트로 나가는 메시지 채널에 인터셉터를 추가.
-     * 개선방향:
-     *  - 필요한 경우, 아웃바운드 메시지 처리 로직 추가를 고려할 수 있음.
-     */
     @Override
     public void configureClientOutboundChannel(ChannelRegistration registration) {
-        // 로깅 인터셉터를 등록하여 나가는 메시지도 기록함
         registration.interceptors(stompLoggingInterceptor);
     }
 
     @Override
     public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
-        // 다음과 같은 설정을 추가하면 좋습니다
         registration.setSendTimeLimit(15 * 1000)
-                   .setSendBufferSizeLimit(512 * 1024)
-                   .setMessageSizeLimit(128 * 1024);
+                .setSendBufferSizeLimit(512 * 1024)
+                .setMessageSizeLimit(128 * 1024);
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 }
