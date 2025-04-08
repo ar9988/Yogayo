@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
@@ -20,11 +21,13 @@ import com.d104.domain.usecase.InitiateConnectionUseCase
 import com.d104.domain.usecase.ObserveChunkImageUseCase
 import com.d104.domain.usecase.ObserveWebRTCMessageUseCase
 import com.d104.domain.usecase.ObserveWebSocketConnectionStateUseCase
+import com.d104.domain.usecase.PostYogaPoseHistoryUseCase
 import com.d104.domain.usecase.ProcessChunkImageUseCase
 import com.d104.domain.usecase.SendImageUseCase
 import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCUseCase
 import com.d104.domain.utils.StompConnectionState
+import com.d104.yogaapp.utils.ImageStorageManager
 import com.d104.yogaapp.utils.bitmapToBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +44,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -59,7 +63,9 @@ class MultiPlayViewModel @Inject constructor(
     private val processChunkImageUseCase: ProcessChunkImageUseCase,
     private val observeChunkImageUseCase: ObserveChunkImageUseCase,
     private val sendImageUseCase: SendImageUseCase,
-    private val getUserIdUseCase: GetUserIdUseCase
+    private val getUserIdUseCase: GetUserIdUseCase,
+    private val postYogaPoseHistoryUseCase: PostYogaPoseHistoryUseCase,
+    private val imageStorageManager: ImageStorageManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
@@ -146,6 +152,7 @@ class MultiPlayViewModel @Inject constructor(
                         initiateMeshNetwork()
                     } else if (state >= 1) {
                         Timber.d("Round $state started")
+                        sendImageToServer()
                         processIntent(MultiPlayIntent.RoundStarted(state))
                     } else if (state == -1) {
                         Timber.d("Game ended")
@@ -200,7 +207,22 @@ class MultiPlayViewModel @Inject constructor(
                 startTimer()
             }
 
+            is MultiPlayIntent.ReceiveWebRTCImage -> {
+                Timber.d("Received WebRTC image")
+                sendImageToServer()
+            }
+
             else -> {}
+        }
+    }
+
+    private fun sendImageToServer() {
+        viewModelScope.launch {
+            val uri = imageStorageManager.saveImage(
+                bitmap = uiState.value.bitmap!!,
+                index = LocalDateTime.now().toString(),
+                poseId = uiState.value.beyondPose.poseId.toString()
+            )
         }
     }
 

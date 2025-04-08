@@ -18,6 +18,16 @@ class MultiPlayReducer @Inject constructor() {
                 currentState.copy(userList = newUserList)
             }
 
+            is MultiPlayIntent.SendHistory -> {
+                Timber.d("Reducer: Handling SendHistory with accuracy ${intent.accuracy} and time ${intent.time}")
+                currentState.copy(
+                    accuracy = intent.accuracy,
+                    time = intent.time,
+                    bitmap = intent.bitmap,
+                    beyondPose = intent.pose,
+                )
+            }
+
             is MultiPlayIntent.UpdateCameraPermission -> currentState.copy(
                 cameraPermissionGranted = intent.granted
             )

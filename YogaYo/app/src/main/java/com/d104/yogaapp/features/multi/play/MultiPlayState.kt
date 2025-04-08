@@ -26,6 +26,10 @@ data class MultiPlayState(
     val isLoading: Boolean = true,
     val bestUrls: List<String> = emptyList(),
     val urls: Map<Int,List<String>> = emptyMap(),
+    val uri: String = "",
+    val beyondPose: YogaPose = YogaPose(0, "", "", 0, listOf("나무 자세 설명"), "", 0,""),
+    val accuracy: Float = 0.0f,
+    val time: Float = 0.0f,
 )
 
 enum class GameState {
