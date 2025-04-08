@@ -82,7 +82,6 @@ public class WebSocketEventListener {
             logger.debug("Disconnect event received for session: {}", sessionId);
 
             // 연결 정보 제거
-
             UserSession userSession = userSessionService.getSession(sessionId);
 
             if (userSession == null) {

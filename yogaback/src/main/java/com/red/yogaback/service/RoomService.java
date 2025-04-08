@@ -34,7 +34,7 @@ public class RoomService {
     private final SseEmitterService sseEmitterService;
     private final CacheManager cacheManager;
 //
-//    Map<Long, List<RoomRequest.PoseDetail>> roomPoseMap = new ConcurrentHashMap<>();
+    Map<Long, List<RoomRequest.PoseDetail>> roomPoseMap = new ConcurrentHashMap<>();
 
     // 방 만들기
     public RoomRequest createRooms(RoomRequest roomReq, Long userId) {
@@ -80,17 +80,17 @@ public class RoomService {
         roomReq.setRoomId(savedRoom.getRoomId());
         roomReq.setUserId(user.getUserId());
         roomReq.setUserNickname(user.getUserNickname());
-//        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
-        cashingRoomPoses(room.getRoomId(), roomReq.getPose());
+        roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
+//        cashingRoomPoses(room.getRoomId(), roomReq.getPose());
         sseEmitterService.notifyRoomUpdate(getAllRooms(""));
         return roomReq;
 
     }
 
-    @CachePut(value = "roomPoses", key = "#roomId")
-    private static List<RoomRequest.PoseDetail> cashingRoomPoses(Long roomId, List<RoomRequest.PoseDetail> poses) {
-        return poses;
-    }
+//    @CachePut(value = "roomPoses", key = "#roomId")
+//    private static List<RoomRequest.PoseDetail> cashingRoomPoses(Long roomId, List<RoomRequest.PoseDetail> poses) {
+//        return poses;
+//    }
 
     // 방 조회 / SSE 연결
     public List<RoomRequest> getAllRooms(String roomName) {
@@ -114,7 +114,7 @@ public class RoomService {
 //            List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
 //            roomRequest.setPose(poseDetails);
 
-            roomRequest.setPose(getRoomPosesFromCache(room.getRoomId()));
+            roomRequest.setPose(roomPoseMap.get(room.getRoomId()));
 
             return roomRequest;
 
