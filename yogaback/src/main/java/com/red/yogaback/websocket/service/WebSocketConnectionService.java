@@ -6,47 +6,44 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.red.yogaback.websocket.dto.IceCandidateMessage;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Map;
 
-/**
- * WebSocket 연결 상태를 관리하고 ICE 재협상을 트리거하는 서비스입니다.
- */
+// 추가: DISCONNECT 이벤트 트리거를 위한 클래스들
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.Message;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+
 @Service
 public class WebSocketConnectionService {
-    // SLF4J 로거 초기화
     private static final Logger logger = LoggerFactory.getLogger(WebSocketConnectionService.class);
 
-    // sessionId -> ConnectionInfo 매핑 (동시성 보장 위해 ConcurrentHashMap 사용)
+    // sessionId -> ConnectionInfo 매핑 (동시성 보장을 위해 ConcurrentHashMap 사용)
     private final ConcurrentHashMap<String, ConnectionInfo> activeConnections = new ConcurrentHashMap<>();
-
-    // STOMP 메시지 전송 템플릿
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public WebSocketConnectionService(SimpMessagingTemplate messagingTemplate) {
+    @Autowired
+    private UserSessionService userSessionService;
+
+    public WebSocketConnectionService(SimpMessagingTemplate messagingTemplate,
+                                      ApplicationEventPublisher eventPublisher) {
         this.messagingTemplate = messagingTemplate;
-        // Improvement: 30초마다 체크하던 스케줄러 제거. 필요 시 더 효율적인 감시 메커니즘 도입 고려.
+        this.eventPublisher = eventPublisher;
     }
 
-    /**
-     * 새로운 연결을 등록합니다.
-     *
-     * @param sessionId WebSocket 세션 ID
-     * @param roomId    방 ID
-     * @param userId    사용자 ID
-     *
-     * Improvement:
-     *  - 동시성 등록 시 중복 체크 및 경고 로깅 고려.
-     */
+    // 기존 메서드들 (registerConnection, updateConnection, removeConnection 등)
+
     public void registerConnection(String sessionId, String roomId, String userId) {
         activeConnections.put(sessionId, new ConnectionInfo(sessionId, roomId, userId, System.currentTimeMillis()));
         logger.info("Connection registered: sessionId={}, roomId={}, userId={}", sessionId, roomId, userId);
     }
 
-    /**
-     * 기존 연결의 활동 시간을 갱신하거나, 없으면 새로 등록합니다.
-     *
-     * Improvement:
-     *  - 활동 시간 갱신만 할지, 아니면 완전 갱신(방/사용자 정보)까지 할지 정책 명확화.
-     */
     public void updateConnection(String sessionId, String roomId, String userId) {
         ConnectionInfo existingInfo = activeConnections.get(sessionId);
         if (existingInfo != null) {
@@ -57,12 +54,6 @@ public class WebSocketConnectionService {
         }
     }
 
-    /**
-     * 연결을 제거합니다.
-     *
-     * Improvement:
-     *  - 제거 시 리소스 해제(예: 방 인원 감소) 연계 로직 추가 고려.
-     */
     public void removeConnection(String sessionId) {
         ConnectionInfo removedInfo = activeConnections.remove(sessionId);
         if (removedInfo != null) {
@@ -71,48 +62,21 @@ public class WebSocketConnectionService {
         }
     }
 
-    /**
-     * 특정 세션이 활성 상태인지 확인합니다.
-     */
-    public boolean isConnectionActive(String sessionId) {
-        return activeConnections.containsKey(sessionId);
-    }
-
-    /**
-     * ICE 후보 정보가 업데이트되면 활동 시간을 갱신합니다.
-     *
-     * Improvement:
-     *  - 실제 후보 내용을 로깅하거나, 후보 검증 로직 추가 가능.
-     */
     public void updateIceCandidate(String sessionId, String roomId, String userId) {
         updateConnection(sessionId, roomId, userId);
         logger.info("ICE candidate updated: sessionId={}, roomId={}, userId={}", sessionId, roomId, userId);
     }
 
-    /**
-     * ICE 연결 상태 변경을 처리합니다.
-     * 예: failed 상태에서 재협상 트리거.
-     *
-     * Improvement:
-     *  - 다양한 상태(state)에 대한 세분화된 처리 로직 추가 고려.
-     */
     public void handleIceConnectionStateChange(String sessionId, String state) {
         ConnectionInfo info = activeConnections.get(sessionId);
         if (info != null) {
             if ("failed".equals(state)) {
-                // ICE 연결 실패 시 재협상 시도
                 triggerIceReconnection(sessionId);
             }
             logger.info("ICE connection state changed for session {}: {}", sessionId, state);
         }
     }
 
-    /**
-     * 클라이언트에게 ICE 재협상 요청을 보냅니다.
-     *
-     * Improvement:
-     *  - 재협상 요청 횟수 제한, 백오프 전략 등을 도입해 무한 반복 방지.
-     */
     private void triggerIceReconnection(String sessionId) {
         ConnectionInfo info = activeConnections.get(sessionId);
         if (info != null) {
@@ -121,6 +85,48 @@ public class WebSocketConnectionService {
             logger.info("Triggered ICE reconnection for session: {}", sessionId);
         }
     }
+
+    /**
+     * 10초마다 활성 연결들 중 1분 이상 활동(heartbeat 포함)이 없으면
+     * 해당 세션에 대해 DISCONNECT 이벤트를 발생시킵니다.
+     */
+    @Scheduled(fixedDelay = 10000)
+    public void checkInactiveConnections() {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, ConnectionInfo> entry : activeConnections.entrySet()) {
+            String sessionId = entry.getKey();
+            ConnectionInfo info = entry.getValue();
+            if (now - info.getLastActivityTime() > 60000) {
+                logger.warn("No heartbeat for session {} over 1min → triggering DISCONNECT", sessionId);
+
+                // 1) StompHeaderAccessor 생성
+                StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.DISCONNECT);
+                accessor.setSessionId(sessionId);
+
+                // 2) 메시지 빌드 (방법 A: setHeaders(accessor))
+                Message<byte[]> message = MessageBuilder
+                        .withPayload(new byte[0])
+                        .setHeaders(accessor)
+                        .build();
+
+                // (방법 B: createMessage 사용 시)
+                // Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.toMessageHeaders());
+
+                // 3) 이벤트 발행 → WebSocketEventListener.handleWebSocketDisconnectListener() 호출됨
+                SessionDisconnectEvent event = new SessionDisconnectEvent(
+                        this,
+                        message,
+                        sessionId,
+                        CloseStatus.NORMAL
+                );
+                eventPublisher.publishEvent(event);
+
+                // 4) 내부 맵에서 제거
+                activeConnections.remove(sessionId);
+            }
+        }
+    }
+
 
     /**
      * 내부 클래스: 연결 정보를 저장합니다.
@@ -157,10 +163,5 @@ public class WebSocketConnectionService {
         public void setLastActivityTime(long lastActivityTime) {
             this.lastActivityTime = lastActivityTime;
         }
-
-        /*
-         * Improvement:
-         *  - toString(), equals(), hashCode() 재정의 시 디버깅 및 Map 키 비교에 유용.
-         */
     }
 }
