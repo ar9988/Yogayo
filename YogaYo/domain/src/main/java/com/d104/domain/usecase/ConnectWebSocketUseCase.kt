@@ -15,8 +15,10 @@ class ConnectWebSocketUseCase @Inject constructor(
     suspend operator fun invoke(topic:String) : Flow<SignalingMessage> {
         return webSocketRepository.connect(topic)
             .mapNotNull { messageJson->
+                println("messageJson: $messageJson")
                 try {
                     val signalingMessage = json.decodeFromString<SignalingMessage>(messageJson)
+
                     signalingMessage
                 } catch (e: Exception) {
                     null

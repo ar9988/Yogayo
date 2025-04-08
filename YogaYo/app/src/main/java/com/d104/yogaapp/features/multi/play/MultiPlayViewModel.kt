@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
@@ -48,7 +47,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.IOException
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -100,7 +98,7 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             // 타이머 종료 후
-            if (uiState.value.timerProgress <= 0f && (uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
+            if (uiState.value.gameState != GameState.GameResult &&uiState.value.timerProgress <= 0f && (uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
                 sendRoundEndMessage()
             }
         }
@@ -177,7 +175,7 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if (intent.message.type == "request_photo") {
                     Timber.d("Received request_photo message")
-                    sendImage()
+                    sendImageToMeshNetwork()
                 }
             }
 
@@ -456,7 +454,7 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
-    private fun sendImage() {
+    private fun sendImageToMeshNetwork() {
         viewModelScope.launch {
             val currentState = uiState.value
 

@@ -1,135 +1,133 @@
+// com/d104/data/remote/utils/StompUtils.kt
 package com.d104.data.remote.utils
 
-// STOMP 프레임 파싱 및 생성을 위한 간단한 헬퍼 클래스/함수
+import android.util.Log
+
 object StompUtils {
-    const val V1_2 = "1.2" // 사용할 STOMP 버전
-    const val NULL = '\u0000' // 프레임 종료 문자
 
-    // 간단한 프레임 파서 (헤더와 바디 분리)
-    fun parseFrame(rawFrame: String): Triple<String, Map<String, String>, String> {
-        val lines = rawFrame.lines()
-        if (lines.isEmpty()) throw IllegalArgumentException("Empty STOMP frame")
+    private const val NULL = "\u0000" // Use Unicode null character directly
+    private const val EOL = "\n"      // Define newline for clarity
 
-        val command = lines[0]
-        val headers = mutableMapOf<String, String>()
-        var bodyStartIndex = 1 // 헤더 다음 줄부터 바디 시작 가능성
+    // Reverted buildConnectFrame using raw string
+    fun buildConnectFrame(host: String, token: String, outgoingHeartbeat: Long = 300000, incomingHeartbeat: Long = 300000): String {
+        val headers = mutableMapOf(
+            "accept-version" to "1.2",
+            "host" to host,
+            "Authorization" to "Bearer $token"
+        )
 
-        for (i in 1 until lines.size) {
-            val line = lines[i]
-            if (line.isBlank()) { // 헤더와 바디 구분 빈 줄
-                bodyStartIndex = i + 1
-                break
-            }
-            val parts = line.split(":", limit = 2)
-            if (parts.size == 2) {
-                headers[parts[0].trim()] = parts[1].trim()
-            }
-            // 빈 줄 없이 헤더만 있는 경우 대비, 인덱스 계속 업데이트
-            bodyStartIndex = i + 1
+        // 하트비트 헤더 조건부 추가
+        if (outgoingHeartbeat > 0 || incomingHeartbeat > 0) {
+            headers["heart-beat"] = "$outgoingHeartbeat,$incomingHeartbeat"
         }
 
-        val body = if (bodyStartIndex < lines.size) {
-            lines.subList(bodyStartIndex, lines.size).joinToString("\n")
-            // body 끝의 NULL 문자는 파싱 시 제거 (보낼 때는 프레임 끝에만 붙음)
-            // .removeSuffix(NULL.toString())
-        } else {
-            ""
-        }
+        val frame = buildFrame("CONNECT", headers)
 
-        // 파싱 시 body 끝의 NULL 문자 제거 (프레임 자체 끝 NULL은 제외)
-        val finalBody = body.removeSuffix(NULL.toString())
-
-        return Triple(command, headers, finalBody)
+        Log.v("StompUtils", "Building Frame: CONNECT (secured details)")
+        return frame
     }
 
-    /**
-     * CONNECT 프레임을 생성합니다.
-     * @param host 서버 호스트 주소
-     * @param token 인증을 위한 JWT 토큰 (Bearer 접두사 제외한 순수 토큰 값)
-     * @param acceptVersion 사용할 STOMP 버전 (기본값: 1.2)
-     * @return 생성된 CONNECT 프레임 문자열
-     */
-    fun buildConnectFrame(host: String, token: String): String {
-        return """
-        CONNECT
-        accept-version:1.2
-        host:$host
-        Authorization:Bearer $token
-        heart-beat:10000,10000
-
-        ${NULL}
-    """.trimIndent().replace("\n", "\n")
-    }
-
-    // --- 중요: 서버가 'Authorization' 대신 'token' 헤더를 직접 받는 경우 아래 함수 사용 ---
-    /*
-    fun buildConnectFrameWithTokenHeader(host: String, token: String, acceptVersion: String = V1_2): String {
-        // 'token' 헤더 직접 추가
-        val tokenHeader = "token: $token"
-
-        return """
-        CONNECT
-        accept-version:$acceptVersion
-        host:$host
-        $tokenHeader
-        heart-beat:10000,10000
-
-        $NULL
-        """.trimIndent()
-    }
-    */
-
-
-    // SUBSCRIBE 프레임 생성
+    // Reverted buildSubscribeFrame using raw string
     fun buildSubscribeFrame(destination: String, id: String): String {
-        val builder = StringBuilder()
-        builder.append("SUBSCRIBE\n") // 명령어 시작 - 앞에 아무것도 없는지 확인
-        builder.append("id:$id\n")
-        builder.append("destination:$destination\n")
-        builder.append("ack:auto\n")
-        builder.append("\n")          // 헤더-바디 구분 빈 줄
-        builder.append(NULL)     // 실제 Null 문자 추가
-
-        return builder.toString()
+        val headers = mapOf(
+            "destination" to destination,
+            "id" to id,
+            "ack" to "auto"
+        )
+        return buildFrame("SUBSCRIBE", headers).also {
+            Log.v("StompUtils", "SUBSCRIBE Frame: ${it.replace(NULL, "\\0")}")
+        }
     }
 
-    // UNSUBSCRIBE 프레임 생성
-    fun buildUnsubscribeFrame(id: String): String {
-        return """
-        UNSUBSCRIBE
-        id:$id
-
-        $NULL
-        """.trimIndent()
-    }
-
-    // DISCONNECT 프레임 생성
-    fun buildDisconnectFrame(receiptId: String? = null): String {
-        val receiptHeader = if (receiptId != null) "receipt:$receiptId\n" else ""
-        return """
-        DISCONNECT
-        $receiptHeader
-        $NULL
-        """.trimIndent()
-    }
-
-    // SEND 프레임 생성
     fun buildSendFrame(destination: String, body: String): String {
-        // 원본 메시지를 payload로 감싸기
-        val wrappedBody = "{\"payload\":$body}"
+        // 헤더를 맵 형태로 정의
+        val headers = mapOf(
+            "destination" to destination,
+            "content-type" to "application/json;charset=UTF-8" // JSON 형식 사용
+        )
 
-        val bodyBytes = wrappedBody.toByteArray(Charsets.UTF_8)
-        val contentLength = bodyBytes.size
+        return buildFrame("SEND", headers, body)
+    }
 
-        val builder = StringBuilder()
-        builder.append("SEND\n")
-        builder.append("destination:$destination\n")
-        builder.append("content-type:application/json;charset=UTF-8\n")
-        builder.append("content-length:$contentLength\n")
-        builder.append("\n")
-        builder.append(wrappedBody)
-        builder.append(NULL)
+    private fun buildFrame(
+        command: String,
+        headers: Map<String, String> = emptyMap(),
+        body: String = ""
+    ): String {
+        Log.d("StompUtils", "Building Frame: $command with headers: $headers and body: $body")
+        return StringBuilder().apply {
+            append("$command\n")
+            headers.forEach { (k, v) -> append("$k:$v\n") }
+            append("\n") // 헤더-바디 구분
+            append(body)
+            append(NULL)
+        }.toString()
+    }
+    // Reverted buildDisconnectFrame using raw string
+    fun buildDisconnectFrame(receiptId: String? = null): String {
+        val receiptHeader = receiptId?.let { "receipt:$it$EOL" } ?: ""
 
-        return builder.toString()
+        val frame = """
+            DISCONNECT
+            $receiptHeader
+            $NULL
+            """.trimIndent()
+
+        Log.v("StompUtils", "Building Frame: ${frame.replace(NULL, "\\0").take(300)}...")
+        return frame
+    }
+
+    // buildFrame helper is no longer needed with this approach
+
+    // parseFrame remains the same as it deals with incoming frames
+    fun parseFrame(frameText: String): Triple<String, Map<String, String>, String> {
+        try {
+            // Handle potential leading/trailing newlines before splitting
+            val trimmedFrame = frameText.trim { it <= ' ' || it == '\u0000' }
+            // Split headers from body
+            val parts = trimmedFrame.split("$EOL$EOL", limit = 2)
+            if (parts.isEmpty()) {
+                throw IllegalArgumentException("Empty frame received")
+            }
+
+            val headerLines = parts[0].split(EOL)
+            if (headerLines.isEmpty()) {
+                throw IllegalArgumentException("Frame without command received")
+            }
+
+            val command = headerLines[0].trim()
+            val headers = mutableMapOf<String, String>()
+            for (i in 1 until headerLines.size) {
+                val headerLine = headerLines[i]
+                // Allow for empty header lines, skip them
+                if (headerLine.isBlank()) continue
+                val headerParts = headerLine.split(":", limit = 2)
+                if (headerParts.size == 2) {
+                    // Trim both key and value
+                    headers[headerParts[0].trim()] = headerParts[1].trim()
+                } else {
+                    Log.w("StompUtils", "Malformed header line ignored: '$headerLine'")
+                }
+            }
+
+            // The body is everything after the double newline, up to the NULL char
+            val bodyWithNull = if (parts.size > 1) parts[1] else ""
+            // Find the first NULL character to correctly handle frames with embedded NULLs (though unusual)
+            val nullCharIndex = bodyWithNull.indexOf(NULL)
+            val body = if(nullCharIndex != -1) {
+                bodyWithNull.substring(0, nullCharIndex)
+            } else {
+                // If somehow NULL is missing (non-compliant frame), take the whole part
+                Log.w("StompUtils", "Received frame part without trailing NULL: ${bodyWithNull.take(50)}...")
+                bodyWithNull
+            }
+            Log.d("StompRepo","body is $body")
+
+            return Triple(command, headers, body)
+        } catch (e: Exception) {
+            Log.e("StompUtils", "Failed to parse STOMP frame: ${frameText.take(100)}...", e)
+            // Return a dummy ERROR frame representation or re-throw
+            return Triple("PARSE_ERROR", mapOf("message" to "Frame parsing error", "original_frame_snippet" to frameText.take(100)), e.message ?: "Parsing failed")
+        }
     }
 }
