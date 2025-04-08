@@ -18,6 +18,16 @@ class MultiPlayReducer @Inject constructor() {
                 currentState.copy(userList = newUserList)
             }
 
+            is MultiPlayIntent.SendHistory -> {
+                Timber.d("Reducer: Handling SendHistory with accuracy ${intent.accuracy} and time ${intent.time}")
+                currentState.copy(
+                    accuracy = intent.accuracy,
+                    time = intent.time,
+                    bitmap = intent.bitmap,
+                    beyondPose = intent.pose,
+                )
+            }
+
             is MultiPlayIntent.UpdateCameraPermission -> currentState.copy(
                 cameraPermissionGranted = intent.granted
             )
@@ -104,6 +114,18 @@ class MultiPlayReducer @Inject constructor() {
                         }
                         currentState.copy(userList = newUserList)
                     }
+                    "user_not_ready" -> {
+                        val userReadyMessage = intent.message as UserReadyMessage
+                        val newUserList = currentState.userList.toMutableMap().apply {
+                            this[userReadyMessage.fromPeerId]?.let { user ->
+                                put(
+                                    userReadyMessage.fromPeerId,
+                                    user.copy(isReady = userReadyMessage.isReady)
+                                )
+                            }
+                        }
+                        currentState.copy(userList = newUserList)
+                    }
                     "round_end" -> currentState.copy(
                         gameState = GameState.RoundResult
                     )
@@ -119,30 +141,76 @@ class MultiPlayReducer @Inject constructor() {
 
             is MultiPlayIntent.GameStarted -> {
                 //yoga 리스트에서 0번 인덱스로 설정하기
+                Timber.d("game_started")
+// Test 용 으로 주석
                 currentState.copy(
                     gameState = GameState.Playing,
                     roundIndex = 0,
                     currentPose = currentState.currentRoom!!.userCourse.poses[0],
                 )
+//                currentState.copy(
+//                    gameState = GameState.GameResult
+//                )
             }
 
             is MultiPlayIntent.RoundEnded -> {
                 currentState.copy(
-                    gameState = GameState.RoundResult
+                    gameState = GameState.RoundResult,
+                    isLoading = true, // 로딩 시작!
+                    bitmap = null      // 이전 이미지 초기화
                 )
             }
 
             is MultiPlayIntent.RoundStarted -> {
-                currentState.copy(
-                    gameState = GameState.Playing,
-                    roundIndex = intent.state,
-                    currentPose = currentState.currentRoom!!.userCourse.poses[intent.state],
-                )
+                Timber.d("Reducer: Handling RoundStarted for state ${intent.state}")
+
+                // 1. 모든 사용자의 roundScore를 0으로 초기화한 새로운 userList 생성
+                val updatedUserList = currentState.userList.mapValues { entry ->
+                    // 각 사용자의 PeerUser 객체를 복사하되, roundScore만 0.0f로 설정
+                    entry.value.copy(roundScore = 0.0f)
+                }
+                Timber.d("Reducer: User round scores reset.")
+
+                // 2. 다음 라운드 포즈 안전하게 가져오기 (NullPointerException 방지)
+                val nextPose = currentState.currentRoom?.userCourse?.poses?.getOrNull(intent.state)
+
+                // 3. 상태 업데이트
+                if (nextPose != null) {
+                    Timber.d("Reducer: Setting gameState to Playing, updating roundIndex, currentPose, and userList.")
+                    currentState.copy(
+                        gameState = GameState.Playing, // 게임 상태를 Playing으로
+                        roundIndex = intent.state,      // 현재 라운드 인덱스 업데이트
+                        currentPose = nextPose,         // 현재 포즈 업데이트 (안전하게 가져온 값 사용)
+                        userList = updatedUserList      // 점수가 초기화된 사용자 목록으로 교체
+                    )
+                } else {
+                    // 다음 포즈 정보를 가져올 수 없는 경우 (오류 상황)
+                    Timber.e("Reducer: Cannot start round ${intent.state}, next pose data is missing!")
+                    // 오류 처리: 일단 점수는 초기화하고, 상태는 Playing으로 가되 포즈는 이전 것을 유지하거나 기본값 사용?
+                    // 또는 특정 Error 상태로 전환할 수도 있습니다.
+                    // 여기서는 점수만 초기화하고 나머지는 최대한 진행하는 것으로 가정합니다.
+                    currentState.copy(
+                        gameState = GameState.Playing,      // 게임 상태는 Playing으로 시도
+                        roundIndex = intent.state,          // 라운드 인덱스 업데이트
+                        // currentPose는 이전 상태 유지 또는 기본값 설정 필요
+                        userList = updatedUserList          // 점수가 초기화된 사용자 목록으로 교체
+                        // currentPose = 기본포즈 or currentState.currentPose // 필요에 따라 주석 해제/수정
+                    )
+                }
             }
 
             is MultiPlayIntent.ReceiveWebRTCImage -> {
+                Timber.d("Reducer: Received complete WebRTC image.")
                 currentState.copy(
-                    bitmap = intent.bitmap
+                    bitmap = intent.bitmap, // 수신된 비트맵으로 업데이트
+                    isLoading = false      // 로딩 종료!
+                )
+            }
+
+            is MultiPlayIntent.GameEnd -> {
+                Timber.d("Reducer: Handling GameEnd.")
+                currentState.copy(
+                    gameState = GameState.GameResult
                 )
             }
 
@@ -161,7 +229,8 @@ class MultiPlayReducer @Inject constructor() {
                 if (user != null) {
                     // 사용자 데이터 업데이트
                     val updatedUser = user.copy(
-                        roundScore = score
+                        roundScore = score,
+                        totalScore = user.totalScore + score
                     )
 
                     // 상태 복사 및 업데이트

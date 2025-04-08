@@ -20,6 +20,10 @@ class MultiReducer @Inject constructor() {
                 isLoading = true
             )
 
+            is MultiIntent.UpdateRoomPasswordChecked -> currentState.copy(
+                isPassword = intent.it
+            )
+
             is MultiIntent.SelectRoom -> currentState.copy(
                 dialogState = DialogState.ENTERING,
                 selectedRoom = intent.room

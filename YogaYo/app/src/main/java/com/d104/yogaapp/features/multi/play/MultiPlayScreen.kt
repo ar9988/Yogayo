@@ -41,7 +41,6 @@ import com.d104.yogaapp.features.multi.play.components.WaitingScreen
 import com.d104.yogaapp.features.multi.play.result.DetailScreen
 import com.d104.yogaapp.features.multi.play.result.GalleryScreen
 import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
-import com.d104.yogaapp.features.solo.play.SoloYogaPlayIntent
 
 
 @Composable
@@ -111,6 +110,7 @@ fun MultiPlayScreen(
     }
     if (uiState.gameState == GameState.GameResult) {
         LeaderboardScreen(
+            userList = uiState.userList,
             onNextClick = {
             viewModel.processIntent(MultiPlayIntent.ClickNext)
         })
@@ -121,14 +121,18 @@ fun MultiPlayScreen(
             },
             onCheckClick = {
                 onBackPressed()
-            }
+            },
+            poseList = uiState.currentRoom!!.userCourse.poses,
+            bestUrls = uiState.bestUrls,
         )
     } else if (uiState.gameState == GameState.Detail){
         DetailScreen(
             onBackButtonClick = {
                 viewModel.processIntent(MultiPlayIntent.BackPressed)
             },
-            poseName = "나무 자세"
+            poseList = uiState.currentRoom!!.userCourse.poses,
+            selectedPoseId = uiState.selectedPoseId,
+            urls = uiState.urls,
         )
     }
     // 권한에 따른 UI 표시
@@ -145,7 +149,9 @@ fun MultiPlayScreen(
                     when (uiState.gameState) {
                         GameState.Waiting -> {
                             WaitingScreen(
-                                userList = uiState.userList
+                                myId = uiState.myId,
+                                userList = uiState.userList,
+                                onReadyClick = { viewModel.processIntent(MultiPlayIntent.ReadyClick) }
                             )
                         }
 
@@ -159,6 +165,7 @@ fun MultiPlayScreen(
 
                         GameState.RoundResult -> {
                             RoundResultScreen(
+                                isLoading = uiState.isLoading,
                                 resultImage = painterResource(id = R.drawable.ic_crown),
                                 contentDescription = "TODO()"
                             )

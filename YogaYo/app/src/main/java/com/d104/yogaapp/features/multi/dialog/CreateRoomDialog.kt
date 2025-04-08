@@ -53,14 +53,15 @@ fun CreateRoomDialog(
     roomPassword: String,
     onRoomTitleChange: (String) -> Unit,
     onRoomPasswordChange: (String) -> Unit,
-    onMaxCountChanged:(Int)->Unit,
+    onRoomPasswordChecked: (Boolean) -> Unit,
+    onMaxCountChanged: (Int) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onCourseSelect: (UserCourse) -> Unit,
     userCourses: List<UserCourse>,
     onEditCourse: () -> Unit,
 
-) {
+    ) {
     var peopleExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
@@ -128,14 +129,13 @@ fun CreateRoomDialog(
                                 expanded = peopleExpanded,
                                 onDismissRequest = { peopleExpanded = false }
                             ) {
-                                listOf("1 명", "2 명", "3 명", "4 명").forEach { option ->
+                                listOf("2 명", "3 명", "4 명").forEach { option ->
                                     DropdownMenuItem(
                                         text = { Text(option) },
                                         onClick = {
                                             selectedMaxCount = option
                                             var count = 2
-                                            when(option) {
-                                                "1 명" -> count = 1
+                                            when (option) {
                                                 "2 명" -> count = 2
                                                 "3 명" -> count = 3
                                                 "4 명" -> count = 4
@@ -158,7 +158,10 @@ fun CreateRoomDialog(
                         )
                         Checkbox(
                             checked = showPassword,
-                            onCheckedChange = { showPassword = it },
+                            onCheckedChange = {
+                                showPassword = it
+                                onRoomPasswordChecked(it)
+                            },
                         )
                     }
                     if (showPassword) {
@@ -178,8 +181,8 @@ fun CreateRoomDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
-                    )  {
-                        if(selectedCourse==null) Text("코스 선택")
+                    ) {
+                        if (selectedCourse == null) Text("코스 선택")
                         else Text(selectedCourse!!.courseName)
                         Spacer(Modifier.width(10.dp))
                         OutlinedButton(
@@ -203,7 +206,7 @@ fun CreateRoomDialog(
                                 )
                             }
                         }
-                        if(selectedCourse!=null){
+                        if (selectedCourse != null) {
                             IconButton(
                                 onClick = onEditCourse
                             ) {
@@ -214,7 +217,7 @@ fun CreateRoomDialog(
                             }
                         }
                     }
-                    if(selectedCourse!=null){
+                    if (selectedCourse != null) {
                         PosesRowWithArrows(selectedCourse!!)
                     }
                     Row(

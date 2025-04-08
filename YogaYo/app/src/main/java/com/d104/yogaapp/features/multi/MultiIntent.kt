@@ -27,6 +27,7 @@ sealed class MultiIntent {
     data class EnterRoomFail(val message:String) : MultiIntent()
     data class CreateRoomFail(val message: String) : MultiIntent()
     data class UpdatePage(val it: List<Room>) : MultiIntent()
+    data class UpdateRoomPasswordChecked(val it: Boolean) : MultiIntent()
 
     data object CreateRoom : MultiIntent()
 
