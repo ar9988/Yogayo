@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi.play
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
@@ -27,9 +28,11 @@ import com.d104.domain.usecase.SendImageUseCase
 import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCUseCase
 import com.d104.domain.utils.StompConnectionState
+import com.d104.yogaapp.R
 import com.d104.yogaapp.utils.ImageStorageManager
 import com.d104.yogaapp.utils.bitmapToBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -45,11 +48,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.IOException
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
 class MultiPlayViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val multiPlayReducer: MultiPlayReducer,
     private val connectWebSocketUseCase: ConnectWebSocketUseCase,
     private val closeWebSocketUseCase: CloseWebSocketUseCase,
@@ -225,25 +230,67 @@ class MultiPlayViewModel @Inject constructor(
 
     private fun sendImageToServer() {
         viewModelScope.launch {
+            val currentState = uiState.value // 현재 상태 한 번만 가져오기
+
+            // 1. 사용할 비트맵 결정: 상태에 있으면 사용, 없으면 drawable에서 로드
+            val bitmapToUse: Bitmap? = if (currentState.bitmap != null) {
+                Timber.d("Using bitmap from UI state.")
+                currentState.bitmap
+            } else {
+                Timber.w("UI state bitmap is null. Attempting to load default image from drawable.")
+                // Drawable 리소스 로드 시도 (IO 작업이므로 withContext 사용 권장)
+                withContext(Dispatchers.IO) {
+                    loadBitmapFromDrawable(context, R.drawable.ic_launcher_foreground) // <<<--- R.drawable.리소스_이름 사용
+                }
+            }
+
+            // 2. 비트맵 확보 실패 시 처리
+            if (bitmapToUse == null) {
+                Timber.e("Failed to get bitmap (neither from state nor drawable). Aborting image save.")
+                // 오류 처리: 사용자에게 알림을 보내거나, 함수 실행 중단
+                // processIntent(MultiPlayIntent.ShowError("기본 이미지를 로드할 수 없습니다."))
+                return@launch // 코루틴 실행 중단
+            }
+
+            // 3. 결정된 비트맵으로 이미지 저장
             val uri = imageStorageManager.saveImage(
-                bitmap = uiState.value.bitmap!!,
+                bitmap = bitmapToUse, // null 이 아님이 보장됨
                 index = LocalDateTime.now().toString(),
-                poseId = uiState.value.beyondPose.poseId.toString()
+                poseId = currentState.beyondPose.poseId.toString()
             )
-            val sortedUserDatas = uiState.value.userList.values.sortedByDescending { it.totalScore }
-            val currentUserId = uiState.value.myId
-            // 정렬된 리스트에서 현재 사용자의 인덱스를 찾습니다.
-            val rankingIndex = sortedUserDatas.indexOfFirst { it.id == currentUserId } // UserData 객체에 userId 속성이 있다고 가정
+
+            // 4. 랭킹 계산 (기존 로직 유지)
+            val sortedUserDatas = currentState.userList.values.sortedByDescending { it.totalScore }
+            val currentUserId = currentState.myId
+            val rankingIndex = sortedUserDatas.indexOfFirst { it.id == currentUserId }
+            val ranking = if (rankingIndex != -1) rankingIndex + 1 else -1 // 사용자를 못 찾은 경우 -1 또는 다른 값
+
+            if (ranking == -1) {
+                Timber.w("Could not determine ranking for user $currentUserId.")
+                // 랭킹을 찾지 못한 경우 처리 (예: 기본값 0 또는 -1 전송)
+            }
+
+            // 5. 결과 전송 (기존 로직 유지)
             postYogaPoseHistoryUseCase(
-                poseId = uiState.value.beyondPose.poseId,
-                roomRecordId = uiState.value.currentRoom!!.roomId,
-                accuracy = uiState.value.accuracy,
-                ranking = rankingIndex,
-                poseTime = uiState.value.time,
+                poseId = currentState.beyondPose.poseId,
+                roomRecordId = currentState.currentRoom!!.roomId,
+                accuracy = currentState.accuracy,
+                ranking = ranking, // 계산된 랭킹 사용
+                poseTime = currentState.time,
                 imgUri = uri.toString()
             )
         }
     }
+
+    private fun loadBitmapFromDrawable(context: Context, resourceId: Int): Bitmap? {
+        return try {
+            BitmapFactory.decodeResource(context.resources, resourceId)
+        } catch (e: Exception) { // 리소스를 찾지 못하거나 디코딩 오류 등
+            Timber.e(e, "Error loading bitmap from drawable resource: $resourceId")
+            null // 실패 시 null 반환
+        }
+    }
+
 
     private fun cancelPlayTimer() {
         if (timerJob?.isActive == true) {

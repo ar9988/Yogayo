@@ -7,6 +7,8 @@ import com.d104.data.mapper.YogaPoseHistoryDetailMapper
 import com.d104.data.remote.datasource.yogaposehistory.YogaPoseHistoryDataSource
 import com.d104.data.remote.dto.PoseRecordRequestDto
 import com.d104.domain.model.BestPoseRecord
+import com.d104.domain.model.MultiBestPhoto
+import com.d104.domain.model.MultiPhoto
 import com.d104.domain.model.YogaPoseHistoryDetail
 import com.d104.domain.model.YogaPoseRecord
 import com.d104.domain.repository.YogaPoseHistoryRepository
@@ -101,6 +103,41 @@ class YogaPoseHistoryRepositoryImpl @Inject constructor(
             }
         }catch (e:Exception){
             emit(Result.failure(e))
+        }
+    }
+
+    override suspend fun getMultiBestPhoto(roomId: Long): Flow<Result<List<MultiBestPhoto>>> {
+        try {
+            val response = withContext(Dispatchers.IO) {
+                yogaPoseHistoryDataSource.getMultiBestPhoto(roomId)
+            }
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                return flow { emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomainList(body))) }
+            } else {
+                return flow { emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}"))) }
+            }
+        } catch (e: Exception) {
+            return flow { emit(Result.failure(e)) }
+        }
+    }
+
+    override suspend fun getMultiAllPhoto(
+        roomId: Long,
+        poseIndex: Int
+    ): Flow<Result<List<MultiPhoto>>> {
+        try {
+            val response = withContext(Dispatchers.IO) {
+                yogaPoseHistoryDataSource.getMultiAllPhoto(roomId, poseIndex)
+            }
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                return flow { emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomainList2(body))) }
+            } else {
+                return flow { emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}"))) }
+            }
+        } catch (e: Exception) {
+            return flow { emit(Result.failure(e)) }
         }
     }
 

@@ -56,13 +56,13 @@ class SendSignalingMessageUseCase @Inject constructor(
                         type = "user_left"
                     )
                  }
-                4 -> {
+                4 -> { //START
                     messageToSend = GameStateMessage(
                         state = 0,
                         fromPeerId = fromPeerId
                     )
                 }
-                5->{
+                5->{ //ROUND
                     messageToSend = GameStateMessage(
                         state = round,
                         fromPeerId = fromPeerId

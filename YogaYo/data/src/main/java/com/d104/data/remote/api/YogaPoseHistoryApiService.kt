@@ -1,6 +1,8 @@
 package com.d104.data.remote.api
 
 import com.d104.data.remote.dto.BestPoseHistoryResponseDto
+import com.d104.data.remote.dto.MultiAllPhotoResponseDto
+import com.d104.data.remote.dto.MultiBestPhotoResponseDto
 import com.d104.data.remote.dto.PoseRecordRequestDto
 import com.d104.data.remote.dto.PoseRecordResponseDto
 import com.d104.data.remote.dto.YogaPoseHistoryDetailResponseDto
@@ -17,20 +19,26 @@ interface YogaPoseHistoryApiService {
     @Multipart
     @POST("api/yoga/history/{poseId}")
     suspend fun postYogaPoseHistory(
-        @Path("poseId") poseId:Long,
+        @Path("poseId") poseId: Long,
         @Part("poseRecordRequest") poseRecordRequestDto: PoseRecordRequestDto,
         @Part recordImg: MultipartBody.Part
     ): Response<PoseRecordResponseDto>
 
     @GET("api/yoga/history")
-    suspend fun getYogaBestHistories():Response<List<BestPoseHistoryResponseDto>>
+    suspend fun getYogaBestHistories(): Response<List<BestPoseHistoryResponseDto>>
 
     @GET("api/yoga/history/{poseId}")
     suspend fun getYogaPoseHistoryDetail(
-        @Path("poseId") poseId:Long
-    ):Response<YogaPoseHistoryDetailResponseDto>
+        @Path("poseId") poseId: Long
+    ): Response<YogaPoseHistoryDetailResponseDto>
 
+    @GET("api/multi/{roomId}")
+    suspend fun getMultiBestPhoto(@Path("roomId") roomId: Long): Response<List<MultiBestPhotoResponseDto>>
 
-
+    @GET("api/multi/{roomId}/{poseOrder}")
+    suspend fun getMultiAllPhoto(
+        @Path("roomId") roomId: Long,
+        @Path("roomOrderIndex") poseOrder: Int
+    ): Response<List<MultiAllPhotoResponseDto>>
 
 }
