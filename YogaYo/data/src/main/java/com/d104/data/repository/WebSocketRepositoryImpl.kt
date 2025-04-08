@@ -160,7 +160,11 @@ class WebSocketRepositoryImpl @Inject constructor(
                             }
                             "ERROR" -> {
                                 Log.e("StompRepo", "STOMP ERROR frame received: $headers - $body")
-                                close(StompErrorException("STOMP Error: ${headers["message"]} - $body"))
+                                try {
+                                    close(StompErrorException("STOMP Error: ${headers["message"]} - $body"))
+                                }catch (e: Exception) {
+                                    Log.e("StompRepo", "Error closing Flow in ERROR frame", e)
+                                }
                             }
                             // TODO: HEARTBEAT 프레임 처리 (필요시) -> 서버가 HEARTBEAT 보내는지 확인 필요
                             // "HEARTBEAT" -> Log.d("StompRepo", "Received HEARTBEAT frame from server.")

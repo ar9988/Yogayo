@@ -8,6 +8,6 @@ import kotlinx.serialization.Serializable
 data class ScoreUpdateMessage(
     val score: Float,
     val time: Float,
-    @SerialName("message_kind")
+    @SerialName("_type_")
     override val type: String = "score_update"
 ) : DataChannelMessage()
