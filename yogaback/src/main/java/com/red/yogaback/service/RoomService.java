@@ -144,7 +144,7 @@ public class RoomService {
         if (findRoom.getRoomCount() == findRoom.getRoomMax()){
             log.info("현재 인원: " + findRoom.getRoomCount());
             log.info("최대 인원: " + findRoom.getRoomMax());
-            throw new RuntimeException("인원이 초과했습니다.");
+            return false;
         }
         log.info("입력 비밀번호: " + roomEnterReq.getPassword());
         log.info("방 비밀번호: " + findRoom.getPassword());
@@ -153,9 +153,8 @@ public class RoomService {
             findRoom.setRoomCount(findRoom.getRoomCount() + 1);
             sseEmitterService.notifyRoomUpdate(getAllRooms(""));
         } else {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+            return false;
         }
-
         return true;
     }
 

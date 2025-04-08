@@ -49,7 +49,8 @@ public class SseEmitterService {
         try {
             emitter.send(SseEmitter.event()
                     .name("초기 방")
-                    .data(allRooms));
+                    .data(allRooms)
+                    .reconnectTime(RECONNECTION_TIMEOUT));
         } catch (IOException e){
             emitter.completeWithError(e);
         }
@@ -73,7 +74,8 @@ public class SseEmitterService {
             try {
                 emitter.send(SseEmitter.event()
                         .name("방 업데이트")
-                        .data(allRooms));
+                        .data(allRooms)
+                        .reconnectTime(RECONNECTION_TIMEOUT));
             } catch (IOException e){
                 deadEmitters.add(clientId);
             }
