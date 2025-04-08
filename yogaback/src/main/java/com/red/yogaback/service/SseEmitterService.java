@@ -45,7 +45,7 @@ public class SseEmitterService {
         });
 
         emitterMap.put(clientId, emitter);
-
+        log.info("allRooms: {}",allRooms);
         try {
             emitter.send(SseEmitter.event()
                     .name("초기 방")

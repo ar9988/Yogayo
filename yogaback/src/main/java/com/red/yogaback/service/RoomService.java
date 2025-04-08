@@ -111,10 +111,11 @@ public class RoomService {
             roomRequest.setRoomName(room.getRoomName());
             roomRequest.setHasPassword(room.getHasPassword());
 
-//            List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
-//            roomRequest.setPose(poseDetails);
+            List<RoomRequest.PoseDetail> poseDetails = roomPoseMap.getOrDefault(room.getRoomId(), new ArrayList<>());
+            roomRequest.setPose(poseDetails);
 
-            roomRequest.setPose(roomPoseMap.get(room.getRoomId()));
+//            roomRequest.setPose(roomPoseMap.get(room.getRoomId()));
+            log.info("roomPoseMap: {}",roomPoseMap);
 
             return roomRequest;
 
