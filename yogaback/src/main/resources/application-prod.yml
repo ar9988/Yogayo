@@ -8,6 +8,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
+      batch_fetch_size: 100
       ddl-auto: update
     properties:
       hibernate:

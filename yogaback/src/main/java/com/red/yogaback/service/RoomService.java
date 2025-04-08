@@ -80,7 +80,7 @@ public class RoomService {
         roomReq.setUserNickname(user.getUserNickname());
         roomPoseMap.put(savedRoom.getRoomId(), roomReq.getPose());
 //        cashingRoomPoses(room.getRoomId(), roomReq.getPose());
-        sseEmitterService.notifyRoomUpdate(getAllRooms(""));
+//        sseEmitterService.notifyRoomUpdate(getAllRooms(""));
         return roomReq;
 
     }

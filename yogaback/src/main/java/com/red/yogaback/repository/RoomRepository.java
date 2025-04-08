@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room,Long> {
+
     List<Room> findByRoomNameContaining(String name);
 
     Room findByUsersContaining(User user);
