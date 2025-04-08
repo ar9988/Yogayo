@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -484,7 +485,19 @@ class MultiPlayViewModel @Inject constructor(
                 }
 
                 Timber.d("Calling connectWebSocketUseCase for room $roomId.")
-                connectWebSocketUseCase(roomId).collect { msg ->
+                connectWebSocketUseCase(roomId)
+                    .catch { exception -> // <<<---- 여기에 .catch 연산자 추가!
+                        // Flow 처리 중 발생하는 모든 예외(StompErrorException 포함)를 여기서 잡습니다.
+                        Timber.e(exception, "Error caught during WebSocket message collection for room $roomId")
+
+                        // 사용자에게 오류 알림 또는 상태 업데이트 (예시)
+                        // MultiPlayIntent에 오류 처리를 위한 타입을 추가하고 사용하세요.
+                        // 예: processIntent(MultiPlayIntent.WebSocketConnectionError(exception))
+                        // 또는 간단히 상태 업데이트
+                        processIntent(MultiPlayIntent.Exit) // 방 나가기 처리
+                        // 필요하다면 여기서 연결 해제 로직 호출 또는 재연결 시도 로직 구현
+                        // closeWebSocketUseCase() // 필요 시 명시적 해제
+                    }.collect { msg ->
                     Timber.v("Received WebSocket message: Type=${msg.type}") // 메시지 수신 로그 추가
                     // 시그널링 메시지 처리
                     if (msg.type == "candidate") {
