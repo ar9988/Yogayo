@@ -4,7 +4,7 @@ import com.d104.domain.model.Badge
 import com.d104.domain.model.MyPageInfo
 
 data class MyPageState(
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val isLogoutSuccessful:Boolean = false,
     val myBadgeList:List<Badge> = emptyList(),
     val myPageInfo:MyPageInfo = MyPageInfo(

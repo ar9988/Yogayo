@@ -80,9 +80,10 @@ class SoloViewModel @Inject constructor(
                 }
 
                 // 포즈 데이터는 필요할 때만 로드
-                if (_state.value.showAddCourseDialog) {
+                if(_state.value.yogaPoses.isEmpty()) {
                     getYogaPoses()
                 }
+
             } catch (e: Exception) {
                 _state.update {
                     it.copy(

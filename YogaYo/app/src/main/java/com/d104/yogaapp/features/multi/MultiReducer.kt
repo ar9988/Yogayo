@@ -6,7 +6,14 @@ class MultiReducer @Inject constructor() {
     fun reduce(currentState: MultiState, intent: MultiIntent): MultiState {
         return when (intent) {
             is MultiIntent.ClickCreateRoomButton -> currentState.copy(
-                dialogState = DialogState.CREATING
+                dialogState = DialogState.CREATING,
+                selectedCourse = null,
+                roomTitle = "",
+                roomPassword = "",
+                roomMax = 2,
+                isPassword = false
+
+
             )
 
             is MultiIntent.SearchRoom -> currentState.copy(

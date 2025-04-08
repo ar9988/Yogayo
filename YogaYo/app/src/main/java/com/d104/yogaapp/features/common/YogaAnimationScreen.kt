@@ -48,7 +48,7 @@ fun YogaAnimationScreen(
             ){
                 Text(
 //                    text = if (accuracy >= threshholds) "훌륭해요!${accuracy}" else "자세가 불안정해요!",
-                    text = "정확도: ${String.format("%.1f%%", accuracy*100)}",
+                    text = "정확도: ${String.format("%.1f%%", accuracy)}",
                     fontSize = 22.sp,
                     color = Color.White,
                     fontWeight = FontWeight.Bold

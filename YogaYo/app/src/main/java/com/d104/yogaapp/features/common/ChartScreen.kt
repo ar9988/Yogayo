@@ -235,7 +235,7 @@ fun rememberYogaHistoryChartProducer(
     val realChartEntries: List<ChartEntry> = remember(sortedHistory, selectedYAxisType) {
         sortedHistory.mapIndexed { index, history ->
             val yValue = when (selectedYAxisType) {
-                YAxisType.ACCURACY -> history.accuracy * 100 // 정확도는 백분율로
+                YAxisType.ACCURACY -> history.accuracy // 정확도는 백분율로
                 YAxisType.POSE_TIME -> history.poseTime     // 포즈 시간은 초 단위 그대로
             }
             entryOf(index.toFloat(), yValue)

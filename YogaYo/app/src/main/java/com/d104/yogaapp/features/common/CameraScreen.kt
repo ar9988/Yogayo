@@ -235,6 +235,7 @@ fun CameraPreview(
     // *** ViewModel의 결과 및 에러 관찰 (UI 표시에 사용) ***
     val poseResult by viewModel.poseResult.collectAsState()
     val errorMessage by viewModel.error.collectAsState()
+    val feedback by viewModel.feedback.collectAsState()
 
     // PreviewView 구성 (변경 없음)
     val previewView = remember {
@@ -368,7 +369,7 @@ fun CameraPreview(
 
     LaunchedEffect(accuracy) {
         //여기서 피드백 보내는거해야할듯
-        onRessultFeedback(accuracy,viewModel.remainingPoseTime,"피드백 테스트${viewModel.remainingPoseTime.toInt()}")
+        onRessultFeedback(accuracy,viewModel.remainingPoseTime,feedback)
 
     }
 

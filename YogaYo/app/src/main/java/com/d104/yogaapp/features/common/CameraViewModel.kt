@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.common
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
@@ -11,6 +12,7 @@ import com.d104.yogaapp.utils.BestPoseModelUtil
 import com.d104.yogaapp.utils.PoseLandmarkerHelper
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,13 +23,24 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
+import java.io.InputStreamReader
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.inject.Inject
 import kotlin.math.pow
+import java.io.BufferedReader
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStreamWriter
+import java.nio.charset.StandardCharsets
+
 
 @HiltViewModel
 class CameraViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val poseLandmarkerHelper: PoseLandmarkerHelper,
     private val bestPoseModelUtil: BestPoseModelUtil
 ) : ViewModel(), PoseLandmarkerHelper.LandmarkerListener { // Listener 구현
@@ -43,6 +56,9 @@ class CameraViewModel @Inject constructor(
             else->0
         }
     lateinit var currentPose: YogaPose
+    private val csvFileName = "keypoints_all_proc2.csv"
+    private val csvList = MutableStateFlow<List<FloatArray>>(emptyList())
+
     private val _rawAccuracy = MutableStateFlow(0f)
     val displayAccuracy = _rawAccuracy
         .sample(300)
@@ -76,6 +92,9 @@ class CameraViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _feedback = MutableStateFlow<String>("")
+    val feedback: StateFlow<String> = _feedback.asStateFlow()
+
     // ImageAnalysis에 사용할 Executor
     private lateinit var cameraExecutor: ExecutorService
 
@@ -99,6 +118,10 @@ class CameraViewModel @Inject constructor(
 
     init {
         // ... (Executor 초기화, imageAnalyzer 초기화) ...
+        viewModelScope.launch{
+            csvList.update{readCsvDataAsFloatArray()}
+            Timber.d("csv ${csvList.value}")
+        }
         cameraExecutor = Executors.newSingleThreadExecutor()
         imageAnalyzer = ImageAnalysis.Analyzer { imageProxy ->
             if (isAnalysisPaused.value) {
@@ -196,21 +219,33 @@ class CameraViewModel @Inject constructor(
                         Log.d("CameraViewModel", "Total Processing Time (since last frame processed): ${totalProcessingTime}ms")
 
                         val accuracy = it[currentIdx.value] // currentIdx는 Main 스레드 값 접근 시 주의 필요, 필요시 withContext(Main) 사용
+                        var score = 0.0f
+                        var feedbackResult = ""
+                        if(accuracy>0.9){
+                           score = getMaxCombinedScoreWithFlip(csvList.value.get(currentIdx.value),keypointsArray, alpha = 0.75f)
+                            Timber.d("NMData ${csvList.value}")
+                            Timber.d("Score: ${score}")
+                            if(score<80f){
+                                feedbackResult = getFeedbackByPose(currentIdx.value,keypointsArray)
+                            }
+                        }
+
 
                         // UI 업데이트는 Main 스레드로 전환
                         withContext(Dispatchers.Main) {
-                            _rawAccuracy.value = accuracy // Main 스레드에서 LiveData 업데이트 시 value 사용
+                            _feedback.value = feedbackResult
+                            _rawAccuracy.value = score // Main 스레드에서 LiveData 업데이트 시 value 사용
                             if (accuracy >= 0.5f && lastProcessedFrameTimestampMs != -1L) {
                                 remainingPoseTime += totalProcessingTime / 1000.0F // Main 스레드에서 업데이트
                             }
-                            if (accuracy > bestAccuracy) {
+                            if (score > bestAccuracy) {
                                 // bestResultBitmap 관리 로직 (Main 스레드에서 안전하게 처리)
                                 bestResultBitmap?.recycle() // 이전 비트맵 해제
                                 // 중요: img는 백그라운드 스레드에서 왔으므로, Main에서 사용하려면 복사본이 안전할 수 있음
                                 // 또는 img의 생명주기를 명확히 관리해야 함.
                                 // 여기서는 일단 img를 직접 사용하나, 문제가 생기면 복사 고려
                                 bestResultBitmap = img
-                                bestAccuracy = accuracy
+                                bestAccuracy = score
                             } else {
                                 // 최고 점수가 아니면 여기서 img 해제
                                 img?.recycle() // <<--- 중요: 여기서 해제 필요!
@@ -226,6 +261,7 @@ class CameraViewModel @Inject constructor(
                     // TFLite 추론 실패 시, img 해제 필요
                     img?.recycle()
                 }
+
             } else {
                 Log.w("CameraViewModel", "Skipped inference (BG Thread): keypointsArray=${keypointsArray != null}, img=${img != null}")
                 // 추론 건너뛸 때도 img 해제 필요
@@ -303,97 +339,108 @@ class CameraViewModel @Inject constructor(
 
         return vector
     }
-//    fun normalizeKeypoints(
-//        keypoints: List<Keypoint>,  // (x, y, visibility)
-//        imageWidth: Int = 480,
-//        imageHeight: Int = 480,
-//        visibilityThreshold: Float = 0.5f,
-//        maskValue: Float = -1.0f,
-//        minScale: Float = 20.0f
-//    ): FloatArray {
-//        val vector = mutableListOf<Float>()
-//
-//        val (x11, y11, v11) = keypoints[11]
-//        val (x12, y12, v12) = keypoints[12]
-//
-//        val px11 = x11 * imageWidth
-//        val py11 = y11 * imageHeight
-//        val px12 = x12 * imageWidth
-//        val py12 = y12 * imageHeight
-//
-//        val (xCenter, yCenter, scale) = if (v11 >= visibilityThreshold && v12 >= visibilityThreshold) {
-//            val cx = (px11 + px12) / 2f
-//            val cy = (py11 + py12) / 2f
-//            val dist = Math.hypot((px11 - px12).toDouble(), (py11 - py12).toDouble()).toFloat()
-//            Triple(cx, cy, maxOf(dist, minScale))
-//        } else {
-//            Triple(null, null, null)
-//        }
-//
-//        for ((x, y, v) in keypoints) {
-//            val px = x * imageWidth
-//            val py = y * imageHeight
-//            if (v < visibilityThreshold || xCenter == null || yCenter == null || scale == null) {
-//                vector.add(maskValue)
-//                vector.add(maskValue)
-//                vector.add(v)
-//            } else {
-//                val xOut = (px - xCenter) / scale
-//                val yOut = (py - yCenter) / scale
-//                vector.add(xOut)
-//                vector.add(yOut)
-//                vector.add(v)
-//            }
-//        }
-//
-//        return vector.toFloatArray()
-//    }
 
-//    fun preprocessKeypointsWithPixels(
-//        keypoints: List<Keypoint>,
-//        imageWidth: Int = 224,
-//        imageHeight: Int = 224,
-//        visibilityThreshold: Float = 0.5f,
-//        maskValue: Float = -1.0f
-//    ): FloatArray {
-//        val vector = mutableListOf<Float>()
-//
-//        val x11 = keypoints[11].x * imageWidth
-//        val x12 = keypoints[12].x * imageWidth
-//        val y11 = keypoints[11].y * imageHeight
-//        val y12 = keypoints[12].y * imageHeight
-//        val v11 = keypoints[11].visibility
-//        val v12 = keypoints[12].visibility
-//
-//        val (xCenter, yCenter, scale) = if (v11 >= visibilityThreshold && v12 >= visibilityThreshold) {
-//            val centerX = (x11 + x12) / 2f
-//            val centerY = (y11 + y12) / 2f
-//            val shoulderDist = kotlin.math.sqrt((x11 - x12).pow(2) + (y11 - y12).pow(2)) + 1e-6f
-//            Triple(centerX, centerY, shoulderDist)
-//        } else {
-//            Triple(null, null, null)
-//        }
-//
-//        for (i in 0 until 33) {
-//            val x = keypoints[i].x * imageWidth
-//            val y = keypoints[i].y * imageHeight
-//            val v = keypoints[i].visibility
-//
-//            if (v < visibilityThreshold || xCenter == null || scale == null) {
-//                vector.add(maskValue)
-//                vector.add(maskValue)
-//                vector.add(v)
-//            } else {
-//                val normX = (x - xCenter) / scale
-//                val normY = (y - (yCenter?:0f)) / scale
-//                vector.add(normX)
-//                vector.add(normY)
-//                vector.add(v)
-//            }
-//        }
-//
-//        return vector.toFloatArray()
-//    }
+    suspend fun saveFloatArrayToInternalStorage(
+        data: FloatArray, // 입력 타입을 FloatArray로 변경
+        fileName: String
+    ): Boolean {
+        // 파일 I/O는 Dispatchers.IO에서 수행
+        return withContext(Dispatchers.IO) {
+            // 내부 저장소의 files 디렉토리 경로 가져오기
+            val directory = context.filesDir
+            val file = File(directory, fileName)
+
+            try {
+                // FileOutputStream으로 파일을 열고 (기본: 덮어쓰기 모드)
+                // OutputStreamWriter (UTF-8) 와 BufferedWriter를 사용
+                FileOutputStream(file).use { fos -> // 두 번째 인자 true 없으면 덮어쓰기
+                    OutputStreamWriter(fos, StandardCharsets.UTF_8).use { osw ->
+                        BufferedWriter(osw).use { writer ->
+                            // 입력받은 FloatArray의 각 요소를 문자열로 변환하고 쉼표로 연결
+                            val line = data.joinToString(",") { floatValue ->
+                                // 필요하다면 여기서 각 float 값의 포맷을 지정할 수 있습니다.
+                                // 예: String.format("%.6f", floatValue) // 소수점 6자리까지
+                                floatValue.toString() // 기본 toString 사용
+                            }
+                            writer.write(line) // 변환된 한 줄 쓰기
+                            writer.newLine()   // 줄바꿈 추가 (파일 끝에 빈 줄이 생길 수 있음, 필요 없다면 제거)
+                        }
+                    }
+                }
+                Log.i("DataSaver", "Successfully saved FloatArray data to ${file.absolutePath}")
+                true // 성공
+            } catch (e: IOException) {
+                Log.e("DataSaver", "Error writing FloatArray to CSV file '$fileName' in internal storage", e)
+                false // 실패
+            } catch (e: Exception) {
+                Log.e("DataSaver", "An unexpected error occurred while saving FloatArray to '$fileName'", e)
+                false // 기타 예외
+            }
+        }
+    }
+
+
+
+    suspend fun readCsvDataAsFloatArray(): List<FloatArray> {
+        // 파일을 읽는 작업은 I/O 작업이므로 Dispatchers.IO 사용
+        return withContext(Dispatchers.IO) {
+            // 최종 결과를 저장할 리스트 (FloatArray를 요소로 가짐)
+            val data = mutableListOf<FloatArray>()
+            try {
+                context.assets.open(csvFileName).use { inputStream ->
+                    InputStreamReader(inputStream, StandardCharsets.UTF_8).use { reader ->
+                        BufferedReader(reader).useLines { lines ->
+                            // lines.drop(1): 첫 번째 줄(헤더) 건너뛰기
+                            lines.drop(1).forEachIndexed { rowIndex, line ->
+                                val stringRow = line.split(',')
+
+                                // 첫 번째 열(파일 이름)을 제외해야 하므로, 최소 2개 이상의 열 필요
+                                if (stringRow.size <= 1) {
+                                    Log.w("CsvReaderUtil", "Skipping row ${rowIndex + 2}: Insufficient columns after split. Line: '$line'")
+                                    return@forEachIndexed // 다음 줄로 이동 (continue 역할)
+                                }
+
+                                // 이 행의 Float 값들을 임시로 저장할 리스트
+                                val floatListForRow = mutableListOf<Float>()
+                                var conversionSuccessful = true // 행 전체의 변환 성공 여부 추적
+
+                                // stringRow.subList(1, stringRow.size): 첫 번째 요소 제외한 나머지
+                                for ((colIndex, cellValue) in stringRow.subList(1, stringRow.size).withIndex()) {
+                                    try {
+                                        // 공백 제거 후 Float으로 변환하여 임시 리스트에 추가
+                                        floatListForRow.add(cellValue.trim().toFloat())
+                                    } catch (e: NumberFormatException) {
+                                        // Float 변환 실패 시 로그 남기고 해당 행 처리 중단
+                                        Log.e("CsvReaderUtil", "Failed to convert value '${cellValue.trim()}' to Float at row ${rowIndex + 2}, column ${colIndex + 2}. Skipping entire row.", e)
+                                        conversionSuccessful = false
+                                        break // 이 행의 나머지 열 처리 중단
+                                    } catch (e: Exception) {
+                                        // 예상치 못한 다른 오류 처리
+                                        Log.e("CsvReaderUtil", "Unexpected error processing cell value '${cellValue.trim()}' at row ${rowIndex + 2}, column ${colIndex + 2}. Skipping entire row.", e)
+                                        conversionSuccessful = false
+                                        break
+                                    }
+                                }
+
+                                // 행의 모든 숫자 변환이 성공한 경우에만
+                                if (conversionSuccessful) {
+                                    // 임시 리스트를 FloatArray로 변환하여 최종 데이터 리스트에 추가
+                                    data.add(floatListForRow.toFloatArray())
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e("CsvReaderUtil", "Error reading CSV file '$csvFileName' from assets", e)
+                throw e // 호출 측에서 처리하도록 예외 다시 던지기
+            } catch (e: Exception) {
+                Log.e("CsvReaderUtil", "An unexpected error occurred while processing CSV '$csvFileName'", e)
+                throw e // 호출 측에서 처리하도록 예외 다시 던지기
+            }
+            data // 최종 파싱된 List<FloatArray> 반환
+        }
+    }
     fun extractKeypointsFromLandmarks(landmarks: List<NormalizedLandmark>): List<Keypoint> {
         return landmarks.map { lm ->
             Keypoint(
@@ -401,6 +448,180 @@ class CameraViewModel @Inject constructor(
                 y = lm.y(),
                 visibility = lm.visibility().get() // 또는 lm.presence
             )
+        }
+    }
+
+    fun getReferenceVector(filename: String, referenceMap: Map<String, FloatArray>): FloatArray? {
+        return referenceMap[filename]
+    }
+
+    fun cosineSimilarity(v1: FloatArray, v2: FloatArray): Float {
+        var dot = 0f
+        var norm1 = 0f
+        var norm2 = 0f
+        for (i in v1.indices) {
+            if ((i % 3) == 2) continue
+            if (v1[i] == -1.0f || v2[i] == -1.0f) continue
+
+            dot += v1[i] * v2[i]
+            norm1 += v1[i] * v1[i]
+            norm2 += v2[i] * v2[i]
+        }
+        if (norm1 == 0f || norm2 == 0f) return 0f
+        return (dot / Math.sqrt((norm1 * norm2).toDouble()) * 100).toFloat()
+    }
+
+    // ✅ L2 거리 기반 점수 계산 함수
+    fun l2DistanceScore(v1: FloatArray, v2: FloatArray): Float {
+        var sumSq = 0f
+        var count = 0
+        for (i in v1.indices) {
+            if ((i % 3) == 2) continue
+            if (v1[i] == -1.0f || v2[i] == -1.0f) continue
+
+            val diff = v1[i] - v2[i]
+            sumSq += diff * diff
+            count++
+        }
+        if (count == 0) return 0f
+        val avgL2 = Math.sqrt((sumSq / count).toDouble()).toFloat()
+
+        // ✅ 거리 → 점수로 변환 (거리가 멀수록 점수 낮게)
+        val score = 100f * Math.exp(-3 * avgL2.toDouble())  // 3은 민감도 조절용
+        return score.toFloat().coerceIn(0f, 100f)
+    }
+
+    // ✅ 좌우 반전된 벡터 생성 (x좌표만 반전)
+    fun flipKeypointsX(vector: FloatArray): FloatArray {
+        val flipped = vector.copyOf()
+        for (i in 0 until 33) {
+            val xIdx = i * 3
+            if (flipped[xIdx] != -1.0f) {
+                flipped[xIdx] = -flipped[xIdx]
+            }
+        }
+        return flipped
+    }
+
+    // ✅ 좌우 반전 고려한 혼합 점수 계산
+    fun getMaxCombinedScoreWithFlip(
+        vec1: FloatArray,
+        vec2: FloatArray,
+        alpha: Float = 0.6f  // cosine 비중 높게
+    ): Float {
+        val cosine1 = cosineSimilarity(vec1, vec2)
+        val l2_1 = l2DistanceScore(vec1, vec2)
+        val score1 = alpha * cosine1 + (1 - alpha) * l2_1
+
+        val flipped = flipKeypointsX(vec1)
+        val cosine2 = cosineSimilarity(flipped, vec2)
+        val l2_2 = l2DistanceScore(flipped, vec2)
+        val score2 = alpha * cosine2 + (1 - alpha) * l2_2
+
+        return maxOf(score1, score2)
+    }
+
+    fun getHalasanaFeedback(kp: FloatArray): String {
+        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
+        val headY = kp[0 * 3 + 1] // nose
+        val footY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
+
+        if (footY > headY + 0.1f) return "발을 머리 뒤로 넘겨주세요."
+        if (hipY > headY + 0.2f) return "엉덩이를 더 들어주세요."
+        if (kp[15 * 3 + 1] > 0.4f && kp[16 * 3 + 1] > 0.4f) return "팔이 땅에서 떨어지면 안됩니다."
+        return ""
+    }
+
+    fun getBhujangasanaFeedback(kp: FloatArray): String {
+        val shoulderY = (kp[11 * 3 + 1] + kp[12 * 3 + 1]) / 2
+        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
+        val kneeY = (kp[25 * 3 + 1] + kp[26 * 3 + 1]) / 2
+        val elbowAngle = getAngle(kp, 11, 13, 15)
+        if (elbowAngle < 150f) return "팔을 뻗어주세요."
+        if (kneeY < hipY - 0.1f) return "다리를 펴주세요."
+        if (hipY - shoulderY < -0.1f) return "엉덩이가 뜨면 안됩니다."
+
+        return ""
+    }
+
+    fun getAdhoMukhaFeedback(kp: FloatArray): String {
+        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
+        val headY = kp[0 * 3 + 1]
+        val heelY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
+        if (hipY > 0.6f) return "엉덩이를 더 들어주세요."
+        if (heelY > 0.9f) return "다리를 쭉 뻗어주세요."
+        if (headY < hipY) return "머리를 팔 사이로 넣어주세요."
+        return ""
+    }
+
+    fun getUstrasanaFeedback(kp: FloatArray): String {
+        val ankleY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
+        val handY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
+        val kneeY = (kp[25 * 3 + 1] + kp[26 * 3 + 1]) / 2
+        val noseY = kp[0 * 3 + 1]
+        if (kneeY < 0.4f) return "무릎을 바닥에 붙여주세요."
+        if (noseY < 0.3f) return "고개를 더 젖혀주세요."
+        if (Math.abs(handY - ankleY) > 0.2f) return "발목을 잡아주세요."
+        return ""
+    }
+
+    fun getVirabhadrasana2Feedback(kp: FloatArray): String {
+        val wristY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
+        val shoulderY = (kp[11 * 3 + 1] + kp[12 * 3 + 1]) / 2
+        val kneeAngle = getAngle(kp, 23, 25, 27)
+        val ankleDist = Math.abs(kp[27 * 3] - kp[28 * 3])
+        if (Math.abs(wristY - shoulderY) > 0.1f) return "팔 높이를 맞춰주세요."
+        if (kneeAngle < 140f) return "무릎을 더 굽혀주세요."
+        if (ankleDist < 0.4f) return "다리를 더 벌려주세요."
+        return ""
+    }
+
+    fun getNavasanaFeedback(kp: FloatArray): String {
+        val feedback = mutableListOf<String>()
+        val footY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
+        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
+        val handY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
+        if (footY > hipY + 0.2f) return "다리를 더 들어주세요."
+        if (handY > hipY + 0.2f) return "팔을 다리에 맞춰주세요."
+        return ""
+    }
+
+    fun getVirabhadrasana3Feedback(kp: FloatArray): String {
+        val footY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
+        val handY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
+        val footX = (kp[27 * 3] + kp[28 * 3]) / 2
+        val hipX = (kp[23 * 3] + kp[24 * 3]) / 2
+        if (Math.abs(footX - hipX) < 0.2f) return "다리를 펴주세요."
+        if (footY > 0.4f) return "다리를 더 들어주세요."
+        if (handY > 0.4f) return "팔을 더 들어주세요."
+
+        return ""
+    }
+
+    // ✅ 각도 계산 유틸
+    fun getAngle(kp: FloatArray, a: Int, b: Int, c: Int): Float {
+        val ax = kp[a * 3]; val ay = kp[a * 3 + 1]
+        val bx = kp[b * 3]; val by = kp[b * 3 + 1]
+        val cx = kp[c * 3]; val cy = kp[c * 3 + 1]
+        val ab = floatArrayOf(ax - bx, ay - by)
+        val cb = floatArrayOf(cx - bx, cy - by)
+        val dot = ab[0]*cb[0] + ab[1]*cb[1]
+        val abLen = Math.sqrt((ab[0]*ab[0] + ab[1]*ab[1]).toDouble())
+        val cbLen = Math.sqrt((cb[0]*cb[0] + cb[1]*cb[1]).toDouble())
+        val cos = dot / (abLen * cbLen + 1e-6)
+        return Math.toDegrees(Math.acos(cos)).toFloat()
+    }
+
+    fun getFeedbackByPose(idx: Int, kp: FloatArray): String {
+        return when (idx) {
+            0 -> getHalasanaFeedback(kp)
+            1 -> getNavasanaFeedback(kp)
+            2 -> getAdhoMukhaFeedback(kp)
+            3 -> getUstrasanaFeedback(kp)
+            4 -> getBhujangasanaFeedback(kp)
+            5 -> getVirabhadrasana3Feedback(kp)
+            6 -> getVirabhadrasana2Feedback(kp)
+            else -> "자세를 다시 잡아주세요."
         }
     }
 

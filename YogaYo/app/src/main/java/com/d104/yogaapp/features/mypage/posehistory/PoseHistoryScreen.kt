@@ -348,7 +348,7 @@ fun PoseMetricsCard(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp), // 내부 패딩 늘림
             verticalArrangement = Arrangement.spacedBy(12.dp) // 항목 간 간격 늘림
         ) {
-            MetricItem(label = "베스트 정확도 :", value = String.format("%.1f%%", accuracy*100))
+            MetricItem(label = "베스트 정확도 :", value = String.format("%.1f%%", accuracy))
             MetricItem(label = "최대 유지 시간:", value = String.format("%.2f초", maxTime))
             MetricItem(label = "자세 수행 횟수:", value = "${count}회")
             MetricItem(label = "우승 횟수:", value = "${winCount}회")
@@ -467,7 +467,7 @@ fun YogaPoseRecordItem(
                 MetricWithIcon(
                     icon = Icons.Default.CheckCircleOutline, // 예시 아이콘
                     label = "정확도",
-                    value = String.format("%.1f%%", record.accuracy * 100)
+                    value = String.format("%.1f%%", record.accuracy)
                 )
 
                 // 수행 시간

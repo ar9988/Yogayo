@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi.dialog
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -61,8 +64,21 @@ fun CreateRoomDialog(
     var peopleExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
-    var selectedMaxCount by remember { mutableStateOf("1 명") }
+    var selectedMaxCount by remember { mutableStateOf("2 명") }
     var selectedCourse by remember { mutableStateOf<UserCourse?>(null) }
+    val context = LocalContext.current
+
+    LaunchedEffect(showDialog) {
+        if (showDialog) {
+            peopleExpanded = false
+            courseExpanded = false
+            showPassword = false
+            selectedMaxCount = "2 명" // 원하는 초기값으로 설정
+            selectedCourse = null      // 원하는 초기값으로 설정
+
+        }
+
+    }
     if (showDialog) {
         Dialog(
             onDismissRequest = onDismiss
@@ -211,7 +227,13 @@ fun CreateRoomDialog(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Button(onClick = onConfirm) {
+                        Button(onClick = {
+                            if(selectedCourse!=null) {
+                                onConfirm()
+                            }else{
+                                Toast.makeText(context,"코스를 선택해주세요",Toast.LENGTH_SHORT).show()
+                            }
+                        }) {
                             Text("만들기")
                         }
                     }

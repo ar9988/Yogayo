@@ -235,7 +235,7 @@ fun YogaPoseResultCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${(history.accuracy * 100).toInt()}.${((history.accuracy * 100) % 1 * 10).toInt()}%",
+                    text = "${(history.accuracy).toInt()}.${((history.accuracy) % 1 * 10).toInt()}%",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFF4CAF50),
                     fontWeight = FontWeight.Bold,
@@ -392,7 +392,7 @@ fun YogaPoseDetailDialog(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "${(history.accuracy * 100).toInt()}.${((history.accuracy * 100) % 1 * 10).toInt()}%",
+                            text = "${(history.accuracy).toInt()}.${((history.accuracy) % 1 * 10).toInt()}%",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF4CAF50)
