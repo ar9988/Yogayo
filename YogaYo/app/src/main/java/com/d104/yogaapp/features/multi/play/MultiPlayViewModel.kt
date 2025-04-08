@@ -163,7 +163,7 @@ class MultiPlayViewModel @Inject constructor(
                         processIntent(MultiPlayIntent.RoundStarted(state))
                     } else if (state == -1) {
                         Timber.d("Game ended")
-//                        processIntent(MultiPlayIntent.GameEnd)
+                        processIntent(MultiPlayIntent.GameEnd)
                     }
                     startTimer()
                 }
@@ -179,10 +179,6 @@ class MultiPlayViewModel @Inject constructor(
                     Timber.d("Received request_photo message")
                     sendImage()
                 }
-            }
-
-            is MultiPlayIntent.SetCurrentHistory -> {
-
             }
 
             is MultiPlayIntent.ReadyClick -> {
@@ -416,7 +412,7 @@ class MultiPlayViewModel @Inject constructor(
                 // 게임 종료 요청
                 Timber.i("Host sending game end message.")
                 Timber.i("$nextRoundIndex, ${poses ?: "null"}")
-//                sendGameEndMessage()
+                sendGameEndMessage()
             }
         }
     }
@@ -489,7 +485,7 @@ class MultiPlayViewModel @Inject constructor(
             sendSignalingMessageUseCase(
                 myId,
                 uiState.value.currentRoom!!.roomId.toString(),
-                type = 5,
+                type = 7,
                 toPeerId = toPeerId,
             )
         }
