@@ -167,7 +167,7 @@ fun MultiPlayScreen(
                             RoundResultScreen(
                                 isLoading = uiState.isLoading,
                                 resultImage = painterResource(id = R.drawable.ic_crown),
-                                contentDescription = "TODO()"
+                                contentDescription = uiState.currentPose.poseName
                             )
                         }
 

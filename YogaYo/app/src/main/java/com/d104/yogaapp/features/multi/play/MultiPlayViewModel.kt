@@ -94,7 +94,7 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             // 타이머 종료 후
-            if (uiState.value.timerProgress <= 0f&&(uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
+            if (uiState.value.timerProgress <= 0f && (uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
                 sendRoundEndMessage()
             }
         }
@@ -222,6 +222,18 @@ class MultiPlayViewModel @Inject constructor(
                 bitmap = uiState.value.bitmap!!,
                 index = LocalDateTime.now().toString(),
                 poseId = uiState.value.beyondPose.poseId.toString()
+            )
+            val sortedUserDatas = uiState.value.userList.values.sortedByDescending { it.totalScore }
+            val currentUserId = uiState.value.myId
+            // 정렬된 리스트에서 현재 사용자의 인덱스를 찾습니다.
+            val rankingIndex = sortedUserDatas.indexOfFirst { it.id == currentUserId } // UserData 객체에 userId 속성이 있다고 가정
+            postYogaPoseHistoryUseCase(
+                poseId = uiState.value.beyondPose.poseId,
+                roomRecordId = uiState.value.currentRoom!!.roomId,
+                accuracy = uiState.value.accuracy,
+                ranking = rankingIndex,
+                poseTime = uiState.value.time,
+                imgUri = uri.toString()
             )
         }
     }

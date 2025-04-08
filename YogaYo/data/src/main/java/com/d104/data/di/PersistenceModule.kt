@@ -9,9 +9,12 @@ import com.d104.data.local.dao.DataStorePreferencesDao
 import com.d104.data.local.dao.PreferencesDao
 import com.d104.data.repository.DataStoreRepositoryImpl
 import com.d104.domain.model.AnswerMessage
+import com.d104.domain.model.DataChannelMessage
 import com.d104.domain.model.IceCandidateMessage
+import com.d104.domain.model.ImageChunkMessage
 import com.d104.domain.model.OfferMessage
 import com.d104.domain.model.RoomPeersMessage
+import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.SignalingMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
@@ -74,6 +77,10 @@ object PersistenceModule {
                 // ... 기타 SignalingMessage 하위 클래스들 ...
             }
             // 다른 sealed class 나 interface 에 대한 다형성 설정도 필요하다면 추가
+            polymorphic(DataChannelMessage::class){
+                subclass(ScoreUpdateMessage::class)
+                subclass(ImageChunkMessage::class)
+            }
         }
          // @SerialName 사용 시에는 필요 없을 수 있음
         classDiscriminator = "_type_"
