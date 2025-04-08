@@ -36,6 +36,10 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
     com.red.yogaback: DEBUG
     com.zaxxer.hikari: DEBUG
+    # application.yml 예시
+    com.zaxxer.hikari.pool.HikariPool: DEBUG
+    com.zaxxer.hikari.HikariDataSource: DEBUG
+
 
 jwt:
   secret: ${JWT-SECRET}
