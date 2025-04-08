@@ -47,7 +47,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, Applic
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic", "/queue")
-                .setHeartbeatValue(new long[]{20000, 20000})
+                .setHeartbeatValue(new long[]{60000, 60000})
                 .setTaskScheduler(webSocketTaskScheduler);
         config.setApplicationDestinationPrefixes("/app");
     }
