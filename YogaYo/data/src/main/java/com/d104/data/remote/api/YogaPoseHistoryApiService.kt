@@ -35,7 +35,7 @@ interface YogaPoseHistoryApiService {
     @GET("api/multi/{roomId}")
     suspend fun getMultiBestPhoto(@Path("roomId") roomId: Long): Response<List<MultiBestPhotoResponseDto>>
 
-    @GET("api/multi/{roomId}/{poseOrder}")
+    @GET("api/multi/{roomId}/{roomOrderIndex}")
     suspend fun getMultiAllPhoto(
         @Path("roomId") roomId: Long,
         @Path("roomOrderIndex") poseOrder: Int

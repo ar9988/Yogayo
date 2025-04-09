@@ -737,6 +737,7 @@ class MultiPlayViewModel @Inject constructor(
                         }
 
                         is ScoreUpdateMessage -> {
+                            Timber.d("Received ScoreUpdateMessage: ${it.second}")
                             processIntent(
                                 MultiPlayIntent.UpdateScore(
                                     it.first,
