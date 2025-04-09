@@ -9,6 +9,7 @@ import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
 import com.d104.domain.model.PeerUser
+import com.d104.domain.model.RequestPhotoMessage
 import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
@@ -193,7 +194,9 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if (intent.message.type == "request_photo") {
                     Timber.d("Received request_photo message")
-                    sendImageToMeshNetwork()
+                    if((intent.message as RequestPhotoMessage).toPeerId==uiState.value.myId){
+                        sendImageToMeshNetwork()
+                    }
                 }
             }
 
@@ -234,6 +237,7 @@ class MultiPlayViewModel @Inject constructor(
     }
 
     private fun getPhotos(it: Int) {
+        Timber.d("Getting photos for pose ID: $it")
         viewModelScope.launch {
             getMultiAllPhotoUseCase(uiState.value.currentRoom!!.roomId, it).collect { result ->
                 result.onSuccess {
