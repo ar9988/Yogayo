@@ -95,10 +95,13 @@ class MultiReducer @Inject constructor() {
                     courseId = -1,
                     courseName = intent.courseName,
                     tutorial = false,
-                    poses = intent.poses
+                    poses = intent.poses,
                 )
                 val updatedYogaCourses = currentState.yogaCourses + tempUserCourse
-                currentState.copy(yogaCourses = updatedYogaCourses)
+                currentState.copy(
+                    yogaCourses = updatedYogaCourses,
+                    dialogState = DialogState.CREATING
+                )
             }
 
             is MultiIntent.ShowEditDialog -> currentState.copy(

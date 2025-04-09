@@ -154,6 +154,7 @@ class MultiPlayReducer @Inject constructor() {
             }
 
             is MultiPlayIntent.RoundEnded -> {
+                Timber.d("Round: Handling RoundEnded")
                 currentState.copy(
                     gameState = GameState.RoundResult,
                     isLoading = true, // 로딩 시작!
@@ -243,6 +244,7 @@ class MultiPlayReducer @Inject constructor() {
             }
 
             is MultiPlayIntent.UpdateScore -> {
+                Timber.d("Reducer: Handling UpdateScore with ${intent.scoreUpdateMessage}")
                 val score = intent.scoreUpdateMessage.time
                 val userId = intent.id
                 // 기존 사용자 데이터 가져오기
