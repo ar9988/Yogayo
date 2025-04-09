@@ -227,21 +227,25 @@ class CameraViewModel @Inject constructor(
                         val accuracy = it[currentIdx.value] // currentIdx는 Main 스레드 값 접근 시 주의 필요, 필요시 withContext(Main) 사용
                         var score = 0.0f
                         var feedbackResult = ""
-                        if(accuracy>0.9){
-                           score = getMaxCombinedScoreWithFlip(csvList.value.get(currentIdx.value),keypointsArray, alpha = 0.75f)
+                        Timber.d("Score & Accuracy ${accuracy}")
+                        if(accuracy>0.7){
+                            score = if(currentIdx.value==0)getMaxCombinedScoreWithFlip(csvList.value.get(currentIdx.value),keypointsArray, alpha = 0.9f) else getMaxCombinedScoreWithFlip(csvList.value.get(currentIdx.value),keypointsArray, alpha = 0.75f)
                             Timber.d("NMData ${csvList.value}")
                             Timber.d("Score: ${score}")
-                            if(score<80f){
-                                feedbackResult = getFeedbackByPose(currentIdx.value,keypointsArray)
-                            }
+                            feedbackResult = getFeedbackByPose(currentIdx.value,keypointsArray)
+
                         }
 
 
                         // UI 업데이트는 Main 스레드로 전환
                         withContext(Dispatchers.Main) {
+//                            if(accuracy>0.9){
+//                                saveFloatArrayToInternalStorage(keypointsArray,"keypoints_all_proc2.csv")
+//                            }
                             _feedback.value = feedbackResult
+                            Timber.d("feedback: ${feedback.value}")
                             _rawAccuracy.value = score // Main 스레드에서 LiveData 업데이트 시 value 사용
-                            if (accuracy >= 0.5f && lastProcessedFrameTimestampMs != -1L) {
+                            if (score >= 70f && lastProcessedFrameTimestampMs != -1L) {
                                 remainingPoseTime += totalProcessingTime / 1000.0F // Main 스레드에서 업데이트
                             }
                             if (score > bestAccuracy) {
@@ -528,80 +532,140 @@ class CameraViewModel @Inject constructor(
     }
 
     fun getHalasanaFeedback(kp: FloatArray): String {
-        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
+        val hipY = averageY(kp, 23, 24)
+        val hipX = averageX(kp, 23,24)
         val headY = kp[0 * 3 + 1] // nose
-        val footY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
+        val headX = kp[0*3+0]
+        val footY = averageY(kp, 27, 28)
+        val footX = averageX(kp,27,28)
+        val handY = averageY(kp, 15, 16)
+        val isHeadXBetween = (hipX < headX && headX < footX) || (footX < headX && headX < hipX)
+        val areFeetAboveHips = footY < hipY
 
-        if (footY > headY + 0.1f) return "발을 머리 뒤로 넘겨주세요."
+
+        if ( !isHeadXBetween || areFeetAboveHips ) return "발을 머리 뒤로 넘겨주세요."
         if (hipY > headY + 0.2f) return "엉덩이를 더 들어주세요."
-        if (kp[15 * 3 + 1] > 0.4f && kp[16 * 3 + 1] > 0.4f) return "팔이 땅에서 떨어지면 안됩니다."
+        if (hipY>handY+0.1) return "팔이 땅에서 떨어지면 안됩니다."
         return ""
     }
 
     fun getBhujangasanaFeedback(kp: FloatArray): String {
-        val shoulderY = (kp[11 * 3 + 1] + kp[12 * 3 + 1]) / 2
-        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
-        val kneeY = (kp[25 * 3 + 1] + kp[26 * 3 + 1]) / 2
+        val shoulderY = averageY(kp, 11, 12)
+        val shoulderDiff = if (kp[11*3+1] >= 0 && kp[12*3+1] >= 0)
+            Math.abs(kp[11*3+1]-kp[12*3+1])
+        else 0f
+        val hipY = averageY(kp, 23, 24)
+        val kneeY = averageY(kp, 25, 26)
         val elbowAngle = getAngle(kp, 11, 13, 15)
+
+        if(kp[11*3+1] > -1 && kp[12*3+1] > -1 && shoulderDiff > 0.1)
+            return "어깨를 땅과 수평이 되게 유지하세요"
         if (elbowAngle < 150f) return "팔을 뻗어주세요."
         if (kneeY < hipY - 0.1f) return "다리를 펴주세요."
-        if (hipY - shoulderY < -0.1f) return "엉덩이가 뜨면 안됩니다."
-
+        if (hipY - shoulderY < -0.1f ) return "엉덩이가 뜨면 안됩니다."
         return ""
     }
 
     fun getAdhoMukhaFeedback(kp: FloatArray): String {
-        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
+        val hipY = averageY(kp, 23, 24)
         val headY = kp[0 * 3 + 1]
-        val heelY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
-        if (hipY > 0.6f) return "엉덩이를 더 들어주세요."
+        val heelY = averageY(kp, 27, 28)
+
+        if (hipY > 0.6f ) return "엉덩이를 더 들어주세요."
         if (heelY > 0.9f) return "다리를 쭉 뻗어주세요."
-        if (headY < hipY) return "머리를 팔 사이로 넣어주세요."
+        if (headY < hipY ) return "머리를 팔 사이로 넣어주세요."
         return ""
     }
 
     fun getUstrasanaFeedback(kp: FloatArray): String {
-        val ankleY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
-        val handY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
-        val kneeY = (kp[25 * 3 + 1] + kp[26 * 3 + 1]) / 2
+        val ankleY = averageY(kp, 27, 28)
+        val handY = averageY(kp, 15, 16)
+        val kneeY = averageY(kp, 25, 26)
         val noseY = kp[0 * 3 + 1]
-        if (kneeY < 0.4f) return "무릎을 바닥에 붙여주세요."
+
+        if (kneeY < 0.4f ) return "무릎을 바닥에 붙여주세요."
         if (noseY < 0.3f) return "고개를 더 젖혀주세요."
-        if (Math.abs(handY - ankleY) > 0.2f) return "발목을 잡아주세요."
+        if (Math.abs(handY - ankleY) > 0.2f ) return "발목을 잡아주세요."
         return ""
     }
 
     fun getVirabhadrasana2Feedback(kp: FloatArray): String {
-        val wristY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
-        val shoulderY = (kp[11 * 3 + 1] + kp[12 * 3 + 1]) / 2
+        val wristY = averageY(kp, 15, 16)
+        val shoulderY = averageY(kp, 11, 12)
         val kneeAngle = getAngle(kp, 23, 25, 27)
-        val ankleDist = Math.abs(kp[27 * 3] - kp[28 * 3])
-        if (Math.abs(wristY - shoulderY) > 0.1f) return "팔 높이를 맞춰주세요."
+        val ankleDist = if (kp[27*3] >= 0 && kp[28*3] >= 0)
+            Math.abs(kp[27*3] - kp[28*3])
+        else if (kp[27*3] >= 0) 1f // 충분히 큰 값으로 설정하여 피드백이 발생하지 않게 함
+        else if (kp[28*3] >= 0) 1f
+        else 0f
+
+        if (Math.abs(wristY - shoulderY) > 0.1f && wristY >= 0 && shoulderY >= 0)
+            return "팔 높이를 맞춰주세요."
         if (kneeAngle < 140f) return "무릎을 더 굽혀주세요."
         if (ankleDist < 0.4f) return "다리를 더 벌려주세요."
         return ""
     }
 
     fun getNavasanaFeedback(kp: FloatArray): String {
-        val feedback = mutableListOf<String>()
-        val footY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
-        val hipY = (kp[23 * 3 + 1] + kp[24 * 3 + 1]) / 2
-        val handY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
-        if (footY > hipY + 0.2f) return "다리를 더 들어주세요."
+        val footY = averageY(kp, 27, 28)
+        val hipY = averageY(kp, 23, 24)
+        val handY = averageY(kp, 15, 16)
+
+        if (footY > hipY + 0.2f ) return "다리를 더 들어주세요."
         if (handY > hipY + 0.2f) return "팔을 다리에 맞춰주세요."
         return ""
     }
 
     fun getVirabhadrasana3Feedback(kp: FloatArray): String {
-        val footY = (kp[27 * 3 + 1] + kp[28 * 3 + 1]) / 2
-        val handY = (kp[15 * 3 + 1] + kp[16 * 3 + 1]) / 2
-        val footX = (kp[27 * 3] + kp[28 * 3]) / 2
-        val hipX = (kp[23 * 3] + kp[24 * 3]) / 2
-        if (Math.abs(footX - hipX) < 0.2f) return "다리를 펴주세요."
+        val footY = averageY(kp, 27, 28)
+        val handY = averageY(kp, 15, 16)
+        val footX = averageX(kp, 27, 28)
+        val hipX = averageX(kp, 23, 24)
+
+        if (Math.abs(footX - hipX) < 0.2f && footX >= 0 && hipX >= 0) return "다리를 펴주세요."
         if (footY > 0.4f) return "다리를 더 들어주세요."
         if (handY > 0.4f) return "팔을 더 들어주세요."
-
         return ""
+    }
+
+    fun averageX(kp: FloatArray, idx1: Int, idx2: Int): Float {
+        val x1 = kp[idx1 * 3]
+        val x2 = kp[idx2 * 3]
+
+        // 둘 다 유효한 경우 평균 계산
+        if (x1 != -1f && x2 != -1f) {
+            return (x1 + x2) / 2
+        }
+        // x1만 유효한 경우
+        else if (x1 != -1f) {
+            return x1
+        }
+        // x2만 유효한 경우
+        else if (x2 != -1f) {
+            return x2
+        }
+        // 둘 다 유효하지 않은 경우
+        return -1f
+    }
+
+    fun averageY(kp: FloatArray, idx1: Int, idx2: Int): Float {
+        val y1 = kp[idx1 * 3 + 1]
+        val y2 = kp[idx2 * 3 + 1]
+
+        // 둘 다 유효한 경우 평균 계산
+        if (y1 != -1f && y2 != -1f) {
+            return (y1 + y2) / 2
+        }
+        // y1만 유효한 경우
+        else if (y1 != -1f) {
+            return y1
+        }
+        // y2만 유효한 경우
+        else if (y2 != -1f) {
+            return y2
+        }
+        // 둘 다 유효하지 않은 경우 (거의 없을 것이라고 가정)
+        return -1f
     }
 
     // ✅ 각도 계산 유틸
@@ -641,6 +705,17 @@ class CameraViewModel @Inject constructor(
             cameraExecutor.shutdown()
         }
         Log.d("CameraViewModel", "ViewModel cleared, resources released.")
+    }
+
+    fun getRandomPraise(): String {
+        val praises = listOf(
+            "잘 하고 있어요!",
+            "훌륭해요!",
+            "완벽한 자세예요!",
+            "정확히 수행하고 있어요!",
+            "좋은 자세를 유지하고 있어요!"
+        )
+        return praises.random()
     }
 
 }

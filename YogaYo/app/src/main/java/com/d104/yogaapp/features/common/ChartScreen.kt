@@ -4,6 +4,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,8 @@ import com.d104.yogaapp.ui.theme.PrimaryColor
 import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.compose.chart.scroll.ChartScrollState
+import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollSpec
 import com.patrykandpatrick.vico.compose.chart.scroll.rememberChartScrollState
 import com.patrykandpatrick.vico.compose.component.marker.markerComponent
 import com.patrykandpatrick.vico.compose.style.ChartStyle
@@ -48,6 +51,7 @@ import com.patrykandpatrick.vico.core.axis.formatter.AxisValueFormatter
 import com.patrykandpatrick.vico.core.axis.vertical.VerticalAxis
 import com.patrykandpatrick.vico.core.chart.draw.ChartDrawContext
 import com.patrykandpatrick.vico.core.chart.line.LineChart
+import com.patrykandpatrick.vico.core.chart.scale.AutoScaleUp
 import com.patrykandpatrick.vico.core.chart.values.ChartValues
 import com.patrykandpatrick.vico.core.context.DrawContext
 import com.patrykandpatrick.vico.core.context.MeasureContext
@@ -56,6 +60,10 @@ import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
 import com.patrykandpatrick.vico.core.entry.entryOf
 //import com.patrykandpatrick.vico.compose.marker.rememberMarker // *** 중요: rememberMarker 임포트 ***
 import com.patrykandpatrick.vico.core.marker.Marker // Marker 타입 임포트
+import com.patrykandpatrick.vico.core.scroll.AutoScrollCondition
+import com.patrykandpatrick.vico.core.scroll.InitialScroll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.yield
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -197,6 +205,12 @@ fun YogaAccuracyTimeChart(
             )
         }
 
+        val chartScrollSpec = rememberChartScrollSpec(
+            isScrollEnabled = true,
+            initialScroll = InitialScroll.End,
+            autoScrollCondition = AutoScrollCondition.OnModelSizeIncreased
+        )
+
 
         // 2. 차트 그리기
 
@@ -208,9 +222,14 @@ fun YogaAccuracyTimeChart(
             chart = lineChart(
                 lines = lineSpecs // 동적으로 생성된 LineSpec 리스트 전달
             ),
+            autoScaleUp = AutoScaleUp.Full,
+            chartScrollSpec = chartScrollSpec,
             chartModelProducer = chartModelProducer,
             startAxis = startAxis, // 동적으로 설정된 Y축
         )
+
+
+
     }
 }
 

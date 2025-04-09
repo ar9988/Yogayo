@@ -27,7 +27,7 @@ fun YogaAnimationScreen(
     accuracy:Float,
     isPlaying:Boolean
 ){
-    val threshholds: Float = 0.5f
+    val threshholds = 70f
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -47,8 +47,8 @@ fun YogaAnimationScreen(
                 contentAlignment = Alignment.Center
             ){
                 Text(
-//                    text = if (accuracy >= threshholds) "훌륭해요!${accuracy}" else "자세가 불안정해요!",
-                    text = "정확도: ${String.format("%.1f%%", accuracy)}",
+                    text = if (accuracy >= threshholds) "훌륭해요!" else "자세가 불안정해요!",
+//                    text = "정확도: ${String.format("%.1f%%", accuracy)}",
                     fontSize = 22.sp,
                     color = Color.White,
                     fontWeight = FontWeight.Bold

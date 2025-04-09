@@ -48,6 +48,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -56,6 +57,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -184,8 +186,25 @@ fun SoloScreen(
                             },
                         )
                     } else {
-                        SwipeableCourseDismissBox(
-                            course = course,
+//                        SwipeableCourseDismissBox(
+//                            course = course,
+//                            poseList = state.yogaPoses,
+//                            onClick = { selectedCourse = course },
+//                            onUpdateCourse = { courseName, poses ->
+//                                viewModel.handleIntent(
+//                                    SoloIntent.UpdateCourse(
+//                                        course.courseId,
+//                                        courseName,
+//                                        poses
+//                                    )
+//                                )
+//                            },
+//                            onDeleteCourse = { courseToDelete ->
+//                                viewModel.handleIntent(SoloIntent.DeleteCourse(courseToDelete.courseId))
+//                            }
+//                        )
+                        CourseCard(
+                            header = { SoloCourseCardHeader(course) },
                             poseList = state.yogaPoses,
                             onClick = { selectedCourse = course },
                             onUpdateCourse = { courseName, poses ->
@@ -199,7 +218,9 @@ fun SoloScreen(
                             },
                             onDeleteCourse = { courseToDelete ->
                                 viewModel.handleIntent(SoloIntent.DeleteCourse(courseToDelete.courseId))
-                            }
+                            },
+                            course = course
+
                         )
                     }
                 }
@@ -230,31 +251,33 @@ fun SoloCourseCardHeader(course: UserCourse){
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ){
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 코스 이름과 튜토리얼 표시
+            // --- 핵심 수정: 왼쪽 Row에 weight(1f) 적용 ---
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f) // 이 Row가 남은 공간을 모두 차지하도록 함
             ) {
-
                 Text(
                     text = course.courseName,
-                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1, // 텍스트를 한 줄로 제한
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    // --- 내부 weight 수정: fill = false 유지 중요 ---
+                    // 이 Text가 '튜토리얼' 태그 공간을 제외한 나머지 공간을 차지
+                    modifier = Modifier.weight(1f, fill = false),
+                    fontSize = if(course.tutorial == true) 16.sp else 24.sp
                 )
 
-                // 튜토리얼 여부 표시
+                // 튜토리얼 여부 표시 (필요 시 공간 차지)
                 if (course.tutorial == true) {
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = PrimaryColor,
-                        modifier = Modifier.height(26.dp)
+                        modifier = Modifier.height(26.dp) // 높이 고정
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -268,17 +291,22 @@ fun SoloCourseCardHeader(course: UserCourse){
                         }
                     }
                 }
-            }
+            } // --- 왼쪽 Row 끝 ---
 
-            // 예상 시간 표시
+            // 오른쪽 요소(시간)를 위한 공간 확보를 위해 약간의 간격 추가
+            Spacer(modifier = Modifier.width(8.dp)) // 왼쪽과 오른쪽 그룹 사이 간격
+
+            // --- 오른쪽 Row는 고정 크기를 가짐 (weight 없음) ---
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
+                // Modifier에 weight 없음
             ) {
                 Icon(
                     imageVector = Icons.Default.AccessTime,
                     contentDescription = "예상 시간",
-                    tint = Color.Gray
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp) // 아이콘 크기 고정 (선택 사항)
                 )
 
                 // 각 포즈당 3분으로 계산
@@ -286,10 +314,12 @@ fun SoloCourseCardHeader(course: UserCourse){
                 Text(
                     text = "${durationMinutes}분",
                     color = Color.Gray,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1 // 시간 텍스트도 한 줄로 제한 (혹시 모를 경우 대비)
                 )
-            }
+            } // --- 오른쪽 Row 끝 ---
         }
+
     }
 }
 
@@ -397,60 +427,92 @@ fun SwipeableCourseDismissBox(
     onUpdateCourse: (String, List<YogaPoseWithOrder>) -> Unit,
     onDeleteCourse: (UserCourse) -> Unit
 ) {
-    val canDelete = course.courseId >= 0
+    val canDelete = course.courseId >= 0 // 삭제 가능 여부 (ID가 0 이상일 때만)
     val isRemoved = remember(course.courseId) { mutableStateOf(false) }
-
-    // 애니메이션 완료 추적
     val animationCompleted = remember(course.courseId) { mutableStateOf(false) }
+
+    // --- 추가: 삭제 확인 다이얼로그 표시 상태 ---
+    var showDeleteDialog by remember(course.courseId) { mutableStateOf(false) }
 
     val dismissState = rememberSwipeToDismissBoxState(
         initialValue = SwipeToDismissBoxValue.Settled,
         positionalThreshold = { totalDistance -> totalDistance * 0.6f },
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.EndToStart && canDelete) {
-                isRemoved.value = true
-                true
-            } else {
+                // --- 수정: 바로 삭제하지 않고 다이얼로그 표시 요청 ---
+                showDeleteDialog = true
+                // --- 중요: SwipeToDismissBox의 상태 변경을 막음 (항상 false 반환) ---
+                // 이렇게 해야 스와이프 후 원래 위치로 돌아오고, 다이얼로그가 뜬다.
                 false
+            } else {
+                false // 다른 방향 스와이프나 삭제 불가능 시에도 상태 변경 안 함
             }
         }
     )
 
-    // 애니메이션 완료 감지 및 삭제 처리
+    // 삭제 애니메이션 및 실제 삭제 처리 (이 부분은 isRemoved 상태에 의존하므로 유지)
     LaunchedEffect(isRemoved.value) {
         if (isRemoved.value) {
-            // 애니메이션 시간만큼 대기
-            delay(300)
-            // 애니메이션 완료 플래그 설정
+            delay(300) // 애니메이션 시간과 맞춤
             animationCompleted.value = true
-            // 실제 삭제 실행
-            onDeleteCourse(course)
+            onDeleteCourse(course) // 실제 데이터 삭제
         }
     }
 
-    // 애니메이션 완료 전에만 렌더링
+    // --- 삭제 확인 다이얼로그 ---
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false }, // 다이얼로그 밖 클릭 시 닫기
+            title = { Text("삭제 확인") },
+            text = { Text("정말로 '${course.courseName}' 코스를 삭제하시겠습니까?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false // 다이얼로그 닫기
+                        // --- 수정: 여기서 삭제 애니메이션 시작 및 실제 삭제 트리거 ---
+                        isRemoved.value = true
+                    },
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false } // 다이얼로그 닫기
+                ) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
+    // 애니메이션 완료 전 & 다이얼로그 확인 후 삭제 시작 시 사라지도록 렌더링
     if (!animationCompleted.value) {
         AnimatedVisibility(
+            // isRemoved가 true가 되면 (다이얼로그에서 '삭제' 클릭 시) 사라짐 애니메이션 시작
             visible = !isRemoved.value,
             exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
                     shrinkHorizontally(animationSpec = tween(durationMillis = 300), shrinkTowards = Alignment.Start)
         ) {
             SwipeToDismissBox(
                 state = dismissState,
-                enableDismissFromStartToEnd = false,
+                enableDismissFromStartToEnd = false, // 오른쪽 -> 왼쪽 스와이프만 활성화
                 enableDismissFromEndToStart = canDelete,
                 backgroundContent = {
+                    // 스와이프 시 배경 (예: 삭제 아이콘)
                     SwipeDismissBoxBackground(dismissState)
                 },
                 content = {
+                    // 실제 표시될 카드 컨텐츠
                     CourseCard(
                         header = { SoloCourseCardHeader(course) },
                         poseList = poseList,
                         course = course,
                         onClick = onClick,
                         onUpdateCourse = onUpdateCourse
+                        // modifier = Modifier.fillMaxWidth() // 카드 너비 채우기 등 필요 시 추가
                     )
-                },
+                }
             )
         }
     }
