@@ -223,11 +223,11 @@ public class BadgeService {
         maxAccuracy.ifPresent(accuracy -> {
             int newAccuracy = (int) (accuracy * 100);
             log.info("newAccuracy: {}", newAccuracy);
-            if (newAccuracy >= 90) {
+            if (newAccuracy >= 95) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 3, newAccuracy);
-            } else if (newAccuracy >= 80) {
+            } else if (newAccuracy >= 90) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 2, newAccuracy);
-            } else if (newAccuracy >= 70) {
+            } else if (newAccuracy >= 80) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 1, newAccuracy);
             }
         });
@@ -242,6 +242,7 @@ public class BadgeService {
 
         // 3. 요가 코스 완료 수 체크
         int coursesCount = userCourseRepository.countByUser(user);
+        log.info("요가 코스 배지 체크 , 현재 코스 개수 : {}",coursesCount);
         if (coursesCount >= 5) {
             assignBadge(user, BadgeType.YOGA_COURSES, 3, coursesCount);
         } else if (coursesCount >= 3) {

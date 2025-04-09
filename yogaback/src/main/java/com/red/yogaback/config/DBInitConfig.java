@@ -33,6 +33,7 @@ public class DBInitConfig implements ApplicationRunner {
         authServiceImpl.signUp(new SignUpRequest("user4", "123","황홍법", "황홍법 닉네임"),null);
         authServiceImpl.signUp(new SignUpRequest("user5", "123","김웅기", "김웅기 닉네임"),null);
         authServiceImpl.signUp(new SignUpRequest("user6", "123","경이현", "경이현 닉네임"),null);
+        authServiceImpl.signUp(new SignUpRequest("test", "123","테스트 계정", "테스트 계정 닉네임"),null);
         log.info("사람 넣기 완료");
     }
 }
