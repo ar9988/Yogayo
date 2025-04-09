@@ -41,6 +41,7 @@ import com.d104.yogaapp.features.multi.play.components.WaitingScreen
 import com.d104.yogaapp.features.multi.play.result.DetailScreen
 import com.d104.yogaapp.features.multi.play.result.GalleryScreen
 import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
+import timber.log.Timber
 
 
 @Composable
@@ -166,6 +167,7 @@ fun MultiPlayScreen(
                         }
 
                         GameState.RoundResult -> {
+
                             val bitmapToShow = if (uiState.source) {
                                 uiState.bitmap
                             } else {

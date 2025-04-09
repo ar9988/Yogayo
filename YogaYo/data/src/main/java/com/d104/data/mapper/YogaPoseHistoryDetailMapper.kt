@@ -61,7 +61,7 @@ class YogaPoseHistoryDetailMapper @Inject constructor() {
             MultiBestPhoto(
                 poseName = dto.poseName,
                 poseUrl = dto.poseUrl,
-                roomOrderIndex = dto.room_order_index,
+                roomOrderIndex = dto.roomOrderIndex,
             )
         }
     }

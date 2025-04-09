@@ -237,7 +237,8 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.SetImageSource -> {
                 Timber.d("Reducer: Handling SetImageSource with ${intent.b}")
                 currentState.copy(
-                    source = intent.b
+                    source = intent.b,
+                    isLoading = !intent.b
                 )
             }
 
