@@ -28,7 +28,7 @@ class PoseRecordMapper @Inject constructor() { // Hilt 주입을 위해 @Inject 
 
     fun toRequest(record: YogaPoseRecord): PoseRecordRequestDto {
         return PoseRecordRequestDto(
-            roomRecordId = record.roomRecordId,
+            roomId = record.roomRecordId,
             accuracy = record.accuracy,
             ranking = record.ranking,
             poseTime = record.poseTime
