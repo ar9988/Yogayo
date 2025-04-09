@@ -23,6 +23,7 @@ public class UserCourseService {
     private final PoseRepository poseRepository;
     private final UserCourseRepository userCourseRepository;
     private final UserCoursePoseRepository userCoursePoseRepository;
+    private final BadgeService badgeService;
 
     /**
      * [POST] 커스텀 코스 생성
@@ -64,6 +65,8 @@ public class UserCourseService {
 
         // 엔티티 객체에도 poseList를 넣어줘야, fromEntity()에서 접근 가능
         userCourse.setUserCoursePoses(poseList);
+
+        badgeService.updateUserRecordAndAssignBadges(user);
 
         // 5) 생성된 코스 정보를 DTO로 변환하여 반환
         return UserCourseRes.fromEntity(userCourse);
