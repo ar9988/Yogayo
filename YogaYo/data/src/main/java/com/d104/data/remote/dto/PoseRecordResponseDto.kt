@@ -12,8 +12,8 @@ data class PoseRecordResponseDto(
     @Json(name = "poseId")
     val poseId:Long,
 
-    @Json(name = "roomRecordId")
-    val roomRecordId:Long?,
+    @Json(name = "roomId")
+    val roomId:Long?,
 
     @Json(name = "accuracy")
     val accuracy:Float,
