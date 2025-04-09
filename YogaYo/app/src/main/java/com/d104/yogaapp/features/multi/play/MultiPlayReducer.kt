@@ -18,6 +18,14 @@ class MultiPlayReducer @Inject constructor() {
                 currentState.copy(userList = newUserList)
             }
 
+            is MultiPlayIntent.SetBestImage -> {
+                Timber.d("Reducer: Handling SetBestImage with ${intent.bitmap}")
+                currentState.copy(
+                    bestBitmap = intent.bitmap,
+                    isLoading = false
+                )
+            }
+
             is MultiPlayIntent.SendHistory -> {
                 Timber.d("Reducer: Handling SendHistory with ${intent.bitmap}")
                 currentState.copy(
@@ -206,7 +214,6 @@ class MultiPlayReducer @Inject constructor() {
                 currentState.copy(
                     bestBitmap = intent.bitmap, // 수신된 비트맵으로 업데이트
                     isLoading = false,      // 로딩 종료!
-                    source = false
                 )
             }
 
@@ -234,13 +241,6 @@ class MultiPlayReducer @Inject constructor() {
                 Timber.d("Reducer: Handling AllPose with ${intent.it}")
                 currentState.copy(
                     allUrls = intent.it
-                )
-            }
-            is MultiPlayIntent.SetImageSource -> {
-                Timber.d("Reducer: Handling SetImageSource with ${intent.b}")
-                currentState.copy(
-                    source = intent.b,
-                    isLoading = !intent.b
                 )
             }
 
