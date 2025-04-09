@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -42,9 +42,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.d104.domain.model.UserCourse
-import com.d104.yogaapp.features.multi.MultiIntent
 import com.d104.yogaapp.features.solo.PosesRowWithArrows
-import timber.log.Timber
 
 @Composable
 fun CreateRoomDialog(
@@ -59,7 +57,7 @@ fun CreateRoomDialog(
     onDismiss: () -> Unit,
     onCourseSelect: (UserCourse) -> Unit,
     userCourses: List<UserCourse>,
-    onEditCourse: () -> Unit
+    onAddCourse: () -> Unit
 ) {
     var peopleExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
@@ -134,7 +132,7 @@ fun CreateRoomDialog(
                                         onClick = {
                                             selectedMaxCount = option
                                             var count = 2
-                                            when(option) {
+                                            when (option) {
                                                 "1 명" -> count = 1
                                                 "2 명" -> count = 2
                                                 "3 명" -> count = 3
@@ -206,16 +204,15 @@ fun CreateRoomDialog(
                                 )
                             }
                         }
-                        if (selectedCourse != null) {
-                            IconButton(
-                                onClick = onEditCourse
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Button"
-                                )
-                            }
+                        IconButton(
+                            onClick = onAddCourse
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Button"
+                            )
                         }
+
                     }
                     if (selectedCourse != null) {
                         PosesRowWithArrows(selectedCourse!!)
@@ -231,10 +228,10 @@ fun CreateRoomDialog(
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Button(onClick = {
-                            if(selectedCourse!=null) {
+                            if (selectedCourse != null) {
                                 onConfirm()
-                            }else{
-                                Toast.makeText(context,"코스를 선택해주세요",Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "코스를 선택해주세요", Toast.LENGTH_SHORT).show()
                             }
                         }) {
                             Text("만들기")

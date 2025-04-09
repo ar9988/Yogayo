@@ -1,13 +1,9 @@
 package com.d104.yogaapp.features.multi
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.EnterResult
-import com.d104.domain.model.Room
-import com.d104.domain.model.UserCourse
-import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.domain.usecase.CancelSearchStreamUseCase
 import com.d104.domain.usecase.CreateRoomUseCase
@@ -21,8 +17,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -48,9 +42,6 @@ class MultiViewModel @Inject constructor(
             is MultiIntent.SearchRoom ->{
                 _uiState.value.page = emptyList()
                 loadRooms(newState.roomSearchText,newState.pageIndex)
-            }
-            is MultiIntent.EditCourse -> {
-                updateCourse(intent.courseId,intent.courseName,intent.poses)
             }
             is MultiIntent.SearchCourse -> {
                 searchCourse()
@@ -216,10 +207,6 @@ class MultiViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    private fun updateCourse(courseId:Long, courseName:String, poses:List<YogaPoseWithOrder>){
-        updateCourseUseCase
     }
 
     private fun cancelSearch() {

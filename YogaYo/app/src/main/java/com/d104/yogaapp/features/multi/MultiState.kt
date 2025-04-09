@@ -23,5 +23,5 @@ data class MultiState(
     val errorMessage: String? = null,
 )
 enum class DialogState {
-    NONE, CREATING, ENTERING, COURSE_EDITING
+    NONE, CREATING, ENTERING, COURSE_ADD
 }

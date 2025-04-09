@@ -95,23 +95,23 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             YogaYoTheme {
-                Surface (
+                Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                ){
+                ) {
                     MainNavigation()
                 }
             }
         }
     }
 }
+
 @Composable
 fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
     val navController = rememberNavController()
     val state by viewModel.state.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
 
 
     // 화면 전환 시 바텀바 표시 여부 설정
@@ -127,7 +127,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                 launchSingleTop = true
             }
         } else {
-            Timber.d( "Not navigating because currentRoute is main_tabs or null") // 로그 추가
+            Timber.d("Not navigating because currentRoute is main_tabs or null") // 로그 추가
         }
     }
 
@@ -135,7 +135,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
     val isFullScreen = currentRoute == "solo_yoga_play"
     LaunchedEffect(currentDestination) {
         val shouldShowBottomBar = when (currentDestination?.route) {
-            "main_tabs","detail_record","pose_history/{poseId}" -> true
+            "main_tabs", "detail_record", "pose_history/{poseId}" -> true
             else -> false
         }
         viewModel.processIntent(MainIntent.SetBottomBarVisibility(shouldShowBottomBar))
@@ -144,6 +144,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                 is NavigationEvent.NavigateToLogin -> {
                     navController.navigate("login_screen")
                 }
+
                 is NavigationEvent.NavigateToSignUp -> {
                     navController.navigate("signUp_screen")
                 }
@@ -222,24 +223,23 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                 }
             }
             // 멀티 요가 플레이 화면
-            composable("multi_yoga_play"){
+            composable("multi_yoga_play") {
                 MultiPlayScreen(
                     room = state.room!!,
-                    onBackPressed ={
+                    onBackPressed = {
                         navController.popBackStack()
                     }
                 )
             }
 
             // 로그인 화면
-            composable("login_screen"){
+            composable("login_screen") {
                 LoginScreen(
                     onBackPressed = {
                         navController.popBackStack()
-                    }
-                    ,
+                    },
                     onNavigateToSignUp = {
-                        navController.navigate("signUp_screen"){
+                        navController.navigate("signUp_screen") {
                             popUpTo("login_screen")
                         }
                     }
@@ -247,7 +247,7 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
             }
 
             // 회원가입 화면
-            composable("signUp_screen"){
+            composable("signUp_screen") {
                 SignUpScreen(
                     onBackPressed = {
                         navController.popBackStack()
@@ -290,10 +290,10 @@ fun MainTabScreen(
     selectedTab: Tab,
     onNavigateToYogaPlay: (UserCourse) -> Unit,
     onNavigateMultiPlay: (Room) -> Unit,
-    onNavigateSoloScreen:() -> Unit,
-    onNavigateToDetailRecord:(myPageInfo:MyPageInfo)->Unit,
-    isLogin:Boolean = false,
-    yogaPoses:List<YogaPose> = emptyList()
+    onNavigateSoloScreen: () -> Unit,
+    onNavigateToDetailRecord: (myPageInfo: MyPageInfo) -> Unit,
+    isLogin: Boolean = false,
+    yogaPoses: List<YogaPose> = emptyList()
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -308,12 +308,19 @@ fun MainTabScreen(
                     yogaPoses = yogaPoses
                 )
             }
-            Tab.Multi -> MultiScreen(
-                onNavigateMultiPlay = onNavigateMultiPlay
-            )
+
+            Tab.Multi -> {
+                Timber.d("yogaPoses:${yogaPoses}")
+                MultiScreen(
+
+                    onNavigateMultiPlay = onNavigateMultiPlay,
+                    yogaPoses = yogaPoses
+                )
+            }
+
             Tab.MyPage -> MyPageScreen(
                 onNavigateSoloScreen = onNavigateSoloScreen,
-                onNavigateToDetailRecord = {userRecord ->
+                onNavigateToDetailRecord = { userRecord ->
 
                     onNavigateToDetailRecord(userRecord)
                 }

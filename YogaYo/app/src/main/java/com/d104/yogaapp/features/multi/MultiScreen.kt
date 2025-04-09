@@ -1,6 +1,5 @@
 package com.d104.yogaapp.features.multi
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +58,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
@@ -67,7 +67,8 @@ import timber.log.Timber
 @Composable
 fun MultiScreen(
     onNavigateMultiPlay: (Room) -> Unit,
-    viewModel: MultiViewModel = hiltViewModel()
+    viewModel: MultiViewModel = hiltViewModel(),
+    yogaPoses: List<YogaPose>
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
@@ -191,7 +192,7 @@ fun MultiScreen(
         onConfirm = { viewModel.processIntent(MultiIntent.CreateRoom) },
         onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.CREATING)) },
         onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },
-        onEditCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
+        onAddCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
         userCourses = uiState.yogaCourses,
         onMaxCountChanged = {viewModel.processIntent(MultiIntent.UpdateRoomMaxCount(it))}
     )
@@ -205,14 +206,17 @@ fun MultiScreen(
         onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) }
     )
     // 코스 수정 다이얼로그
-    if (uiState.dialogState == DialogState.COURSE_EDITING) {
+    if (uiState.dialogState == DialogState.COURSE_ADD) {
         CustomCourseDialog(
-            poseList = uiState.selectedCourse!!.poses,
-            onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.COURSE_EDITING)) },
-            onSave = { courseName, poses ->
+            poseList = yogaPoses,
+            onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.COURSE_ADD)) },
+            onSave = { courseName, poses ->{}
+            },
+            isMultiMode = true,
+            onAdd = { courseName, poses ->
                 viewModel.processIntent(
-                    MultiIntent.EditCourse(
-                        uiState.selectedCourse!!.courseId,
+                    MultiIntent.AddTempCourse(
+                        -1,
                         courseName,
                         poses
                     )

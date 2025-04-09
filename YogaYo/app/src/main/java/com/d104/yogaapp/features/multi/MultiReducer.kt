@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi
 
+import com.d104.domain.model.UserCourse
 import javax.inject.Inject
 
 class MultiReducer @Inject constructor() {
@@ -72,7 +73,7 @@ class MultiReducer @Inject constructor() {
                     DialogState.ENTERING -> currentState.copy(
                         dialogState = DialogState.NONE
                     )
-                    DialogState.COURSE_EDITING -> currentState.copy(
+                    DialogState.COURSE_ADD -> currentState.copy(
                         dialogState = DialogState.CREATING
                     )
                 }
@@ -88,12 +89,20 @@ class MultiReducer @Inject constructor() {
                 poseSearchTitle = intent.title
             )
 
-            is MultiIntent.EditCourse -> {
-                currentState
+            is MultiIntent.AddTempCourse -> {
+
+                val tempUserCourse = UserCourse(
+                    courseId = -1,
+                    courseName = intent.courseName,
+                    tutorial = false,
+                    poses = intent.poses
+                )
+                val updatedYogaCourses = currentState.yogaCourses + tempUserCourse
+                currentState.copy(yogaCourses = updatedYogaCourses)
             }
 
             is MultiIntent.ShowEditDialog -> currentState.copy(
-                dialogState = DialogState.COURSE_EDITING
+                dialogState = DialogState.COURSE_ADD
             )
             is MultiIntent.EnterRoomSuccess -> currentState.copy(
                 enteringRoom = true

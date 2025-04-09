@@ -105,7 +105,9 @@ fun CustomCourseDialog(
     poseInCourse:List<YogaPoseInCourse> = emptyList(),
     poseList: List<YogaPose>,
     onDismiss: () -> Unit,
-    onSave: (String,List<YogaPoseWithOrder>) -> Unit
+    onSave: (String,List<YogaPoseWithOrder>) -> Unit,
+    isMultiMode: Boolean = false,
+    onAdd: (String, List<YogaPose>) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     // 상태 관리
@@ -380,13 +382,16 @@ fun CustomCourseDialog(
                             Toast.makeText(context, "코스 이름을 입력해주세요", Toast.LENGTH_SHORT).show()
                         }else if(selectedPoses.isEmpty()){
                             Toast.makeText(context, "자세를 1개 이상 선택해주세요", Toast.LENGTH_SHORT).show()
-                        }else {
+                        }else if(!isMultiMode){
                             onSave(courseName, selectedPoses.mapIndexed { index, poseInCourse ->
                                 YogaPoseWithOrder(
                                     userOrderIndex = index,
                                     poseId = poseInCourse.pose.poseId
                                 )
                             })
+                        }else{
+                            val yogaPoseList = selectedPoses.map { it.pose }
+                            onAdd(courseName, yogaPoseList)
                         }
                     },
                     modifier = Modifier
