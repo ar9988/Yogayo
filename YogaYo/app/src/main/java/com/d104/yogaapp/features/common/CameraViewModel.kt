@@ -234,6 +234,8 @@ class CameraViewModel @Inject constructor(
                             Timber.d("Score: ${score}")
                             if(score<80) {
                                 feedbackResult = getFeedbackByPose(currentIdx.value, keypointsArray)
+                            }else{
+                                feedbackResult = getRandomPraise()
                             }
 
                         }
@@ -595,13 +597,11 @@ class CameraViewModel @Inject constructor(
         val wristY = averageY(kp, 15, 16)
         val shoulderY = averageY(kp, 11, 12)
         val kneeAngle = getAngle(kp, 23, 25, 27)
-        val ankleDist = if (kp[27*3] >= 0 && kp[28*3] >= 0)
-            Math.abs(kp[27*3] - kp[28*3])
-        else if (kp[27*3] >= 0) 1f // 충분히 큰 값으로 설정하여 피드백이 발생하지 않게 함
-        else if (kp[28*3] >= 0) 1f
-        else 0f
+        val ankleDist = Math.abs(kp[27*3] - kp[28*3])
 
-        if (Math.abs(wristY - shoulderY) > 0.1f && wristY >= 0 && shoulderY >= 0)
+
+
+        if (Math.abs(wristY - shoulderY) > 0.1f && wristY > -1 && shoulderY > -1)
             return "팔 높이를 맞춰주세요."
         if (kneeAngle < 140f) return "무릎을 더 굽혀주세요."
         if (ankleDist < 0.4f) return "다리를 더 벌려주세요."

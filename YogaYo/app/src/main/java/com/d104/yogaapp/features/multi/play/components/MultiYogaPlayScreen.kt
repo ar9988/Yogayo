@@ -290,7 +290,7 @@ fun MultiYogaPlayScreen(
                                 }
                             }
                         )
-                        if (isPlaying) {
+                        if (isPlaying&&gameState == GameState.Playing) {
                             // 현재 등수 이미지 추가하기
 
                             Box(
