@@ -3,20 +3,26 @@ package com.d104.yogaapp.features.multi.play.result
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person // 유지
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext // 유지
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.d104.domain.model.PeerUser // PeerUser 임포트
 import com.d104.yogaapp.R
 import kotlinx.coroutines.delay
@@ -113,10 +119,27 @@ fun WinnerSection(winner: PeerUser?) { // PlayerScore 대신 PeerUser?, Nullable
         // 승자 정보가 있을 때만 표시
         winner?.let {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Filled.Person,
-                    contentDescription = "Person Icon"
-                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier // Apply external modifiers first
+                        .size(40.dp) // Keep the original size
+                        .border(1.dp, Color.Gray, CircleShape) // Keep the border
+                        .clip(CircleShape) // Clip the content (the image) to a circle
+                ) {
+                    // Use AsyncImage to load the image from the URL
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(winner.iconUrl.ifEmpty { R.drawable.ic_profile })
+                            .crossfade(true)
+                            .error(R.drawable.ic_profile)
+                            .build(),
+                        contentDescription = "프로필 이미지",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .align(Alignment.Center),
+                    )
+                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = it.nickName, // nickName 사용
@@ -142,10 +165,27 @@ fun RankItem(rank: Int, player: PeerUser) { // PlayerScore 대신 PeerUser 사�
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        Icon(
-            Icons.Filled.Person,
-            contentDescription = "Person Icon"
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier // Apply external modifiers first
+                .size(40.dp) // Keep the original size
+                .border(1.dp, Color.Gray, CircleShape) // Keep the border
+                .clip(CircleShape) // Clip the content (the image) to a circle
+        ) {
+            // Use AsyncImage to load the image from the URL
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(player.iconUrl.ifEmpty { R.drawable.ic_profile })
+                    .crossfade(true)
+                    .error(R.drawable.ic_profile)
+                    .build(),
+                contentDescription = "프로필 이미지",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.Center),
+            )
+        }
 
         Spacer(modifier = Modifier.width(12.dp))
 

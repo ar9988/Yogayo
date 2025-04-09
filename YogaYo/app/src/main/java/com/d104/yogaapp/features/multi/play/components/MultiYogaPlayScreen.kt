@@ -46,7 +46,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.R
@@ -76,7 +79,9 @@ fun MultiYogaPlayScreen(
     var isTtsReady by remember { mutableStateOf(false) }
     val sortedUserList = remember(userList) {
         Timber.d("Recalculating sorted user list. Current size: ${userList.size}")
-        userList.values.toList().sortedByDescending { it.roundScore }
+        userList.values.toList()
+            .sortedWith(compareByDescending<PeerUser> { it.roundScore }
+                .thenBy { it.id })
     }
 
     var roundResultRemainingTime by remember { mutableStateOf(10) }
@@ -152,68 +157,77 @@ fun MultiYogaPlayScreen(
                                         else -> 0 // 5등부터는 0점
                                     }
 
-                                    // 각 순위 행
                                     Row(
                                         modifier = Modifier
-                                            .fillMaxWidth() // 행 전체 너비 사용
-                                            .padding(vertical = 4.dp), // 행 상하 패딩 살짝 추가
+                                            .fillMaxWidth()
+                                            .padding(vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        // horizontalArrangement = Arrangement.SpaceBetween // 요소 간 간격 균등 분배 (이름 길면 깨질 수 있음)
                                     ) {
-                                        // 등수 텍스트 (고정 너비 부여)
+                                        // 1. 등수 (고정 너비)
                                         Text(
                                             text = "${rank}등",
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            style = MaterialTheme.typography.bodyLarge,
                                             textAlign = TextAlign.Center,
-                                            modifier = Modifier
-                                                .width(50.dp) // 등수 표시 공간 확보
+                                            modifier = Modifier.width(45.dp)
                                         )
 
-                                        // 원형 테두리가 있는 사용자 아이콘 (변경 없음)
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        // 2. 아이콘 (고정 크기)
                                         Box(
                                             contentAlignment = Alignment.Center,
                                             modifier = Modifier
-                                                .size(40.dp)
+                                                .size(40.dp) // 아이콘 크기
                                                 .border(1.dp, Color.Gray, CircleShape)
                                                 .clip(CircleShape)
-                                                .padding(4.dp)
                                         ) {
-                                            Icon(
-                                                Icons.Filled.Person,
-                                                contentDescription = "Person Icon"
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data(user.iconUrl.ifEmpty { R.drawable.ic_profile })
+                                                    .crossfade(true)
+                                                    .error(R.drawable.ic_profile)
+                                                    .build(),
+                                                contentDescription = "프로필 이미지",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
                                             )
                                         }
 
-                                        Spacer(modifier = Modifier.width(8.dp)) // 아이콘과 이름 사이 간격
+                                        Spacer(modifier = Modifier.width(12.dp))
 
-                                        // 닉네임 텍스트 (남은 공간 차지하도록 weight)
+                                        // 3. 닉네임 (고정 너비 + Ellipsis)
                                         Text(
-                                            text = user.nickName, // 정렬된 user 객체에서 닉네임 가져오기
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            text = user.nickName,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            maxLines = 1, // 한 줄로 제한
+                                            overflow = TextOverflow.Ellipsis, // 넘치면 ... 처리
                                             modifier = Modifier
-                                                .weight(1f) // 이름이 길 경우 다른 요소 밀어내도록
-                                                .padding(horizontal = 8.dp)
+                                                // --- 중요: 여기에 닉네임을 위한 고정 너비 지정 ---
+                                                // 예시 값, 실제 앱에 맞게 조절하세요.
+                                                .width(60.dp)
                                         )
 
-                                        // 점수(초) 텍스트 (고정 너비)
+                                        // 4. 고정 간격 Spacer (weight(1f) 대신 사용)
+                                        // 닉네임과 점수 사이의 원하는 간격을 지정합니다.
+                                        Spacer(modifier = Modifier.width(12.dp)) // 예시 간격
+
+                                        // 5. 점수 (고정 너비, 오른쪽 정렬)
                                         Text(
-                                            text = String.format("%.1f초", user.roundScore), // 소수점 첫째자리까지 표시
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            text = String.format("%.1f초", user.roundScore),
+                                            style = MaterialTheme.typography.bodyLarge,
                                             textAlign = TextAlign.End,
-                                            modifier = Modifier
-                                                .width(70.dp) // 점수 표시 공간 확보
-                                                .padding(horizontal = 8.dp)
+                                            modifier = Modifier.width(75.dp)
                                         )
-//
-//                                        // 포인트 텍스트 (고정 너비)
-//                                        Text(
-//                                            text = "$points pt", // 계산된 포인트 사용
-//                                            style = MaterialTheme.typography.bodyMedium,
-//                                            textAlign = TextAlign.End,
-//                                            modifier = Modifier
-//                                                .width(60.dp) // 포인트 표시 공간 확보
-//                                                .padding(horizontal = 8.dp)
-//                                        )
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        // 6. 포인트 (고정 너비, 오른쪽 정렬)
+                                        Text(
+                                            text = "$points pt",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            textAlign = TextAlign.End,
+                                            modifier = Modifier.width(65.dp)
+                                        )
                                     }
                                 }
                             }

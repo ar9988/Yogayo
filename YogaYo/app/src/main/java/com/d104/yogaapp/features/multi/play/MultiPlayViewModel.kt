@@ -7,7 +7,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
@@ -19,7 +18,6 @@ import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
 import com.d104.domain.usecase.CloseWebSocketUseCase
 import com.d104.domain.usecase.ConnectWebSocketUseCase
-import com.d104.domain.usecase.GetBestPoseRecordsUseCase
 import com.d104.domain.usecase.GetMultiAllPhotoUseCase
 import com.d104.domain.usecase.GetMultiBestPhotoUseCase
 import com.d104.domain.usecase.GetUserIdUseCase
@@ -115,7 +113,7 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             // 타이머 종료 후
-            if (uiState.value.gameState != GameState.GameResult &&uiState.value.timerProgress <= 0f && (uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
+            if (uiState.value.gameState != GameState.GameResult && uiState.value.timerProgress <= 0f && (uiState.value.currentRoom!!.userId.toString() == uiState.value.myId)) {
 
                 sendRoundEndMessage()
             }
@@ -140,7 +138,7 @@ class MultiPlayViewModel @Inject constructor(
 
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
                 Timber.d("Received WebSocket message: ${intent.message}")
-                if(intent.message.type =="total_score"){
+                if (intent.message.type == "total_score") {
                     Timber.d("Received total_score message: ${intent.message}")
                     val totalScoreMessage = intent.message as TotalScoreMessage
                     val peerId = totalScoreMessage.toPeerId
@@ -165,7 +163,8 @@ class MultiPlayViewModel @Inject constructor(
                                     nickName = nickname,
                                     isReady = false,
                                     totalScore = 0,
-                                    roundScore = 0.0f
+                                    roundScore = 0.0f,
+                                    iconUrl = intent.message.userIcon
                                 )
                             )
                         )
@@ -191,7 +190,7 @@ class MultiPlayViewModel @Inject constructor(
                         Timber.d("Game ended")
                         processIntent(MultiPlayIntent.GameEnd)
                         viewModelScope.launch {
-                            getBestPoseRecordsUseCase(uiState.value.currentRoom!!.roomId).collect { it->
+                            getBestPoseRecordsUseCase(uiState.value.currentRoom!!.roomId).collect { it ->
                                 it.onSuccess {
                                     Timber.d("Best pose records: $it")
                                     processIntent(MultiPlayIntent.BestPose(it))
@@ -213,7 +212,7 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if (intent.message.type == "request_photo") {
                     Timber.d("Received request_photo message")
-                    if((intent.message as RequestPhotoMessage).toPeerId==uiState.value.myId){
+                    if ((intent.message as RequestPhotoMessage).toPeerId == uiState.value.myId) {
                         sendImageToMeshNetwork()
                     }
                 }
@@ -255,9 +254,26 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
-    private fun sendGameResult(){
+    private fun sendGameResult() {
         viewModelScope.launch {
-            sendRoomRecordUseCase
+            val myId = getUserIdUseCase()
+            val userList = uiState.value.userList
+            val sortedUsers = userList.values.sortedWith(
+                compareByDescending<PeerUser> { it.totalScore }
+                    .thenBy { it.id }
+            )
+            val myRank = sortedUsers.indexOfFirst { it.id == myId } + 1
+            sendRoomRecordUseCase(
+                roomId = uiState.value.currentRoom!!.roomId.toString(),
+                totalRanking = myRank,
+                totalScore = userList[myId]?.totalScore?: 0
+            ).collect() { result ->
+                result.onSuccess {
+                    Timber.d("Room record sent successfully")
+                }.onFailure {
+                    Timber.e("Failed to send room record: $it")
+                }
+            }
         }
     }
 
@@ -350,7 +366,9 @@ class MultiPlayViewModel @Inject constructor(
                 val currentUserId = currentState.myId
                 Timber.d("$logTag Calculating ranking for user: $currentUserId")
                 val ranking = if (currentState.userList.isNotEmpty()) {
-                    val sortedUserData = currentState.userList.values.sortedByDescending { it.roundScore }
+                    val sortedUserData = currentState.userList.values
+                        .sortedWith(compareByDescending<PeerUser> { it.roundScore }
+                            .thenBy { it.id }) // roundScore 동점일 경우 id 오름차순 정렬
                     val rankingIndex = sortedUserData.indexOfFirst { it.id == currentUserId }
                     if (rankingIndex != -1) rankingIndex + 1 else -1
                 } else {
@@ -521,17 +539,23 @@ class MultiPlayViewModel @Inject constructor(
             val stateAfterPhotoDelay = _uiState.value
             val userListForPhoto = stateAfterPhotoDelay.userList
             if (userListForPhoto.isNotEmpty()) {
-                val topScorerEntryPhoto = userListForPhoto.maxByOrNull { it.value.roundScore }
+                val topScorerEntryPhoto = userListForPhoto.maxWithOrNull(
+                    compareByDescending<Map.Entry<String, PeerUser>> { it.value.roundScore }
+                        .thenBy { it.value.id }
+                )
                 if (topScorerEntryPhoto != null) {
                     Timber.i("Host requesting photo from top scorer: ${topScorerEntryPhoto.key}")
                     requestPhoto(topScorerEntryPhoto.key)
                 } else {
                     Timber.w("Host could not determine top scorer for photo request.")
                 }
-                val descendingScores = userListForPhoto.entries.sortedByDescending { it.value.roundScore }
-                descendingScores.forEachIndexed(){ index,it ->
+                val descendingScores = userListForPhoto.entries.sortedWith(
+                    compareByDescending<Map.Entry<String, PeerUser>> { it.value.roundScore }
+                        .thenBy { it.value.id }
+                )
+                descendingScores.forEachIndexed() { index, it ->
                     // total score 업데이트 명령
-                    sendTotalScoreMessage(it.value.id, 10-index*3)
+                    sendTotalScoreMessage(it.value.id, 10 - index * 3)
                     Timber.i("User: ${it.key}, Score: ${it.value.roundScore}")
                 }
             } else {
@@ -599,12 +623,11 @@ class MultiPlayViewModel @Inject constructor(
             sendSignalingMessageUseCase(
                 id,
                 uiState.value.currentRoom!!.roomId.toString(),
-                0
+                0,
             )
         }
         sendMyReadyState()
     }
-
 
 
     private fun sendStartMessage() {
@@ -635,7 +658,10 @@ class MultiPlayViewModel @Inject constructor(
                 // Drawable 리소스 로드 시도 (IO 작업이므로 withContext 사용 권장)
                 withContext(Dispatchers.IO) {
                     // sendImageToServer와 동일한 기본 이미지를 사용하거나 다른 이미지를 지정할 수 있습니다.
-                    loadBitmapFromDrawable(context, R.drawable.ic_launcher_foreground) // <<<--- 기본 이미지 리소스 ID 지정
+                    loadBitmapFromDrawable(
+                        context,
+                        R.drawable.ic_launcher_foreground
+                    ) // <<<--- 기본 이미지 리소스 ID 지정
                 }
             }
 
@@ -649,9 +675,10 @@ class MultiPlayViewModel @Inject constructor(
             // 3. 결정된 비트맵을 Base64로 인코딩
             // bitmapToBase64 함수가 null을 반환할 수 있는지 확인 필요
             // 만약 null 반환 가능하다면 추가 처리 필요
-            val imageBytesBase64: ByteArray? = withContext(Dispatchers.Default) { // 인코딩은 CPU 작업이므로 Default 디스패처 사용 가능
-                bitmapToBase64(bitmapToUse) // bitmapToUse는 null이 아님
-            }
+            val imageBytesBase64: ByteArray? =
+                withContext(Dispatchers.Default) { // 인코딩은 CPU 작업이므로 Default 디스패처 사용 가능
+                    bitmapToBase64(bitmapToUse) // bitmapToUse는 null이 아님
+                }
 
             // 4. Base64 인코딩 실패 시 처리
             if (imageBytesBase64 == null) {
@@ -676,13 +703,15 @@ class MultiPlayViewModel @Inject constructor(
     }
 
     private fun sendScore() {
-        processIntent(MultiPlayIntent.UpdateScore(
-            uiState.value.myId!!,
-            ScoreUpdateMessage(
-                score = uiState.value.time,
-                time = uiState.value.time
+        processIntent(
+            MultiPlayIntent.UpdateScore(
+                uiState.value.myId!!,
+                ScoreUpdateMessage(
+                    score = uiState.value.time,
+                    time = uiState.value.time
+                )
             )
-        ))
+        )
         viewModelScope.launch {
             sendWebRTCUseCase(
                 message = ScoreUpdateMessage(
@@ -772,7 +801,10 @@ class MultiPlayViewModel @Inject constructor(
                 connectWebSocketUseCase(roomId)
                     .catch { exception -> // <<<---- 여기에 .catch 연산자 추가!
                         // Flow 처리 중 발생하는 모든 예외(StompErrorException 포함)를 여기서 잡습니다.
-                        Timber.e(exception, "Error caught during WebSocket message collection for room $roomId")
+                        Timber.e(
+                            exception,
+                            "Error caught during WebSocket message collection for room $roomId"
+                        )
 
                         // 사용자에게 오류 알림 또는 상태 업데이트 (예시)
                         // MultiPlayIntent에 오류 처리를 위한 타입을 추가하고 사용하세요.
@@ -782,16 +814,16 @@ class MultiPlayViewModel @Inject constructor(
                         // 필요하다면 여기서 연결 해제 로직 호출 또는 재연결 시도 로직 구현
                         // closeWebSocketUseCase() // 필요 시 명시적 해제
                     }.collect { msg ->
-                    Timber.v("Received WebSocket message: Type=${msg.type}") // 메시지 수신 로그 추가
-                    // 시그널링 메시지 처리
-                    if (msg.type == "candidate") {
-                        val message = msg as IceCandidateMessage
-                        Timber.v("Received IceCandidateMessage: from: ${message.fromPeerId} to: ${message.toPeerId}")
+                        Timber.v("Received WebSocket message: Type=${msg.type}") // 메시지 수신 로그 추가
+                        // 시그널링 메시지 처리
+                        if (msg.type == "candidate") {
+                            val message = msg as IceCandidateMessage
+                            Timber.v("Received IceCandidateMessage: from: ${message.fromPeerId} to: ${message.toPeerId}")
+                        }
+                        handleSignalingMessage(msg)
+                        // 기타 메시지 처리 (Intent 사용)
+                        processIntent(MultiPlayIntent.ReceiveWebSocketMessage(msg))
                     }
-                    handleSignalingMessage(msg)
-                    // 기타 메시지 처리 (Intent 사용)
-                    processIntent(MultiPlayIntent.ReceiveWebSocketMessage(msg))
-                }
 
             } catch (e: Exception) {
                 // roomId를 가져오거나, 연결하거나, 메시지 수집 중 발생하는 모든 예외 처리

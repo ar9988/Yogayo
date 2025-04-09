@@ -20,4 +20,5 @@ interface AuthRepository {
     ):Flow<Result<SignUpResult>>
 
     suspend fun getUserName(): String
+    suspend fun getUserIcon(): String
 }

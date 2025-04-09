@@ -3,6 +3,7 @@ package com.d104.data.remote.api
 import com.d104.data.remote.dto.CreateRoomRequestDto
 import com.d104.data.remote.dto.EnterRoomRequestDto
 import com.d104.data.remote.dto.RoomDto
+import com.d104.data.remote.dto.RoomRecordDto
 import com.d104.data.remote.dto.RoomResponseDto
 import com.d104.domain.model.CreateRoomResult
 import com.d104.domain.model.UserCourse
@@ -24,7 +25,6 @@ interface MultiApiService {
 
     @POST("api/room-record")
     suspend fun sendRoomRecord(
-        roomId: String,
-        totalRanking: Int,
-        totalScore: Int): Unit
+        @Body roomRecord: RoomRecordDto
+    ): Unit
 }

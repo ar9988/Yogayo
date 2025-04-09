@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,7 +33,7 @@ fun DetailScreen(
     onBackButtonClick: () -> Unit,
     poseList: List<YogaPose>,
     selectedPoseId : Int,
-    allUrls: List<MultiPhoto>,
+    photos: List<MultiPhoto>,
     onDownload: (Uri, String) -> Unit,
     myName:String
 )
@@ -59,6 +58,8 @@ fun DetailScreen(
         },
         containerColor = Color(0xFFF5F5F5) // Light gray background for the screen body
     ) { paddingValues ->
+
+        val sortedPhotos = photos.sortedBy { it.ranking }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -66,7 +67,7 @@ fun DetailScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp) // Space between cards
         ) {
-            itemsIndexed(allUrls) { index,it -> // 각 아이템은 이제 String 타입의 URL
+            itemsIndexed(sortedPhotos) { index, it -> // 각 아이템은 이제 String 타입의 URL
                 DetailPhotoCard(
                     resultData = it,
                     onDownload = { uri, name ->

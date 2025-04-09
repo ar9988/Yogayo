@@ -48,7 +48,8 @@ class MultiPlayReducer @Inject constructor() {
                     put(
                         user.id, PeerUser(
                             user.id,
-                            user.nickName
+                            user.nickName,
+                            iconUrl = user.iconUrl,
                         )
                     )
                 }

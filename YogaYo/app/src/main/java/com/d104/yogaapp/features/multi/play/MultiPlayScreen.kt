@@ -25,13 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
-import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.RotateScreen
 import com.d104.yogaapp.features.common.YogaAnimationScreen
 import com.d104.yogaapp.features.multi.play.components.MenuOverlay
@@ -135,7 +133,7 @@ fun MultiPlayScreen(
             },
             poseList = uiState.currentRoom!!.userCourse.poses,
             selectedPoseId = uiState.selectedPoseId,
-            allUrls = uiState.allUrls,
+            photos = uiState.allUrls,
             onDownload = { uri, fileName ->
                 viewModel.save(uri, fileName)
             },

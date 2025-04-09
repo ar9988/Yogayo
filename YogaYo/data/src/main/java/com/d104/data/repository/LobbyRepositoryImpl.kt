@@ -11,6 +11,7 @@ import com.d104.data.remote.api.SseApiService
 import com.d104.data.remote.dto.CourseRequestDto
 import com.d104.data.remote.dto.CreateRoomRequestDto
 import com.d104.data.remote.dto.EnterRoomRequestDto
+import com.d104.data.remote.dto.RoomRecordDto
 import com.d104.data.remote.listener.EventListener
 import com.d104.data.utils.ErrorUtils
 import com.d104.domain.model.CreateRoomResult
@@ -133,7 +134,13 @@ class LobbyRepositoryImpl @Inject constructor(
     ): Flow<Result<Unit>> = flow {
         try {
             // 1. Retrofit suspend fun 직접 호출 (반환 타입이 Unit이라고 가정)
-            multiApiService.sendRoomRecord(roomId, totalRanking, totalScore)
+            multiApiService.sendRoomRecord(
+                RoomRecordDto(
+                    roomId = roomId,
+                    totalRanking = totalRanking,
+                    totalScore = totalScore
+                )
+            )
 
             // 2. 예외가 발생하지 않으면 성공이므로 Result.success(Unit) 방출
             emit(Result.success(Unit))

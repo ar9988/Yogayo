@@ -17,9 +17,16 @@ import javax.inject.Inject
 class SendSignalingMessageUseCase @Inject constructor(
     private val webSocketRepository: WebSocketRepository,
     private val dataStoreRepository: DataStoreRepository,
-    private val json:Json
-){
-    suspend operator fun invoke(fromPeerId:String,destination: String, type: Int, round:Int = -1, toPeerId:String = "", score:Int = 0): Boolean { // 반환 타입을 Boolean으로 변경하여 성공 여부 전달
+    private val json: Json
+) {
+    suspend operator fun invoke(
+        fromPeerId: String,
+        destination: String,
+        type: Int,
+        round: Int = -1,
+        toPeerId: String = "",
+        score: Int = 0,
+    ): Boolean { // 반환 타입을 Boolean으로 변경하여 성공 여부 전달
         return try {
             val user = dataStoreRepository.getUser().first() ?: run {
                 return false // 사용자 정보 없으면 실패 반환
@@ -34,9 +41,11 @@ class SendSignalingMessageUseCase @Inject constructor(
                     messageToSend = UserJoinedMessage(
                         fromPeerId = user.userId.toString(),
                         userNickName = user.userNickname,
+                        userIcon = user.userProfile,
                         type = "user_joined" // 또는 data class @SerialName 통해 자동 설정
                     )
                 }
+
                 1 -> { // Ready
                     messageToSend = UserReadyMessage(
                         fromPeerId = user.userId.toString(),
@@ -44,6 +53,7 @@ class SendSignalingMessageUseCase @Inject constructor(
                         type = "user_ready"
                     )
                 }
+
                 2 -> { // Not Ready
                     messageToSend = UserReadyMessage(
                         fromPeerId = user.userId.toString(),
@@ -51,35 +61,41 @@ class SendSignalingMessageUseCase @Inject constructor(
                         type = "user_not_ready" // type 명확히 구분 필요
                     )
                 }
+
                 3 -> {
                     messageToSend = UserLeftMessage(
                         fromPeerId = user.userId.toString(),
                         type = "user_left"
                     )
-                 }
+                }
+
                 4 -> { //START
                     messageToSend = GameStateMessage(
                         state = 0,
                         fromPeerId = fromPeerId
                     )
                 }
-                5->{ //ROUND
+
+                5 -> { //ROUND
                     messageToSend = GameStateMessage(
                         state = round,
                         fromPeerId = fromPeerId
                     )
                 }
+
                 6 -> {
                     messageToSend = EndRoundMessage(
                         fromPeerId = fromPeerId
                     )
                 }
+
                 7 -> {
                     messageToSend = RequestPhotoMessage(
                         fromPeerId = fromPeerId,
                         toPeerId = toPeerId
                     )
                 }
+
                 8 -> {
                     messageToSend = TotalScoreMessage(
                         fromPeerId = fromPeerId,
@@ -88,6 +104,7 @@ class SendSignalingMessageUseCase @Inject constructor(
                         type = "total_score"
                     )
                 }
+
                 else -> {
                     // 알 수 없는 타입 처리
                     return false // 알 수 없는 타입이면 실패 반환
