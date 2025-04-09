@@ -22,7 +22,7 @@ spring:
     open-in-view: false
     hibernate:
       batch_fetch_size: 100
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
