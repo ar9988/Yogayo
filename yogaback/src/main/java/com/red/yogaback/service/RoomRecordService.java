@@ -5,10 +5,13 @@ import com.red.yogaback.dto.respond.RoomRecordResponse;
 import com.red.yogaback.model.Room;
 import com.red.yogaback.model.RoomRecord;
 import com.red.yogaback.model.User;
+import com.red.yogaback.model.UserRecord;
 import com.red.yogaback.repository.RoomRecordRepository;
 import com.red.yogaback.repository.RoomRepository;
+import com.red.yogaback.repository.UserRecordRepository;
 import com.red.yogaback.repository.UserRepository;
 import com.red.yogaback.security.SecurityUtil;
+import com.red.yogaback.service.BadgeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,9 +22,13 @@ public class RoomRecordService {
     private final RoomRecordRepository roomRecordRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final UserRecordRepository userRecordRepository; // 추가됨
+    private final BadgeService badgeService;               // 추가됨
 
     /**
      * 클라이언트로부터 전달받은 최종 방 기록 정보를 기반으로 RoomRecord를 저장합니다.
+     * 최종 기록 저장 시 totalRanking 값이 1이면 해당 사용자의 UserRecord의 roomWin을 1 증가시키고,
+     * badgeService를 통해 배지 업데이트를 수행합니다.
      *
      * @param request 최종 기록 요청 DTO (roomId, totalRanking, totalScore)
      * @return 저장된 RoomRecord의 결과 DTO
@@ -45,9 +52,21 @@ public class RoomRecordService {
                 .createdAt(System.currentTimeMillis())
                 .build();
 
-        // 저장 후 결과 반환
+        // RoomRecord 저장
         RoomRecord savedRecord = roomRecordRepository.save(roomRecord);
 
+        // 최종 기록이 우승인 경우(totalRanking == 1) userRecord의 roomWin 값을 증가시킵니다.
+        if (savedRecord.getTotalRanking() != null && savedRecord.getTotalRanking() == 1) {
+            UserRecord userRecord = userRecordRepository.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("UserRecord not found for userId=" + userId));
+            userRecord.setRoomWin(userRecord.getRoomWin() + 1);
+            userRecordRepository.save(userRecord);
+        }
+
+        // 배지 업데이트: roomWin 변경 후 뱃지 상태를 다시 검증합니다.
+        badgeService.updateUserRecordAndAssignBadges(user);
+
+        // 결과 DTO 반환
         return RoomRecordResponse.builder()
                 .roomRecordId(savedRecord.getRoomRecordId())
                 .userId(user.getUserId())
