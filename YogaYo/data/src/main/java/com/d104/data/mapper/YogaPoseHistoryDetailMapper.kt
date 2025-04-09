@@ -59,7 +59,9 @@ class YogaPoseHistoryDetailMapper @Inject constructor() {
     fun mapToDomainList(dtoList: List<MultiBestPhotoResponseDto>): List<MultiBestPhoto> {
         return dtoList.map { dto ->
             MultiBestPhoto(
-                url = dto.url,
+                poseName = dto.poseName,
+                poseUrl = dto.poseUrl,
+                roomOrderIndex = dto.room_order_index,
             )
         }
     }
@@ -67,10 +69,11 @@ class YogaPoseHistoryDetailMapper @Inject constructor() {
     fun mapToDomainList2(body: List<MultiAllPhotoResponseDto>): List<MultiPhoto> {
         return body.map { dto ->
             MultiPhoto(
-                url = dto.url,
+                poseUrl = dto.poseUrl,
                 accuracy = dto.accuracy,
                 ranking = dto.ranking,
-                time = dto.time,
+                poseTime = dto.poseTime,
+                userName = dto.userName,
             )
         }
     }

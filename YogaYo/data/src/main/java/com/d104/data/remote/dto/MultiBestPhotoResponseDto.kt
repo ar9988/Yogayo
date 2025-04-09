@@ -5,5 +5,7 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class MultiBestPhotoResponseDto(
-    val url:String
+    val poseName:String,
+    val poseUrl:String,
+    val room_order_index:Int,
 )
