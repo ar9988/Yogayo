@@ -112,10 +112,10 @@ class YogaPoseHistoryRepositoryImpl @Inject constructor(
                 yogaPoseHistoryDataSource.getMultiBestPhoto(roomId)
             }
             val body = response.body()
-            if (response.isSuccessful && body != null) {
-                return flow { emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomainList(body))) }
+            return if (response.isSuccessful && body != null) {
+                flow { emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomainList(body))) }
             } else {
-                return flow { emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}"))) }
+                flow { emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}"))) }
             }
         } catch (e: Exception) {
             return flow { emit(Result.failure(e)) }
@@ -126,18 +126,18 @@ class YogaPoseHistoryRepositoryImpl @Inject constructor(
         roomId: Long,
         poseIndex: Int
     ): Flow<Result<List<MultiPhoto>>> {
-        try {
+        return try {
             val response = withContext(Dispatchers.IO) {
                 yogaPoseHistoryDataSource.getMultiAllPhoto(roomId, poseIndex)
             }
             val body = response.body()
             if (response.isSuccessful && body != null) {
-                return flow { emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomainList2(body))) }
+                flow { emit(Result.success(yogaPoseHistoryDetailMapper.mapToDomainList2(body))) }
             } else {
-                return flow { emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}"))) }
+                flow { emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}"))) }
             }
         } catch (e: Exception) {
-            return flow { emit(Result.failure(e)) }
+            flow { emit(Result.failure(e)) }
         }
     }
 
