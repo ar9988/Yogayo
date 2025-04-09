@@ -53,6 +53,7 @@ import androidx.navigation.navArgument
 import com.d104.domain.model.Room
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.MyPageInfo
+import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.R
 import com.d104.yogaapp.features.login.LoginScreen
 import com.d104.yogaapp.features.multi.MultiScreen
@@ -195,7 +196,8 @@ fun MainNavigation(viewModel: MainViewModel = hiltViewModel()) {
                         viewModel.processIntent(MainIntent.SetUserRecord(userRecord))
                         navController.navigate("detail_record")
                     },
-                    isLogin = state.isLogin
+                    isLogin = state.isLogin,
+                    yogaPoses = state.yogaPoses
                 )
             }
 
@@ -290,17 +292,22 @@ fun MainTabScreen(
     onNavigateMultiPlay: (Room) -> Unit,
     onNavigateSoloScreen:() -> Unit,
     onNavigateToDetailRecord:(myPageInfo:MyPageInfo)->Unit,
-    isLogin:Boolean = false
+    isLogin:Boolean = false,
+    yogaPoses:List<YogaPose> = emptyList()
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (selectedTab) {
-            Tab.Solo -> SoloScreen(
-                isLogin = isLogin,
-                onNavigateToYogaPlay = onNavigateToYogaPlay
+            Tab.Solo -> {
+                Timber.d("yogaPoses:${yogaPoses}")
+                SoloScreen(
+                    isLogin = isLogin,
+                    onNavigateToYogaPlay = onNavigateToYogaPlay,
+                    yogaPoses = yogaPoses
                 )
+            }
             Tab.Multi -> MultiScreen(
                 onNavigateMultiPlay = onNavigateMultiPlay
             )

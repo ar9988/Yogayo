@@ -5,6 +5,7 @@ import com.d104.domain.model.MultiBestPhoto
 import com.d104.domain.model.MultiPhoto
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.Room
+import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 
 data class MultiPlayState(
@@ -32,6 +33,7 @@ data class MultiPlayState(
     val accuracy: Float = 0.0f,
     val time: Float = 0.0f,
     val source:Boolean = false,
+    val courseList:List<UserCourse> = emptyList()
 )
 
 enum class GameState {

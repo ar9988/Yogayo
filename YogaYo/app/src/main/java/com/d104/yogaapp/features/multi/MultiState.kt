@@ -15,12 +15,12 @@ data class MultiState(
     val roomPassword: String = "",
     val pageIndex:Int = 0,
     var page: List<Room> = emptyList(),
-    var searchedPoses: List<YogaPose> = emptyList(),
+    var poseList: List<YogaPose> = emptyList(),
     var yogaCourses: List<UserCourse> = emptyList(),
     var enteringRoom: Boolean = false,
     val roomMax: Int = 2,
     val isPassword: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 )
 enum class DialogState {
     NONE, CREATING, ENTERING, COURSE_EDITING

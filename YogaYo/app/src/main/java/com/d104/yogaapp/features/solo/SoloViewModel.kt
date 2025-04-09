@@ -79,10 +79,10 @@ class SoloViewModel @Inject constructor(
                     loadCourses()
                 }
 
-                // 포즈 데이터는 필요할 때만 로드
-                if(_state.value.yogaPoses.isEmpty()) {
-                    getYogaPoses()
-                }
+//                // 포즈 데이터는 필요할 때만 로드
+//                if(_state.value.yogaPoses.isEmpty()) {
+//                    getYogaPoses()
+//                }
 
             } catch (e: Exception) {
                 _state.update {
@@ -115,7 +115,7 @@ class SoloViewModel @Inject constructor(
             is SoloIntent.DeleteCourse -> deleteCourse(intent.courseId)
             is SoloIntent.UpdateCourse -> updateCourse(intent.courseId,intent.courseName,intent.poses)
             is SoloIntent.UpdateCourseTutorial -> updateCourseTutorial(intent.course, intent.tutorial)
-            is SoloIntent.ShowAddCourseDialog-> getYogaPoses()
+//            is SoloIntent.ShowAddCourseDialog-> getYogaPoses()
             else->{}
 
         }
@@ -288,45 +288,45 @@ class SoloViewModel @Inject constructor(
         }
     }
 
-    private fun getYogaPoses(){
-        if (_state.value.yogaPoses.isEmpty()) {
-            viewModelScope.launch {
-                try {
-                    getYogaPosesUseCase().collectLatest { result ->
-                        when {
-                            result.isSuccess -> {
-                                _state.update {
-                                    it.copy(
-                                        yogaPoses = result.getOrDefault(emptyList()),
-                                        yogaPoseLoading = false
-                                    )
-                                }
-                            }
-                            result.isFailure -> {
-                                Timber.d("Error: ${result.exceptionOrNull()}")
-                                _state.update {
-                                    it.copy(
-                                        error = result.exceptionOrNull()?.message ?: "Unknown error",
-                                        yogaPoseLoading = false
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e, "Error fetching yoga poses")
-                    _state.update {
-                        it.copy(
-                            error = e.message ?: "Unknown error",
-                            yogaPoseLoading = false
-                        )
-                    }
-                }
-            }
-        }else{
-            _state.update { it.copy(yogaPoseLoading = false) }
-        }
-    }
+//    private fun getYogaPoses(){
+//        if (_state.value.yogaPoses.isEmpty()) {
+//            viewModelScope.launch {
+//                try {
+//                    getYogaPosesUseCase().collectLatest { result ->
+//                        when {
+//                            result.isSuccess -> {
+//                                _state.update {
+//                                    it.copy(
+//                                        yogaPoses = result.getOrDefault(emptyList()),
+//                                        yogaPoseLoading = false
+//                                    )
+//                                }
+//                            }
+//                            result.isFailure -> {
+//                                Timber.d("Error: ${result.exceptionOrNull()}")
+//                                _state.update {
+//                                    it.copy(
+//                                        error = result.exceptionOrNull()?.message ?: "Unknown error",
+//                                        yogaPoseLoading = false
+//                                    )
+//                                }
+//                            }
+//                        }
+//                    }
+//                } catch (e: Exception) {
+//                    Timber.e(e, "Error fetching yoga poses")
+//                    _state.update {
+//                        it.copy(
+//                            error = e.message ?: "Unknown error",
+//                            yogaPoseLoading = false
+//                        )
+//                    }
+//                }
+//            }
+//        }else{
+//            _state.update { it.copy(yogaPoseLoading = false) }
+//        }
+//    }
 
 
 

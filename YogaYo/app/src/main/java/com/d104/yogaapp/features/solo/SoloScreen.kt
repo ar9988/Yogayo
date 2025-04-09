@@ -83,7 +83,8 @@ import kotlinx.coroutines.launch
 fun SoloScreen(
     viewModel: SoloViewModel = hiltViewModel(),
     isLogin:Boolean = false,
-    onNavigateToYogaPlay: (UserCourse) -> Unit
+    onNavigateToYogaPlay: (UserCourse) -> Unit,
+    yogaPoses:List<YogaPose> = emptyList()
 ) {
     val state by viewModel.state.collectAsState()
     var selectedCourse by remember { mutableStateOf<UserCourse?>(null) }
@@ -94,8 +95,8 @@ fun SoloScreen(
     // 코스 시작 다이얼로그 표시
     if(state.showAddCourseDialog){
         CustomCourseDialog(
-            poseList = state.yogaPoses,
-            isLoading = state.yogaPoseLoading,
+            poseList = yogaPoses,
+//            isLoading = state.yogaPoseLoading,
             onDismiss = { viewModel.handleIntent(SoloIntent.HideAddCourseDialog) },
             onSave = { courseName,poses ->
                 viewModel.handleIntent(SoloIntent.CreateCourse(courseName, poses))
@@ -172,7 +173,7 @@ fun SoloScreen(
                     if(course.courseId < 0) {
                         CourseCard(
                             header = { SoloCourseCardHeader(course) },
-                            poseList = state.yogaPoses,
+                            poseList = yogaPoses,
                             course = course,
                             onClick = { selectedCourse = course },
                             onUpdateCourse = { courseName, poses ->
@@ -205,7 +206,7 @@ fun SoloScreen(
 //                        )
                         CourseCard(
                             header = { SoloCourseCardHeader(course) },
-                            poseList = state.yogaPoses,
+                            poseList = yogaPoses,
                             onClick = { selectedCourse = course },
                             onUpdateCourse = { courseName, poses ->
                                 viewModel.handleIntent(
