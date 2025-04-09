@@ -242,6 +242,7 @@ public class BadgeService {
 
         // 3. 요가 코스 완료 수 체크
         int coursesCount = userCourseRepository.countByUser(user);
+        log.info("요가 코스 배지 체크 , 현재 코스 개수 : {}",coursesCount);
         if (coursesCount >= 5) {
             assignBadge(user, BadgeType.YOGA_COURSES, 3, coursesCount);
         } else if (coursesCount >= 3) {
