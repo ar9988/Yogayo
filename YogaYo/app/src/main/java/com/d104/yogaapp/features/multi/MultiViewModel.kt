@@ -206,16 +206,16 @@ class MultiViewModel @Inject constructor(
 
 
     private fun searchCourse(){
-//        getCourseUseCase()
-//        getCourseUseCase.collect{ result ->
-//            result.onSuccess {
-//                _uiState.value.yogaCourses = it
-//                processIntent(MultiIntent.RoomLoaded)
-//            }
-//            result.onFailure {
-//                // 에러 처리
-//            }
-//        }
+        viewModelScope.launch {
+            getCourseUseCase().collect{ result ->
+                result.onSuccess {
+                    processIntent(MultiIntent.UpdateCourse(it))
+                }
+                result.onFailure {
+                    // 에러 처리
+                }
+            }
+        }
     }
 
     private fun updateCourse(courseId:Long, courseName:String, poses:List<YogaPoseWithOrder>){

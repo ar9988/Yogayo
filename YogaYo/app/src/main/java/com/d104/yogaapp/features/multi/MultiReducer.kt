@@ -129,6 +129,27 @@ class MultiReducer @Inject constructor() {
             is MultiIntent.UpdateRoomMaxCount -> currentState.copy(
                 roomMax = intent.maxCount
             )
+
+            is MultiIntent.UpdateCourse -> {
+                // 1. 현재 상태에 있는 코스들의 ID를 Set으로 만들어 효율적인 중복 체크 준비
+                val existingCourseIds = currentState.yogaCourses.map { it.courseId }.toSet()
+
+                // 2. 새로 들어온 코스 리스트(intent.it)에서
+                //    현재 상태에 없는 ID를 가진 코스들만 필터링
+                val newCoursesToAdd = intent.it.filter { newCourse ->
+                    newCourse.courseId !in existingCourseIds
+                }
+
+                // 3. 새로 추가할 코스가 있을 경우에만 상태 업데이트
+                if (newCoursesToAdd.isNotEmpty()) {
+                    // 기존 리스트와 중복되지 않는 새 코스 리스트를 합쳐서 새로운 리스트 생성
+                    val updatedYogaCourses = currentState.yogaCourses + newCoursesToAdd
+                    currentState.copy(yogaCourses = updatedYogaCourses)
+                } else {
+                    // 추가할 새 코스가 없으면 상태를 변경하지 않고 그대로 반환 (불필요한 리컴포지션 방지)
+                    currentState
+                }
+            }
         }
     }
 }
