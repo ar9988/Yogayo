@@ -1,17 +1,15 @@
 package com.red.yogaback.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import java.util.List;
+import lombok.*;
 
 @Entity
 @Table(name = "RoomRecord")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder
 public class RoomRecord {
 
     @Id
@@ -32,7 +30,7 @@ public class RoomRecord {
     private Integer totalScore;     // total_score
     private Long createdAt;         // created_at
 
-    // 한 방 기록에는 여러 PoseRecord가 있을 수 있음
-    @OneToMany(mappedBy = "roomRecord")
-    private List<PoseRecord> poseRecords;
+//    // 한 방 기록에는 여러 PoseRecord가 있을 수 있음
+//    @OneToMany(mappedBy = "room")
+//    private List<PoseRecord> poseRecords;
 }
