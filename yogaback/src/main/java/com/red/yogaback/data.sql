@@ -211,7 +211,7 @@ INSERT INTO pose (
     set_pose_id
 ) VALUES (
     '할라사나',
-    '등을 대고 누운 상태에서 다리를 들어 올린 뒤,\n복부의 힘을 이용해 다리를 머리 위로 넘겨 바닥에 닿도록 합니다.\n팔은 바닥에 붙이고 손바닥을 아래로 향하게 두거나,\n손을 등 뒤로 깍지 껴 지지해도 됩니다.\n다리는 곧게 펴는 것이 이상적이며,\n발끝이 바닥에 닿지 않아도 괜찮습니다.',
+    '등을 대고 누운 상태에서 다리를 들어 올린 뒤,\n복부의 힘을 이용해 다리를 머리 위로 넘겨 바닥에 닿도록 합니다.\n팔은 바닥에 붙이고 손바닥을 아래로 향하게 두거나,\n손을 등 뒤로 깍지 껴 지지해도 됩니다.',
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/Halasana.png',
     3,
     'https://yogayo.s3.ap-northeast-2.amazonaws.com/KakaoTalk_20250331_224942626.mp4',
