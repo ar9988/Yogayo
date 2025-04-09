@@ -41,12 +41,6 @@ class MultiViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MultiState())
     val uiState :StateFlow<MultiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
-    private val tmpPoseInfo = listOf(
-        YogaPose(1, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/baddhakonasana.png", 1, listOf("나무 자세 설명"), "video_url", -1,""),
-        YogaPose(2, "나무 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_trikonasana_flip.png", 3, listOf("나무 자세 설명"), "video_url", 3,""),
-        YogaPose(3, "전사 자세", "https://d5sbbf6usl3xq.cloudfront.net/utthita_parsvakonasana.png", 2, listOf("전사 자세 설명"), "video_url", 2,""),
-        YogaPose(4, "다운독 자세", "https://d5sbbf6usl3xq.cloudfront.net/samasthiti.png", 2, listOf("다운독 자세 설명"), "video_url", -1,"")
-    )
     fun processIntent(intent: MultiIntent){
         val newState = multiReducer.reduce(_uiState.value,intent)
         _uiState.value = newState
@@ -192,6 +186,25 @@ class MultiViewModel @Inject constructor(
         }
     }
 
+    fun onScreenResumed() {
+        Timber.d("MultiScreen resumed.")
+        // 기존 검색 작업(SSE 연결 포함)이 활성 상태가 아니면 재시작
+        if (searchJob == null || searchJob?.isActive == false) {
+            Timber.i("SSE connection seems inactive. Restarting room loading.")
+            // 현재 검색어와 페이지 인덱스로 다시 로드 시작
+            loadRooms(uiState.value.roomSearchText, uiState.value.pageIndex)
+        } else {
+            Timber.d("SSE connection job is already active.")
+        }
+    }
+
+    fun onScreenPaused() {
+        Timber.d("MultiScreen paused.")
+        // 화면이 일시 정지되면 검색 작업 취소
+        cancelSearch()
+    }
+
+
     private fun searchCourse(){
 //        getCourseUseCase()
 //        getCourseUseCase.collect{ result ->
@@ -222,7 +235,6 @@ class MultiViewModel @Inject constructor(
     init {
         searchCourse()
         loadRooms("", uiState.value.pageIndex)
-
         _uiState.value.yogaCourses = courseJsonParser.loadUserCoursesFromAssets("courseSet.json")
     }
 }

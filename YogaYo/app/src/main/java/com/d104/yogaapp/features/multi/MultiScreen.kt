@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,6 +56,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
 import com.d104.yogaapp.features.common.CourseCard
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
@@ -68,6 +72,29 @@ fun MultiScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current // 현재 LifecycleOwner 가져오기
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 화면이 다시 활성화될 때 ViewModel에 알림
+                Timber.d("MultiScreen ON_RESUME event detected.")
+                viewModel.onScreenResumed()
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.onScreenPaused()
+            }
+        }
+
+        // Observer 등록
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // Composable이 사라질 때 Observer 제거
+        onDispose {
+            Timber.d("Disposing MultiScreen LifecycleObserver.")
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // 여기서 cancelSearch를 호출하여 화면이 완전히 사라질 때 연결을 끊을 수도 있음
+            // viewModel.cancelSearch() // 필요하다면 활성화
+        }
+    }
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

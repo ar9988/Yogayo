@@ -187,16 +187,16 @@ fun MultiYogaPlayScreen(
                                                 .width(70.dp) // 점수 표시 공간 확보
                                                 .padding(horizontal = 8.dp)
                                         )
-
-                                        // 포인트 텍스트 (고정 너비)
-                                        Text(
-                                            text = "$points pt", // 계산된 포인트 사용
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            textAlign = TextAlign.End,
-                                            modifier = Modifier
-                                                .width(60.dp) // 포인트 표시 공간 확보
-                                                .padding(horizontal = 8.dp)
-                                        )
+//
+//                                        // 포인트 텍스트 (고정 너비)
+//                                        Text(
+//                                            text = "$points pt", // 계산된 포인트 사용
+//                                            style = MaterialTheme.typography.bodyMedium,
+//                                            textAlign = TextAlign.End,
+//                                            modifier = Modifier
+//                                                .width(60.dp) // 포인트 표시 공간 확보
+//                                                .padding(horizontal = 8.dp)
+//                                        )
                                     }
                                 }
                             }
