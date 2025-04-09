@@ -16,6 +16,7 @@ import com.d104.domain.usecase.CloseWebSocketUseCase
 import com.d104.domain.usecase.ConnectWebSocketUseCase
 import com.d104.domain.usecase.GetBestPoseRecordsUseCase
 import com.d104.domain.usecase.GetMultiAllPhotoUseCase
+import com.d104.domain.usecase.GetMultiBestPhotoUseCase
 import com.d104.domain.usecase.GetUserIdUseCase
 import com.d104.domain.usecase.HandleSignalingMessage
 import com.d104.domain.usecase.InitializeWebRTCUseCase
@@ -72,7 +73,7 @@ class MultiPlayViewModel @Inject constructor(
     private val getUserIdUseCase: GetUserIdUseCase,
     private val postYogaPoseHistoryUseCase: PostYogaPoseHistoryUseCase,
     private val imageStorageManager: ImageStorageManager,
-    private val getBestPoseRecordsUseCase: GetBestPoseRecordsUseCase,
+    private val getBestPoseRecordsUseCase: GetMultiBestPhotoUseCase,
     private val getMultiAllPhotoUseCase: GetMultiAllPhotoUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
