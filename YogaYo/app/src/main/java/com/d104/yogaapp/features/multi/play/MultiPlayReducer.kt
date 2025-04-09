@@ -139,7 +139,7 @@ class MultiPlayReducer @Inject constructor() {
             is MultiPlayIntent.SetCurrentHistory -> {
                 Timber.d("Reducer: Handling SetCurrentHistory with accuracy ${intent.accuracy} and time ${intent.time}")
                 currentState.copy(
-                    accuracy = intent.accuracy,
+                    currentAccuracy = intent.accuracy,
                 )
             }
 

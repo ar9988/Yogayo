@@ -190,6 +190,7 @@ fun MultiPlayScreen(
                 userList = uiState.userList,
                 pose = uiState.currentPose,
                 onAccuracyUpdate = {accuracy,time->
+                    Timber.d("multi accuracy: ${accuracy}")
                     viewModel.processIntent(MultiPlayIntent.SetCurrentHistory(accuracy,time))
                 }
             )

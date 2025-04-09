@@ -46,7 +46,7 @@ class YogaPoseHistoryRepositoryImpl @Inject constructor(
                 } else {
                     null
                 }
-                Log.d("PostYogaPoseHistory","img:$recordImgPart")
+                Log.d("PostYogaPoseHistory","img:$recordImgPart roomRecordId : ${roomRecordId}")
                 yogaPoseHistoryDataSource.postYogaPoseHistory(
                     poseId = poseId,
                     poseRecordRequestDto = PoseRecordRequestDto(

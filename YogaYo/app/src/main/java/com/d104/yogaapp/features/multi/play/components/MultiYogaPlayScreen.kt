@@ -31,6 +31,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,6 +54,7 @@ import com.d104.yogaapp.features.common.CameraPreview
 import com.d104.yogaapp.features.multi.play.GameState
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import java.util.Locale
 
 
 @Composable
@@ -69,8 +72,9 @@ fun MultiYogaPlayScreen(
     onAccuracyUpdate:(Float,Float)->Unit = {_,_->}
 ) {
     // TTS 인스턴스 생성
+    val context = LocalContext.current
     val textToSpeech = remember { mutableStateOf<TextToSpeech?>(null) }
-    val isTtsReady by remember { mutableStateOf(false) }
+    var isTtsReady by remember { mutableStateOf(false) }
     val sortedUserList = remember(userList) {
         Timber.d("Recalculating sorted user list. Current size: ${userList.size}")
         userList.values.toList().sortedByDescending { it.roundScore }
@@ -87,6 +91,20 @@ fun MultiYogaPlayScreen(
             }
             // 타이머 종료 후 추가 작업이 필요하면 여기에 작성 (예: 다음 상태로 자동 전환 트리거)
             Timber.d("RoundResult countdown finished.")
+        }
+    }
+    LaunchedEffect(Unit) {
+        textToSpeech.value = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                textToSpeech.value?.language = Locale.getDefault()
+                isTtsReady = true
+            }
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            textToSpeech.value?.stop()
+            textToSpeech.value?.shutdown()
         }
     }
     when (gameState) {
