@@ -73,7 +73,7 @@ class CameraViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0f
         )
-    var bestAccuracy = 0f
+    var bestAccuracy = -1f
     var remainingPoseTime = 0F // 최고 포즈 유지 시간
     var bestResultBitmap: Bitmap? = null
     private var lastProcessedFrameTimestampMs = -1L
@@ -157,7 +157,7 @@ class CameraViewModel @Inject constructor(
 
     fun resetData(){
         _rawAccuracy.value = 0f
-        bestAccuracy = 0f
+        bestAccuracy = -1f
         remainingPoseTime = 0F
         bestResultBitmap?.recycle()
         bestResultBitmap = null
@@ -228,11 +228,13 @@ class CameraViewModel @Inject constructor(
                         var score = 0.0f
                         var feedbackResult = ""
                         Timber.d("Score & Accuracy ${accuracy}")
-                        if(accuracy>0.7){
+                        if(accuracy>0.85){
                             score = if(currentIdx.value==0)getMaxCombinedScoreWithFlip(csvList.value.get(currentIdx.value),keypointsArray, alpha = 0.9f) else getMaxCombinedScoreWithFlip(csvList.value.get(currentIdx.value),keypointsArray, alpha = 0.75f)
                             Timber.d("NMData ${csvList.value}")
                             Timber.d("Score: ${score}")
-                            feedbackResult = getFeedbackByPose(currentIdx.value,keypointsArray)
+                            if(score<80) {
+                                feedbackResult = getFeedbackByPose(currentIdx.value, keypointsArray)
+                            }
 
                         }
 

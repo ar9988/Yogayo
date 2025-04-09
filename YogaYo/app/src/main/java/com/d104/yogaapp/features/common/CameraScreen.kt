@@ -381,6 +381,7 @@ fun CameraPreview(
         }
     }
     LaunchedEffect(isCountingDown) {
+        Timber.d("isCountingDown!!!: ${isCountingDown}")
         viewModel.setAnalysisPaused(isCountingDown)
     }
 
