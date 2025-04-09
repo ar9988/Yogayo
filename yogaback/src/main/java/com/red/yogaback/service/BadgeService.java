@@ -223,11 +223,11 @@ public class BadgeService {
         maxAccuracy.ifPresent(accuracy -> {
             int newAccuracy = (int) (accuracy * 100);
             log.info("newAccuracy: {}", newAccuracy);
-            if (newAccuracy >= 90) {
+            if (newAccuracy >= 95) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 3, newAccuracy);
-            } else if (newAccuracy >= 80) {
+            } else if (newAccuracy >= 90) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 2, newAccuracy);
-            } else if (newAccuracy >= 70) {
+            } else if (newAccuracy >= 80) {
                 assignBadge(user, BadgeType.YOGA_ACCURACY, 1, newAccuracy);
             }
         });
