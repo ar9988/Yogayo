@@ -184,7 +184,6 @@ fun MultiPlayScreen(
                         else -> {}
                     }
                 },
-                isCountingDown = uiState.isCountingDown,
                 onSendResult = {pose,accuracy, time, bitmap: Bitmap ->  viewModel.processIntent(
                     MultiPlayIntent.SendHistory(pose,accuracy, time, bitmap))},
                 userList = uiState.userList,

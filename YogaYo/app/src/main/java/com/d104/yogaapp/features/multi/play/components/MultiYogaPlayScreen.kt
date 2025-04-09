@@ -59,7 +59,6 @@ import java.util.Locale
 
 @Composable
 fun MultiYogaPlayScreen(
-    isCountingDown: Boolean = false,
     timerProgress: Float,
     isPlaying: Boolean,
     onPause: () -> Unit,
@@ -273,7 +272,7 @@ fun MultiYogaPlayScreen(
                             isPlaying = isPlaying,
                             onSendResult = onSendResult,
                             pose = pose,
-                            isCountingDown = isCountingDown,
+                            isCountingDown = gameState == GameState.Waiting,
                             onRessultFeedback = {accuracy,time,feedback->
                                 onAccuracyUpdate(accuracy,time )
                                 if (feedback.isNotEmpty() && isTtsReady&&isPlaying) {
