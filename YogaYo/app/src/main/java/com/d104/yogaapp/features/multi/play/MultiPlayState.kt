@@ -31,6 +31,7 @@ data class MultiPlayState(
     val beyondPose: YogaPose = YogaPose(0, "", "", 0, listOf("나무 자세 설명"), "", 0,""),
     val accuracy: Float = 0.0f,
     val time: Float = 0.0f,
+    val source:Boolean = false,
 )
 
 enum class GameState {

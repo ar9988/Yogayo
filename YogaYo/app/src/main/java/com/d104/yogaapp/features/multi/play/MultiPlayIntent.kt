@@ -29,6 +29,7 @@ sealed class MultiPlayIntent {
     data class BestPose(val it: List<MultiBestPhoto>) : MultiPlayIntent()
     data class ClickPhoto(val it: Int) : MultiPlayIntent()
     data class AllPose(val it: List<MultiPhoto>) : MultiPlayIntent()
+    data class SetImageSource(val b: Boolean) : MultiPlayIntent()
 
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()

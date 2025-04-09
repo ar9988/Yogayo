@@ -166,10 +166,16 @@ fun MultiPlayScreen(
                         }
 
                         GameState.RoundResult -> {
+                            val bitmapToShow = if (uiState.source) {
+                                uiState.bitmap
+                            } else {
+                                uiState.bestBitmap
+                            }
+
                             RoundResultScreen(
-                                isLoading = uiState.isLoading,
-                                resultBitmap = uiState.bestBitmap,
-                                contentDescription = uiState.currentPose.poseName
+                                isLoading = uiState.isLoading, // 로딩 상태는 그대로 유지
+                                resultBitmap = bitmapToShow, // 조건부로 선택된 비트맵 전달
+                                contentDescription = uiState.currentPose.poseName // 컨텐츠 설명도 유지
                             )
                         }
 

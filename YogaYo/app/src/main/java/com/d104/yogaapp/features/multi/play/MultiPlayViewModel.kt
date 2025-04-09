@@ -167,6 +167,7 @@ class MultiPlayViewModel @Inject constructor(
                     } else if (state >= 1) {
                         Timber.d("Round $state started")
                         processIntent(MultiPlayIntent.RoundStarted(state))
+                        processIntent(MultiPlayIntent.SetImageSource(false))
                         startTimer()
                     } else if (state == -1) {
                         Timber.d("Game ended")
@@ -193,6 +194,7 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if (intent.message.type == "request_photo") {
                     Timber.d("Received request_photo message")
+                    processIntent(MultiPlayIntent.SetImageSource(true))
                     sendImageToMeshNetwork()
                 }
             }

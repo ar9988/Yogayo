@@ -234,6 +234,12 @@ class MultiPlayReducer @Inject constructor() {
                     allUrls = intent.it
                 )
             }
+            is MultiPlayIntent.SetImageSource -> {
+                Timber.d("Reducer: Handling SetImageSource with ${intent.b}")
+                currentState.copy(
+                    source = intent.b
+                )
+            }
 
             is MultiPlayIntent.UpdateScore -> {
                 val score = intent.scoreUpdateMessage.time
