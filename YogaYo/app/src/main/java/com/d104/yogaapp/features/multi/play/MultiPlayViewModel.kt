@@ -265,56 +265,121 @@ class MultiPlayViewModel @Inject constructor(
     }
 
     private fun sendImageToServer() {
+        val logTag = "MultiPlay_ImageToServer:" // 로그 필터링을 위한 태그
+
         viewModelScope.launch {
-            val currentState = uiState.value // 현재 상태 한 번만 가져오기
+            Timber.d("$logTag Starting image saving process.")
 
-            // 1. 사용할 비트맵 결정: 상태에 있으면 사용, 없으면 drawable에서 로드
-            val bitmapToUse: Bitmap? = if (currentState.bitmap != null) {
-                Timber.d("Using bitmap from UI state.")
-                currentState.bitmap
-            } else {
-                Timber.w("UI state bitmap is null. Attempting to load default image from drawable.")
-                // Drawable 리소스 로드 시도 (IO 작업이므로 withContext 사용 권장)
-                withContext(Dispatchers.IO) {
-                    loadBitmapFromDrawable(context, R.drawable.ic_launcher_foreground) // <<<--- R.drawable.리소스_이름 사용
+            try {
+                val currentState = uiState.value
+                Timber.d("$logTag Current state captured. My ID: ${currentState.myId}, Room ID: ${currentState.currentRoom?.roomId}, Bitmap available: ${currentState.bitmap != null}")
+
+                // --- 1. 사용할 비트맵 결정 ---
+                val bitmapSource: String
+                val bitmapToUse: Bitmap? = if (currentState.bitmap != null) {
+                    bitmapSource = "UI State"
+                    Timber.d("$logTag Using bitmap from UI state.")
+                    currentState.bitmap
+                } else {
+                    bitmapSource = "Default Drawable"
+                    Timber.w("$logTag UI state bitmap is null. Attempting to load default image from drawable.")
+                    withContext(Dispatchers.IO) {
+                        Timber.d("$logTag Loading default bitmap from resource ID: ${R.drawable.ic_launcher_foreground}")
+                        loadBitmapFromDrawable(context, R.drawable.ic_launcher_foreground)
+                    }
                 }
+                Timber.d("$logTag Bitmap source selected: $bitmapSource. Bitmap acquired: ${bitmapToUse != null}")
+
+                // --- 2. 비트맵 확보 실패 시 처리 ---
+                if (bitmapToUse == null) {
+                    Timber.e("$logTag Failed to get bitmap (source: $bitmapSource). Aborting image save.")
+                    return@launch
+                }
+                Timber.d("$logTag Bitmap acquired successfully. Dimensions: ${bitmapToUse.width}x${bitmapToUse.height}, Config: ${bitmapToUse.config}")
+
+                // --- 3. 결정된 비트맵으로 이미지 저장 ---
+                val poseIdStr = currentState.currentPose.poseId.toString()
+                val indexStr = LocalDateTime.now().toString()
+                Timber.d("$logTag Saving bitmap to storage via ImageStorageManager. Pose ID: $poseIdStr, Index: $indexStr")
+
+                val uri = try {
+                    imageStorageManager.saveImage(
+                        bitmap = bitmapToUse,
+                        index = indexStr,
+                        poseId = poseIdStr
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "$logTag Exception occurred during image saving.")
+                    return@launch
+                }
+
+                if (uri == null) {
+                    Timber.e("$logTag ImageStorageManager returned null URI. Aborting image save.")
+                    return@launch
+                }
+                Timber.d("$logTag Bitmap saved successfully. URI: $uri")
+
+                // --- 4. 랭킹 계산 ---
+                val currentUserId = currentState.myId
+                Timber.d("$logTag Calculating ranking for user: $currentUserId")
+                val ranking = if (currentState.userList.isNotEmpty()) {
+                    val sortedUserDatas = currentState.userList.values.sortedByDescending { it.totalScore }
+                    val rankingIndex = sortedUserDatas.indexOfFirst { it.id == currentUserId }
+                    if (rankingIndex != -1) rankingIndex + 1 else -1
+                } else {
+                    Timber.w("$logTag User list is empty, cannot calculate ranking. Setting rank to -1.")
+                    -1
+                }
+                Timber.d("$logTag Ranking calculated. Rank: $ranking")
+
+                if (ranking == -1 && currentState.userList.isNotEmpty()) {
+                    Timber.w("$logTag Could not determine ranking for user $currentUserId among ${currentState.userList.size} users.")
+                }
+
+                // --- 5. 결과 전송 (API 호출) ---
+                val poseId = currentState.currentPose.poseId
+                val roomId = currentState.currentRoom?.roomId
+                if (roomId == null) {
+                    Timber.e("$logTag Cannot post history, currentRoom or roomId is null.")
+                    return@launch
+                }
+                val accuracy = currentState.accuracy
+                val poseTime = currentState.time
+                val imageUriString = uri.toString()
+
+                Timber.d("$logTag Preparing to post yoga pose history. Pose ID: $poseId, Room ID: $roomId, Accuracy: $accuracy, Rank: $ranking, Time: $poseTime, URI: $imageUriString")
+
+                // UseCase 호출 및 결과 처리 (Flow<Result<YogaPoseRecord>> 가정)
+                postYogaPoseHistoryUseCase(
+                    poseId = poseId,
+                    roomRecordId = roomId,
+                    accuracy = accuracy,
+                    ranking = ranking,
+                    poseTime = poseTime,
+                    imgUri = imageUriString
+                ).collect { result -> // Flow를 collect하여 결과 처리
+                    result.onSuccess { yogaPoseRecord ->
+                        // 성공 시 로그: 반환된 데이터 포함
+                        Timber.i("$logTag Yoga pose history posted successfully. Received record: $yogaPoseRecord")
+                        // 필요하다면 성공 후 추가 작업 (예: UI 상태 업데이트)
+                    }.onFailure { exception ->
+                        // 실패 시 로그: 예외 정보 포함
+                        Timber.e(exception, "$logTag Failed to post yoga pose history.")
+                        // 필요하다면 실패 처리 (예: 사용자에게 오류 메시지 표시)
+                    }
+                }
+                // collect 블록 이후는 Flow가 완료된 후 실행됩니다.
+                // 만약 Flow가 단일 값만 방출하고 완료된다면 이 위치에 도달합니다.
+                // 무한 Flow라면 이 위치에 도달하지 않을 수 있습니다.
+                Timber.d("$logTag Finished collecting results from postYogaPoseHistoryUseCase.")
+
+
+            } catch (e: Exception) {
+                Timber.e(e, "$logTag Uncaught exception during image saving process.")
+            } finally {
+                // finally 블록은 성공/실패/취소 여부와 관계없이 실행됨 (선택적)
+                Timber.d("$logTag Image saving process execution block finished.")
             }
-
-            // 2. 비트맵 확보 실패 시 처리
-            if (bitmapToUse == null) {
-                Timber.e("Failed to get bitmap (neither from state nor drawable). Aborting image save.")
-                // 오류 처리: 사용자에게 알림을 보내거나, 함수 실행 중단
-                // processIntent(MultiPlayIntent.ShowError("기본 이미지를 로드할 수 없습니다."))
-                return@launch // 코루틴 실행 중단
-            }
-
-            // 3. 결정된 비트맵으로 이미지 저장
-            val uri = imageStorageManager.saveImage(
-                bitmap = bitmapToUse, // null 이 아님이 보장됨
-                index = LocalDateTime.now().toString(),
-                poseId = currentState.beyondPose.poseId.toString()
-            )
-
-            // 4. 랭킹 계산 (기존 로직 유지)
-            val sortedUserDatas = currentState.userList.values.sortedByDescending { it.totalScore }
-            val currentUserId = currentState.myId
-            val rankingIndex = sortedUserDatas.indexOfFirst { it.id == currentUserId }
-            val ranking = if (rankingIndex != -1) rankingIndex + 1 else -1 // 사용자를 못 찾은 경우 -1 또는 다른 값
-
-            if (ranking == -1) {
-                Timber.w("Could not determine ranking for user $currentUserId.")
-                // 랭킹을 찾지 못한 경우 처리 (예: 기본값 0 또는 -1 전송)
-            }
-
-            // 5. 결과 전송 (기존 로직 유지)
-            postYogaPoseHistoryUseCase(
-                poseId = currentState.beyondPose.poseId,
-                roomRecordId = currentState.currentRoom!!.roomId,
-                accuracy = currentState.accuracy,
-                ranking = ranking, // 계산된 랭킹 사용
-                poseTime = currentState.time,
-                imgUri = uri.toString()
-            )
         }
     }
 
