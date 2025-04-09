@@ -6,13 +6,13 @@ import lombok.NoArgsConstructor;
 
 /**
  * 요가 기록 생성/수정 시 JSON으로 전달되는 요청 데이터
- * roomRecordId, ranking은 null 가능
+ * ranking은 선택사항입니다.
+ * (기존 roomRecordId 필드는 제거되었습니다.)
  */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class PoseRecordRequest {
-    private Long roomRecordId;  // 선택사항 (멀티모드 기록 시)
     private Float accuracy;
     private Integer ranking;    // 선택사항
     private Float poseTime;
