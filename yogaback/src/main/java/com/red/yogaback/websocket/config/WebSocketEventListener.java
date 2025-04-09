@@ -65,8 +65,8 @@ public class WebSocketEventListener {
                 // 방 참가자 수 증가 및 입장 메시지 전송
 //                roomService.addParticipant(roomId);
 //                roomService.addParticipant(roomId);
-                messagingTemplate.convertAndSend("/topic/room/" + roomId,
-                        userSession.getUserNickName() + "님이 들어왔습니다.");
+//                messagingTemplate.convertAndSend("/topic/room/" + roomId,
+//                        userSession.getUserNickName() + "님이 들어왔습니다.");
                 logger.info("Processed subscription for room: {} and session: {}", roomId, sessionId);
             } else {
                 logger.warn("No user session found for session: {}", sessionId);
