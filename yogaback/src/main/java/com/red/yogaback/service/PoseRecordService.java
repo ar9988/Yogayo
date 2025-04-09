@@ -7,12 +7,12 @@ import com.red.yogaback.dto.respond.PoseHistorySummaryRes;
 import com.red.yogaback.dto.respond.PoseRecordRes;
 import com.red.yogaback.model.Pose;
 import com.red.yogaback.model.PoseRecord;
-import com.red.yogaback.model.RoomRecord;
+import com.red.yogaback.model.Room;
 import com.red.yogaback.model.User;
 import com.red.yogaback.model.UserRecord;
 import com.red.yogaback.repository.PoseRecordRepository;
 import com.red.yogaback.repository.PoseRepository;
-import com.red.yogaback.repository.RoomRecordRepository;
+import com.red.yogaback.repository.RoomRecordRepository; // 더 이상 사용되지 않습니다.
 import com.red.yogaback.repository.UserRecordRepository;
 import com.red.yogaback.repository.UserRepository;
 import com.red.yogaback.security.SecurityUtil;
@@ -34,7 +34,7 @@ public class PoseRecordService {
 
     private final PoseRecordRepository poseRecordRepository;
     private final PoseRepository poseRepository;
-    private final RoomRecordRepository roomRecordRepository;
+    // RoomRecordRepository 사용 부분은 제거합니다.
     private final UserRepository userRepository;
     private final UserRecordRepository userRecordRepository;
     private final S3FileStorageService s3FileStorageService;
@@ -43,6 +43,9 @@ public class PoseRecordService {
     /**
      * [POST] /api/yoga/history/{poseId}
      * - 새 요가 포즈 기록 생성 및 관련 UserRecord의 운동 날짜 관련 필드를 업데이트합니다.
+     *
+     * 변경사항: 기존에 roomRecordId를 참조하여 RoomRecord를 조회하던 부분은 제거하고,
+     * 현재 사용자(User)가 속한 Room(user.getRoom())을 직접 PoseRecord의 Room으로 연결합니다.
      */
     public PoseRecord createPoseRecord(Long poseId, PoseRecordRequest request, MultipartFile recordImg) {
         Long userId = SecurityUtil.getCurrentMemberId();
@@ -52,11 +55,8 @@ public class PoseRecordService {
         Pose pose = poseRepository.findById(poseId)
                 .orElseThrow(() -> new RuntimeException("해당 포즈를 찾을 수 없습니다. poseId=" + poseId));
 
-        RoomRecord roomRecord = null;
-        if (request.getRoomRecordId() != null) {
-            roomRecord = roomRecordRepository.findById(request.getRoomRecordId())
-                    .orElseThrow(() -> new RuntimeException("해당 roomRecordId의 방 기록을 찾을 수 없습니다."));
-        }
+        // 수정: RoomRecord 조회 대신, 현재 사용자의 Room 정보를 가져옵니다.
+        Room room = user.getRoom();
 
         String recordImgUrl = null;
         if (recordImg != null && !recordImg.isEmpty()) {
@@ -65,8 +65,8 @@ public class PoseRecordService {
 
         PoseRecord poseRecord = PoseRecord.builder()
                 .user(user)
+                .room(room)  // user의 Room으로 연결
                 .pose(pose)
-                .roomRecord(roomRecord)
                 .accuracy(request.getAccuracy())
                 .ranking(request.getRanking())
                 .poseTime(request.getPoseTime())
@@ -84,21 +84,15 @@ public class PoseRecordService {
                 .orElseThrow(() -> new RuntimeException("UserRecord not found for userId=" + userId));
 
         if (userRecord.getCurrentExerciseDate() == null) {
-            // 현재 운동 기록이 없다면, 오늘자 운동 기록을 설정하고 운동 일수 및 연속 운동일수를 1로 설정
             userRecord.setCurrentExerciseDate(newExerciseDate);
             userRecord.setExDays(1L);
             userRecord.setExConDays(1L);
         } else if (userRecord.getCurrentExerciseDate().equals(newExerciseDate)) {
-            // 이미 오늘 운동 기록이 있다면 아무 작업도 하지 않음.
+            // 이미 오늘 운동 기록이 있다면 아무 작업도 하지 않습니다.
         } else {
-            // currentExerciseDate와 새 운동일자가 다르다면,
-            // 현재 운동일자를 이전 운동일자로 옮기고, 새 운동일자를 currentExerciseDate로 설정.
             userRecord.setPreviousExerciseDate(userRecord.getCurrentExerciseDate());
             userRecord.setCurrentExerciseDate(newExerciseDate);
-            // 총 운동 일수는 +1
             userRecord.setExDays(userRecord.getExDays() + 1);
-            // 연속 운동일수 처리:
-            // 만약 이전 운동일자가 현재 운동일자의 바로 전날이면 +1, 그렇지 않으면 1로 재설정
             if (userRecord.getPreviousExerciseDate() != null &&
                     userRecord.getPreviousExerciseDate().plusDays(1).equals(newExerciseDate)) {
                 userRecord.setExConDays(userRecord.getExConDays() + 1);
@@ -108,32 +102,29 @@ public class PoseRecordService {
         }
         userRecordRepository.save(userRecord);
 
-        // 기존 배지 체크 로직 호출 (필요한 경우)
+        // 기존 배지 체크 로직 호출 (필요 시)
         badgeService.updateUserRecordAndAssignBadges(user);
 
         return savedPoseRecord;
     }
+
     /**
      * [GET] /api/yoga/history
      * - 전체 요가 포즈 기록 조회 (사용자별)
-     * - 포즈 목록을 DB에서 정렬(작은 poseId부터 큰 poseId 순)하여 가져오고, 각 포즈에 대해 bestAccuracy, bestTime 계산
+     * - 각 포즈에 대해 bestAccuracy, bestTime 계산 후 반환
      */
     public List<PoseHistorySummaryRes> getAllPoseRecordsSummary() {
         Long userId = SecurityUtil.getCurrentMemberId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다. userId=" + userId));
 
-        // 전체 Pose 목록을 DB에서 poseId 오름차순 정렬하여 조회
         List<Pose> allPoses = poseRepository.findAll(Sort.by("poseId").ascending());
-
-        // 사용자 모든 기록 조회 (한 번에 가져와서 Pose별로 그룹화)
         List<PoseRecord> userRecords = poseRecordRepository.findByUser(user);
 
-        // poseId를 key로, 해당 PoseRecord 목록을 그룹화
+        // poseId를 key로 그룹화
         Map<Long, List<PoseRecord>> recordMap = userRecords.stream()
                 .collect(Collectors.groupingBy(r -> r.getPose().getPoseId()));
 
-        // 각 pose에 대해 bestAccuracy, bestTime 계산
         List<PoseHistorySummaryRes> result = new ArrayList<>();
         for (Pose pose : allPoses) {
             List<PoseRecord> recordsForPose = recordMap.getOrDefault(pose.getPoseId(), Collections.emptyList());
@@ -165,14 +156,12 @@ public class PoseRecordService {
 
             result.add(summary);
         }
-
         return result;
     }
 
     /**
      * [GET] /api/yoga/history/{poseId}
-     * - 특정 요가 포즈 기록 조회
-     * - bestAccuracy, bestTime, winCount, histories 배열 (histories는 DB에서 정렬된 createdAt 내림차순)
+     * - 특정 요가 포즈 기록 조회: bestAccuracy, bestTime, winCount 및 histories 배열 반환
      */
     public PoseDetailHistoryRes getPoseDetailHistory(Long poseId) {
         Long userId = SecurityUtil.getCurrentMemberId();
@@ -182,7 +171,6 @@ public class PoseRecordService {
         Pose pose = poseRepository.findById(poseId)
                 .orElseThrow(() -> new RuntimeException("해당 포즈를 찾을 수 없습니다. poseId=" + poseId));
 
-        // DB에서 바로 createdAt 내림차순으로 정렬된 해당 포즈의 기록 조회
         List<PoseRecord> recordsForPose = poseRecordRepository.findByUserAndPose_PoseIdOrderByCreatedAtDesc(user, poseId);
 
         float bestAccuracy = 0f;
@@ -207,7 +195,6 @@ public class PoseRecordService {
                     .count();
         }
 
-        // histories 배열 생성 (DB에서 이미 정렬된 상태)
         List<HistoryItem> histories = recordsForPose.stream()
                 .map(r -> HistoryItem.builder()
                         .historyId(r.getPoseRecordId())

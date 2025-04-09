@@ -25,9 +25,9 @@ public interface PoseRecordRepository extends JpaRepository<PoseRecord, Long> {
     // 수정: 특정 포즈의 기록을 createdAt 내림차순으로 가져오는 메서드
     List<PoseRecord> findByUserAndPose_PoseIdOrderByCreatedAtDesc(User user, Long poseId);
 
-    // 추가: roomId와 poseId를 기준으로, 해당 방의 기록들 중 poseTime 내림차순 조회
+    // 변경: 기존 roomRecord를 통한 조회 대신 Room의 roomId로 조회 (poseTime 내림차순)
     @Query("SELECT pr FROM PoseRecord pr " +
-            "WHERE pr.roomRecord.room.roomId = :roomId AND pr.pose.poseId = :poseId " +
+            "WHERE pr.room.roomId = :roomId AND pr.pose.poseId = :poseId " +
             "ORDER BY pr.poseTime DESC")
     List<PoseRecord> findByRoomIdAndPoseIdOrderByPoseTimeDesc(@Param("roomId") Long roomId,
                                                               @Param("poseId") Long poseId);

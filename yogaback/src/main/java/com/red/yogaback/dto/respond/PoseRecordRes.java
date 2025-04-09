@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 public class PoseRecordRes {
     private Long poseRecordId;
     private Long poseId;
-    private Long roomRecordId;  // null 가능
+    private Long roomId;  // 변경: 기존 roomRecordId 대신 room의 roomId를 반환
     private Float accuracy;
     private Integer ranking;    // null 가능
     private Float poseTime;
@@ -27,7 +27,7 @@ public class PoseRecordRes {
         return PoseRecordRes.builder()
                 .poseRecordId(entity.getPoseRecordId())
                 .poseId(entity.getPose().getPoseId())
-                .roomRecordId(entity.getRoomRecord() == null ? null : entity.getRoomRecord().getRoomRecordId())
+                .roomId(entity.getRoom() == null ? null : entity.getRoom().getRoomId())
                 .accuracy(entity.getAccuracy())
                 .ranking(entity.getRanking())
                 .poseTime(entity.getPoseTime())
