@@ -30,6 +30,8 @@ sealed class MultiPlayIntent {
     data class ClickPhoto(val it: Int) : MultiPlayIntent()
     data class AllPose(val it: List<MultiPhoto>) : MultiPlayIntent()
     data class SetBestImage(val bitmap: Bitmap) : MultiPlayIntent()
+    data class UpdateTotalScore(val peerId: String,val score: Int) : MultiPlayIntent()
+
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()

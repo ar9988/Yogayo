@@ -33,7 +33,8 @@ data class MultiPlayState(
     val accuracy: Float = 0.0f,
     val time: Float = 0.0f,
     val source:Boolean = false,
-    val courseList:List<UserCourse> = emptyList()
+    val courseList:List<UserCourse> = emptyList(),
+    val myName:String = "",
 )
 
 enum class GameState {

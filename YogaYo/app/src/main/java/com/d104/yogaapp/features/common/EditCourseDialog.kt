@@ -107,7 +107,7 @@ fun CustomCourseDialog(
     onDismiss: () -> Unit,
     onSave: (String,List<YogaPoseWithOrder>) -> Unit,
     isMultiMode: Boolean = false,
-    onAdd: (String, List<YogaPose>) -> Unit = { _, _ -> }
+    onAdd: (List<YogaPose>) -> Unit = { _ -> }
 ) {
     val context = LocalContext.current
     // 상태 관리
@@ -173,22 +173,23 @@ fun CustomCourseDialog(
                         .padding(top= 32.dp)
                 ) {
                     // 코스 이름 입력
-                    OutlinedTextField(
-                        value = courseName,
-                        onValueChange = { courseName = it },
-                        label = { Text(style = TextStyle(color = Neutral70), text = "코스 이름") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        maxLines = 1,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color.LightGray,
-                            unfocusedBorderColor = Color.LightGray,
-                            containerColor = Color(0xFFF5F5F5)
+                    if(!isMultiMode){
+                        OutlinedTextField(
+                            value = courseName,
+                            onValueChange = { courseName = it },
+                            label = { Text(style = TextStyle(color = Neutral70), text = "코스 이름") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            maxLines = 1,
+                            shape = RoundedCornerShape(8.dp),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedBorderColor = Color.LightGray,
+                                unfocusedBorderColor = Color.LightGray,
+                                containerColor = Color(0xFFF5F5F5)
+                            )
                         )
-                    )
-
+                    }
                     // 선택된 요가 포즈 목록 (드래그 가능)
                     Box(
                         modifier = Modifier
@@ -377,22 +378,24 @@ fun CustomCourseDialog(
                 // 적용 버튼 (하단에 떠있음)
                 Button(
                     onClick = {
-                        // PoseInCourse에서 YogaPose만 추출하여 전달 (정렬된 순서대로)
-                        if(courseName.equals("")){
-                            Toast.makeText(context, "코스 이름을 입력해주세요", Toast.LENGTH_SHORT).show()
-                        }else if(selectedPoses.isEmpty()){
-                            Toast.makeText(context, "자세를 1개 이상 선택해주세요", Toast.LENGTH_SHORT).show()
-                        }else if(!isMultiMode){
-                            onSave(courseName, selectedPoses.mapIndexed { index, poseInCourse ->
-                                YogaPoseWithOrder(
-                                    userOrderIndex = index,
-                                    poseId = poseInCourse.pose.poseId
-                                )
-                            })
-                        }else{
+                        if(isMultiMode){
                             val yogaPoseList = selectedPoses.map { it.pose }
-                            onAdd(courseName, yogaPoseList)
+                            onAdd(yogaPoseList)
+                        } else{
+                            if(courseName.equals("")){
+                                Toast.makeText(context, "코스 이름을 입력해주세요", Toast.LENGTH_SHORT).show()
+                            }else if(selectedPoses.isEmpty()){
+                                Toast.makeText(context, "자세를 1개 이상 선택해주세요", Toast.LENGTH_SHORT).show()
+                            }else{
+                                onSave(courseName, selectedPoses.mapIndexed { index, poseInCourse ->
+                                    YogaPoseWithOrder(
+                                        userOrderIndex = index,
+                                        poseId = poseInCourse.pose.poseId
+                                    )
+                                })
+                            }
                         }
+
                     },
                     modifier = Modifier
                         .fillMaxWidth()

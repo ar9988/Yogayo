@@ -18,4 +18,6 @@ interface AuthRepository {
         nickName: String,
         profileUri: String
     ):Flow<Result<SignUpResult>>
+
+    suspend fun getUserName(): String
 }

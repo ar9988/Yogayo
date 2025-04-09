@@ -244,6 +244,30 @@ class MultiPlayReducer @Inject constructor() {
                 )
             }
 
+            is MultiPlayIntent.UpdateTotalScore ->{
+                Timber.d("Reducer: Handling UpdateTotalScore with ${intent.score}")
+                val score = intent.score
+                val userId = intent.peerId
+                // 기존 사용자 데이터 가져오기
+                val user = currentState.userList[userId]
+
+                if (user != null) {
+                    // 사용자 데이터 업데이트
+                    val updatedUser = user.copy(
+                        totalScore = user.totalScore+score
+                    )
+
+                    // 상태 복사 및 업데이트
+                    currentState.copy(
+                        userList = currentState.userList.toMutableMap().apply {
+                            this[userId] = updatedUser
+                        }
+                    )
+                } else {
+                    currentState // 사용자가 없는 경우 상태를 변경하지 않음
+                }
+            }
+
             is MultiPlayIntent.UpdateScore -> {
                 Timber.d("Reducer: Handling UpdateScore with ${intent.scoreUpdateMessage}")
                 val score = intent.scoreUpdateMessage.time
@@ -255,7 +279,6 @@ class MultiPlayReducer @Inject constructor() {
                     // 사용자 데이터 업데이트
                     val updatedUser = user.copy(
                         roundScore = score,
-                        totalScore = user.totalScore + score
                     )
 
                     // 상태 복사 및 업데이트

@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import retrofit2.HttpException
+import retrofit2.Response
+import java.io.IOException
 import javax.inject.Inject
 
 class LobbyRepositoryImpl @Inject constructor(
@@ -121,6 +123,37 @@ class LobbyRepositoryImpl @Inject constructor(
             return flow {
                 emit(Result.success(errorResult))
             }
+        }
+    }
+
+    override suspend fun sendRoomRecord(
+        roomId: String,
+        totalRanking: Int,
+        totalScore: Int
+    ): Flow<Result<Unit>> = flow {
+        try {
+            // 1. Retrofit suspend fun 직접 호출 (반환 타입이 Unit이라고 가정)
+            multiApiService.sendRoomRecord(roomId, totalRanking, totalScore)
+
+            // 2. 예외가 발생하지 않으면 성공이므로 Result.success(Unit) 방출
+            emit(Result.success(Unit))
+
+        } catch (e: HttpException) {
+            // 3. HTTP 관련 예외 처리
+            val errorMessage = try {
+                ErrorUtils.parseHttpError(e)?.message ?: "HTTP 오류: ${e.code()}"
+            } catch (parseError: Exception) {
+                "HTTP 오류: ${e.code()} (에러 본문 파싱 실패)"
+            }
+            emit(Result.failure(RuntimeException(errorMessage, e)))
+
+        } catch (e: IOException) {
+            // 4. 네트워크 연결 관련 예외 처리
+            emit(Result.failure(RuntimeException("네트워크 오류: ${e.message}", e)))
+
+        } catch (e: Exception) {
+            // 5. 기타 예상치 못한 예외 처리
+            emit(Result.failure(RuntimeException("알 수 없는 오류: ${e.message}", e)))
         }
     }
 

@@ -19,4 +19,6 @@ interface LobbyRepository {
         password: String,
         userCourse: UserCourse
     ): Flow<Result<CreateRoomResult>>
+
+    suspend fun sendRoomRecord(roomId: String, totalRanking: Int, totalScore: Int): Flow<Result<Unit>>
 }

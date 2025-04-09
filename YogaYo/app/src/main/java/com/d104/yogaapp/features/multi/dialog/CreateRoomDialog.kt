@@ -57,13 +57,13 @@ fun CreateRoomDialog(
     onDismiss: () -> Unit,
     onCourseSelect: (UserCourse) -> Unit,
     userCourses: List<UserCourse>,
-    onAddCourse: () -> Unit
+    onAddCourse: () -> Unit,
+    selectedCourse: UserCourse?,
 ) {
     var peopleExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
     var selectedMaxCount by remember { mutableStateOf("2 명") }
-    var selectedCourse by remember { mutableStateOf<UserCourse?>(null) }
     val context = LocalContext.current
 
     LaunchedEffect(showDialog) {
@@ -72,8 +72,6 @@ fun CreateRoomDialog(
             courseExpanded = false
             showPassword = false
             selectedMaxCount = "2 명" // 원하는 초기값으로 설정
-            selectedCourse = null      // 원하는 초기값으로 설정
-
         }
 
     }
@@ -197,9 +195,8 @@ fun CreateRoomDialog(
                                 DropdownMenuItem(
                                     text = { Text(option.courseName) },
                                     onClick = {
-                                        selectedCourse = option
                                         courseExpanded = false
-                                        onCourseSelect(selectedCourse!!)
+                                        onCourseSelect(option)
                                     }
                                 )
                             }

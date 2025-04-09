@@ -38,4 +38,8 @@ class DataStoreRepositoryImpl @Inject constructor(
         return preferencesDao.getUserId()
     }
 
+    override suspend fun getUserName(): String {
+        return preferencesDao.getUserName()
+    }
+
 }

@@ -21,4 +21,10 @@ interface MultiApiService {
     suspend fun createRoom(
         @Body createRoomRequestDto: CreateRoomRequestDto
     ): RoomResponseDto
+
+    @POST("api/room-record")
+    suspend fun sendRoomRecord(
+        roomId: String,
+        totalRanking: Int,
+        totalScore: Int): Unit
 }

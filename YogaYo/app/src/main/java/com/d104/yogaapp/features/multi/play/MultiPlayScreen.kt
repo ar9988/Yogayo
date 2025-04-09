@@ -136,6 +136,10 @@ fun MultiPlayScreen(
             poseList = uiState.currentRoom!!.userCourse.poses,
             selectedPoseId = uiState.selectedPoseId,
             allUrls = uiState.allUrls,
+            onDownload = { uri, fileName ->
+                viewModel.save(uri, fileName)
+            },
+            myName = uiState.myName,
         )
     }
     // 권한에 따른 UI 표시

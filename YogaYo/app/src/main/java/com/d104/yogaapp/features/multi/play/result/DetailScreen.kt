@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi.play.result
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -34,6 +35,8 @@ fun DetailScreen(
     poseList: List<YogaPose>,
     selectedPoseId : Int,
     allUrls: List<MultiPhoto>,
+    onDownload: (Uri, String) -> Unit,
+    myName:String
 )
 {
     Scaffold(
@@ -66,9 +69,10 @@ fun DetailScreen(
             itemsIndexed(allUrls) { index,it -> // 각 아이템은 이제 String 타입의 URL
                 DetailPhotoCard(
                     resultData = it,
-//                    url = imageUrl // DetailPhotoCard에 URL 전달
-//                    // DetailPhotoCard에 필요한 다른 정보가 있다면 추가 전달
-//                    // 예: onClick = { /* 클릭 처리 */ }
+                    onDownload = { uri, name ->
+                        onDownload(uri, name)
+                    },
+                    myName = myName,
                 )
             }
         }

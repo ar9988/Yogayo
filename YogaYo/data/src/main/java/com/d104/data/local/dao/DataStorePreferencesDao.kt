@@ -158,4 +158,19 @@ class DataStorePreferencesDao @Inject constructor(
                 preferences[KEYS.USER_ID] ?: ""
             }.first()
     }
+
+    override suspend fun getUserName(): String {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    Log.e(TAG, "Error reading preferences", exception)
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[KEYS.USER_NAME] ?: ""
+            }.first()
+    }
 }

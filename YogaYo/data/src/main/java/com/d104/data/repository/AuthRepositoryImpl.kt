@@ -155,6 +155,10 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getUserName(): String {
+        return dataStoreRepository.getUserName()
+    }
+
     // Content URI를 처리하여 MultipartBody.Part 생성하는 헬퍼 함수
     private fun createMultipartBodyPartFromUri(context: Context, uriString: String, partName: String): MultipartBody.Part? {
         val contentResolver: ContentResolver = context.contentResolver

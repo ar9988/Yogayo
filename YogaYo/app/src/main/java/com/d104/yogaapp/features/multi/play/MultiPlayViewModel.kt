@@ -3,14 +3,18 @@ package com.d104.yogaapp.features.multi.play
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.RequestPhotoMessage
 import com.d104.domain.model.ScoreUpdateMessage
+import com.d104.domain.model.TotalScoreMessage
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.usecase.CloseWebRTCUseCase
 import com.d104.domain.usecase.CloseWebSocketUseCase
@@ -19,6 +23,7 @@ import com.d104.domain.usecase.GetBestPoseRecordsUseCase
 import com.d104.domain.usecase.GetMultiAllPhotoUseCase
 import com.d104.domain.usecase.GetMultiBestPhotoUseCase
 import com.d104.domain.usecase.GetUserIdUseCase
+import com.d104.domain.usecase.GetUserNickNameUseCase
 import com.d104.domain.usecase.HandleSignalingMessage
 import com.d104.domain.usecase.InitializeWebRTCUseCase
 import com.d104.domain.usecase.InitiateConnectionUseCase
@@ -28,10 +33,13 @@ import com.d104.domain.usecase.ObserveWebSocketConnectionStateUseCase
 import com.d104.domain.usecase.PostYogaPoseHistoryUseCase
 import com.d104.domain.usecase.ProcessChunkImageUseCase
 import com.d104.domain.usecase.SendImageUseCase
+import com.d104.domain.usecase.SendRoomRecordUseCase
 import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCUseCase
 import com.d104.domain.utils.StompConnectionState
 import com.d104.yogaapp.R
+import com.d104.yogaapp.features.solo.play.DownloadState
+import com.d104.yogaapp.utils.ImageDownloader
 import com.d104.yogaapp.utils.ImageStorageManager
 import com.d104.yogaapp.utils.bitmapToBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -72,10 +80,13 @@ class MultiPlayViewModel @Inject constructor(
     private val observeChunkImageUseCase: ObserveChunkImageUseCase,
     private val sendImageUseCase: SendImageUseCase,
     private val getUserIdUseCase: GetUserIdUseCase,
+    private val getUserNameUseCase: GetUserNickNameUseCase,
     private val postYogaPoseHistoryUseCase: PostYogaPoseHistoryUseCase,
     private val imageStorageManager: ImageStorageManager,
     private val getBestPoseRecordsUseCase: GetMultiBestPhotoUseCase,
     private val getMultiAllPhotoUseCase: GetMultiAllPhotoUseCase,
+    private val imageDownloader: ImageDownloader,
+    private val sendRoomRecordUseCase: SendRoomRecordUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
@@ -129,6 +140,13 @@ class MultiPlayViewModel @Inject constructor(
 
             is MultiPlayIntent.ReceiveWebSocketMessage -> {
                 Timber.d("Received WebSocket message: ${intent.message}")
+                if(intent.message.type =="total_score"){
+                    Timber.d("Received total_score message: ${intent.message}")
+                    val totalScoreMessage = intent.message as TotalScoreMessage
+                    val peerId = totalScoreMessage.toPeerId
+                    val score = totalScoreMessage.score
+                    processIntent(MultiPlayIntent.UpdateTotalScore(peerId, score))
+                }
                 if (intent.message.type == "round_end") {
 
                     processIntent(MultiPlayIntent.RoundEnded)
@@ -146,7 +164,7 @@ class MultiPlayViewModel @Inject constructor(
                                     id = peerId,
                                     nickName = nickname,
                                     isReady = false,
-                                    totalScore = 0.0f,
+                                    totalScore = 0,
                                     roundScore = 0.0f
                                 )
                             )
@@ -182,6 +200,7 @@ class MultiPlayViewModel @Inject constructor(
                                 }
                             }
                         }
+                        sendGameResult()
                     }
                 }
                 if (intent.message.type == "user_left") {
@@ -233,6 +252,12 @@ class MultiPlayViewModel @Inject constructor(
             }
 
             else -> {}
+        }
+    }
+
+    private fun sendGameResult(){
+        viewModelScope.launch {
+            sendRoomRecordUseCase
         }
     }
 
@@ -325,8 +350,8 @@ class MultiPlayViewModel @Inject constructor(
                 val currentUserId = currentState.myId
                 Timber.d("$logTag Calculating ranking for user: $currentUserId")
                 val ranking = if (currentState.userList.isNotEmpty()) {
-                    val sortedUserDatas = currentState.userList.values.sortedByDescending { it.totalScore }
-                    val rankingIndex = sortedUserDatas.indexOfFirst { it.id == currentUserId }
+                    val sortedUserData = currentState.userList.values.sortedByDescending { it.roundScore }
+                    val rankingIndex = sortedUserData.indexOfFirst { it.id == currentUserId }
                     if (rankingIndex != -1) rankingIndex + 1 else -1
                 } else {
                     Timber.w("$logTag User list is empty, cannot calculate ranking. Setting rank to -1.")
@@ -448,6 +473,19 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
+    private fun sendMyReadyState() {
+        viewModelScope.launch {
+            val id = getUserIdUseCase()
+            uiState.value.userList[id]?.let {
+                sendSignalingMessageUseCase(
+                    id,
+                    uiState.value.currentRoom!!.roomId.toString(),
+                    if (it.isReady) 1 else 2
+                )
+            }
+        }
+    }
+
     private fun sendReadyMessage() {
         viewModelScope.launch {
             val id = getUserIdUseCase()
@@ -490,6 +528,12 @@ class MultiPlayViewModel @Inject constructor(
                 } else {
                     Timber.w("Host could not determine top scorer for photo request.")
                 }
+                val descendingScores = userListForPhoto.entries.sortedByDescending { it.value.roundScore }
+                descendingScores.forEachIndexed(){ index,it ->
+                    // total score 업데이트 명령
+                    sendTotalScoreMessage(it.value.id, 10-index*3)
+                    Timber.i("User: ${it.key}, Score: ${it.value.roundScore}")
+                }
             } else {
                 Timber.w("User list empty, skipping photo request.")
             }
@@ -523,6 +567,19 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
+    private fun sendTotalScoreMessage(toPeerId: String, score: Int) {
+        viewModelScope.launch {
+            val id = getUserIdUseCase()
+            sendSignalingMessageUseCase(
+                fromPeerId = id,
+                destination = uiState.value.currentRoom!!.roomId.toString(),
+                8,
+                toPeerId = toPeerId,
+                score = score
+            )
+        }
+    }
+
     private fun sendNextRoundMessage(nextRoundIndex: Int) {
         viewModelScope.launch {
             val id = getUserIdUseCase()
@@ -545,7 +602,10 @@ class MultiPlayViewModel @Inject constructor(
                 0
             )
         }
+        sendMyReadyState()
     }
+
+
 
     private fun sendStartMessage() {
         viewModelScope.launch {
@@ -657,6 +717,24 @@ class MultiPlayViewModel @Inject constructor(
         }
     }
 
+    fun save(uri: Uri, fileName: String) {
+        viewModelScope.launch {
+            try {
+                val success = imageDownloader.saveImageToGallery(uri.toString(), fileName)
+                if (success) {
+                    // 성공 시 Toast 메시지 표시
+                    Toast.makeText(context, "이미지가 갤러리에 저장되었습니다.", Toast.LENGTH_SHORT).show()
+                } else {
+                    // 실패 시 Toast 메시지 표시
+                    Toast.makeText(context, "이미지 저장에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                // 예외 발생 시 Toast 메시지 표시
+                Toast.makeText(context, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     init {
         initializeWebRTCUseCase()
         viewModelScope.launch {
@@ -675,9 +753,8 @@ class MultiPlayViewModel @Inject constructor(
                     val fetchedMyId = getUserIdUseCase() // 만약 동기적이지 않다면 아래처럼 launch 안에서 처리
                     _uiState.update { it.copy(myId = fetchedMyId) } // 또는 processIntent 사용
                     Timber.d("My ID set in ViewModel state: $fetchedMyId") // 로그 추가
-
-                    // 이후 Room ID 가져오고 웹소켓 연결 등 진행
-                    // ... (기존 웹소켓 로직) ...
+                    val myName = getUserNameUseCase()
+                    _uiState.update { it.copy(myName = myName) }
                 }
                 // 연결 상태 관찰 및 Join 메시지 전송 (연결 시도와 함께 관리)
                 // observeWebSocketConnectionStateUseCase가 connectWebSocketUseCase 내부의 상태를 반영한다고 가정합니다.

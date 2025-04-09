@@ -194,7 +194,8 @@ fun MultiScreen(
         onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },
         onAddCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
         userCourses = uiState.yogaCourses,
-        onMaxCountChanged = {viewModel.processIntent(MultiIntent.UpdateRoomMaxCount(it))}
+        onMaxCountChanged = {viewModel.processIntent(MultiIntent.UpdateRoomMaxCount(it))},
+        selectedCourse = uiState.selectedCourse
     )
     // 방 참가 다이얼로그
     EnterRoomDialog(
@@ -213,11 +214,11 @@ fun MultiScreen(
             onSave = { courseName, poses ->{}
             },
             isMultiMode = true,
-            onAdd = { courseName, poses ->
+            onAdd = {poses ->
                 viewModel.processIntent(
                     MultiIntent.AddTempCourse(
                         -1,
-                        courseName,
+                        "임시 코스",
                         poses
                     )
                 )
