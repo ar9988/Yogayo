@@ -19,6 +19,7 @@ spring:
       # 커넥션을 얻기 위해 대기할 최대 시간 (ms)
       connection-timeout: 30000  # 30초
   jpa:
+    open-in-view: false
     hibernate:
       batch_fetch_size: 100
       ddl-auto: update
@@ -36,6 +37,10 @@ logging:
     org.hibernate.orm.jdbc.bind: trace
     com.red.yogaback: DEBUG
     com.zaxxer.hikari: DEBUG
+    # application.yml 예시
+    com.zaxxer.hikari.pool.HikariPool: DEBUG
+    com.zaxxer.hikari.HikariDataSource: DEBUG
+
 
 jwt:
   secret: ${JWT-SECRET}

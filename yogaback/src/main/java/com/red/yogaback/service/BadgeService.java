@@ -30,6 +30,7 @@ public class BadgeService {
     private final UserCourseRepository userCourseRepository;
 
     // 배지 목록 요청
+    @Transactional
     public List<BadgeListRes> getBadgeList(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new NoSuchElementException("유저를 찾을 수 없습니다.")
@@ -71,6 +72,7 @@ public class BadgeService {
 
 
     // 유저 정보 요청
+    @Transactional
     public UserInfoRes getUserInfo(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new NoSuchElementException("유저를 찾을 수 없습니다."));
@@ -167,6 +169,7 @@ public class BadgeService {
     /**
      * 배지 부여 또는 업데이트
      */
+    @Transactional
     public UserBadge assignBadge(User user, BadgeType badgeType, int level, int progress) {
         Badge badge = badgeRepository.findById(badgeType.getId())
                 .orElseThrow(() -> new NoSuchElementException("배지를 찾을 수 없습니다."));
@@ -208,6 +211,7 @@ public class BadgeService {
     /**
      * 유저 기록 체크 및 배지 부여
      **/
+    @Transactional
     public void updateUserRecordAndAssignBadges(User user) {
         UserRecord userRecord = userRecordRepository.findByUser(user)
                 .orElseThrow(() -> new NoSuchElementException("유저 기록을 찾을 수 없습니다."));
