@@ -205,7 +205,8 @@ class MultiPlayReducer @Inject constructor() {
                 Timber.d("Reducer: Received complete WebRTC image.")
                 currentState.copy(
                     bestBitmap = intent.bitmap, // 수신된 비트맵으로 업데이트
-                    isLoading = false      // 로딩 종료!
+                    isLoading = false,      // 로딩 종료!
+                    source = false
                 )
             }
 
