@@ -54,8 +54,10 @@ fun RotateScreen(context: Context) {
             }
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             )
+
         }
 
         onDispose {
@@ -74,7 +76,8 @@ fun RotateScreen(context: Context) {
                 // 플래그 제거
                 window.clearFlags(
                     WindowManager.LayoutParams.FLAG_FULLSCREEN or
-                            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 )
             }
         }

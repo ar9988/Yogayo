@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -172,7 +171,7 @@ fun SoloScreen(
                 ) { course ->
                     if(course.courseId < 0) {
                         CourseCard(
-                            header = { SoloCourseCardHeader(course) },
+                            content = { SoloCourseCardContent(course) },
                             poseList = yogaPoses,
                             course = course,
                             onClick = { selectedCourse = course },
@@ -187,25 +186,8 @@ fun SoloScreen(
                             },
                         )
                     } else {
-//                        SwipeableCourseDismissBox(
-//                            course = course,
-//                            poseList = state.yogaPoses,
-//                            onClick = { selectedCourse = course },
-//                            onUpdateCourse = { courseName, poses ->
-//                                viewModel.handleIntent(
-//                                    SoloIntent.UpdateCourse(
-//                                        course.courseId,
-//                                        courseName,
-//                                        poses
-//                                    )
-//                                )
-//                            },
-//                            onDeleteCourse = { courseToDelete ->
-//                                viewModel.handleIntent(SoloIntent.DeleteCourse(courseToDelete.courseId))
-//                            }
-//                        )
                         CourseCard(
-                            header = { SoloCourseCardHeader(course) },
+                            content = { SoloCourseCardContent(course) },
                             poseList = yogaPoses,
                             onClick = { selectedCourse = course },
                             onUpdateCourse = { courseName, poses ->
@@ -243,7 +225,7 @@ fun SoloScreen(
 }
 
 @Composable
-fun SoloCourseCardHeader(course: UserCourse){
+fun SoloCourseCardContent(course: UserCourse){
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,7 +252,7 @@ fun SoloCourseCardHeader(course: UserCourse){
                     // --- 내부 weight 수정: fill = false 유지 중요 ---
                     // 이 Text가 '튜토리얼' 태그 공간을 제외한 나머지 공간을 차지
                     modifier = Modifier.weight(1f, fill = false),
-                    fontSize = if(course.tutorial == true) 16.sp else 24.sp
+                    fontSize = if(course.tutorial == true&&course.courseName.length>5) 16.sp else 24.sp
                 )
 
                 // 튜토리얼 여부 표시 (필요 시 공간 차지)
@@ -311,7 +293,7 @@ fun SoloCourseCardHeader(course: UserCourse){
                 )
 
                 // 각 포즈당 3분으로 계산
-                val durationMinutes = course.poses.size * 3
+                val durationMinutes = course.poses.size * 1
                 Text(
                     text = "${durationMinutes}분",
                     color = Color.Gray,
@@ -506,7 +488,7 @@ fun SwipeableCourseDismissBox(
                 content = {
                     // 실제 표시될 카드 컨텐츠
                     CourseCard(
-                        header = { SoloCourseCardHeader(course) },
+                        content = { SoloCourseCardContent(course) },
                         poseList = poseList,
                         course = course,
                         onClick = onClick,

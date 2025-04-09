@@ -263,7 +263,7 @@ fun RoomList(
                 { onItemClick(room) }
             }
             CourseCard(
-                header = {
+                content = {
                     MultiCourseCardHeader(
                         room
                     )

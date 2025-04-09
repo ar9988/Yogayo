@@ -29,21 +29,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.d104.domain.model.UserCourse
 import com.d104.domain.model.YogaPose
 import com.d104.domain.model.YogaPoseInCourse
 import com.d104.domain.model.YogaPoseWithOrder
-import com.d104.yogaapp.R
 import com.d104.yogaapp.features.solo.PosesRowWithArrows
 import com.d104.yogaapp.ui.theme.GrayCardColor
-import com.d104.yogaapp.ui.theme.Neutral70
 
 @Composable
 fun CourseCard(
-    header: @Composable () -> Unit,
+    content: @Composable () -> Unit,
     poseList: List<YogaPose> = emptyList(),
     course: UserCourse,
     onClick: () -> Unit,
@@ -147,7 +143,7 @@ fun CourseCard(
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
-            header()
+            content()
 
             Spacer(modifier = Modifier.height(6.dp))
 
