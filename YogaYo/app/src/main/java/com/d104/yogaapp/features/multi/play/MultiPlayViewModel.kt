@@ -171,11 +171,12 @@ class MultiPlayViewModel @Inject constructor(
                         Timber.d("Game ended")
                         processIntent(MultiPlayIntent.GameEnd)
                         viewModelScope.launch {
-                            getBestPoseRecordsUseCase().collect { bestPoseRecords ->
-                                _uiState.update { currentState ->
-                                    currentState.copy(
-//                                        bestUrls = bestPoseRecords
-                                    )
+                            getBestPoseRecordsUseCase(uiState.value.currentRoom!!.roomId).collect { it->
+                                it.onSuccess {
+                                    Timber.d("Best pose records: $it")
+                                    processIntent(MultiPlayIntent.BestPose(it))
+                                }.onFailure {
+                                    Timber.e("Failed to get best pose records: $it")
                                 }
                             }
                         }
@@ -223,7 +224,24 @@ class MultiPlayViewModel @Inject constructor(
                 sendImageToServer()
             }
 
+            is MultiPlayIntent.ClickPhoto -> {
+                getPhotos(intent.it)
+            }
+
             else -> {}
+        }
+    }
+
+    private fun getPhotos(it: Int) {
+        viewModelScope.launch {
+            getMultiAllPhotoUseCase(uiState.value.currentRoom!!.roomId, it).collect { result ->
+                result.onSuccess {
+                    Timber.d("Received photos: $it")
+                    processIntent(MultiPlayIntent.AllPose(it))
+                }.onFailure {
+                    Timber.e("Failed to get photos: $it")
+                }
+            }
         }
     }
 

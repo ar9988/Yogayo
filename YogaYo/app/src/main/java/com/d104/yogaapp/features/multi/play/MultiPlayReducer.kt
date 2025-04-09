@@ -221,6 +221,20 @@ class MultiPlayReducer @Inject constructor() {
                 )
             }
 
+            is MultiPlayIntent.BestPose -> {
+                Timber.d("Reducer: Handling BestPose with ${intent.it}")
+                currentState.copy(
+                    bestUrls = intent.it
+                )
+            }
+
+            is MultiPlayIntent.AllPose -> {
+                Timber.d("Reducer: Handling AllPose with ${intent.it}")
+                currentState.copy(
+                    allUrls = intent.it
+                )
+            }
+
             is MultiPlayIntent.UpdateScore -> {
                 val score = intent.scoreUpdateMessage.time
                 val userId = intent.id

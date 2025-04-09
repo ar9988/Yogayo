@@ -1,8 +1,9 @@
 package com.d104.domain.model
 
 data class MultiPhoto(
-    val url:String,
+    val userName:String,
+    val poseUrl:String,
     val accuracy:Float,
-    val time:Float,
+    val poseTime:Float,
     val ranking:Int,
 )

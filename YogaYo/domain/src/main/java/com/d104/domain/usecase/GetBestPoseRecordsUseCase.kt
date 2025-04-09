@@ -6,5 +6,5 @@ import javax.inject.Inject
 class GetBestPoseRecordsUseCase @Inject constructor(
     private val yogaPoseHistoryRepository: YogaPoseHistoryRepository
 ){
-    suspend operator fun invoke() = yogaPoseHistoryRepository.getYogaBestHistories()
+    suspend operator fun invoke(roomId:Long) = yogaPoseHistoryRepository.getMultiBestPhoto(roomId)
 }

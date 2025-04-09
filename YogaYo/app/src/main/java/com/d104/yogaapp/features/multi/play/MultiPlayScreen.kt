@@ -122,8 +122,10 @@ fun MultiPlayScreen(
             onCheckClick = {
                 onBackPressed()
             },
-            poseList = uiState.currentRoom!!.userCourse.poses,
             bestUrls = uiState.bestUrls,
+            processIntent = {
+                viewModel.processIntent(MultiPlayIntent.ClickPhoto(it))
+            }
         )
     } else if (uiState.gameState == GameState.Detail){
         DetailScreen(
@@ -132,7 +134,7 @@ fun MultiPlayScreen(
             },
             poseList = uiState.currentRoom!!.userCourse.poses,
             selectedPoseId = uiState.selectedPoseId,
-            urls = uiState.urls,
+            allUrls = uiState.allUrls,
         )
     }
     // 권한에 따른 UI 표시

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.d104.domain.model.MultiBestPhoto
 import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.features.multi.play.components.GalleryPhotoCard
 
@@ -33,8 +34,8 @@ import com.d104.yogaapp.features.multi.play.components.GalleryPhotoCard
 fun GalleryScreen(
     onCheckClick: () -> Unit,
     onItemClick: (Int) -> Unit,
-    poseList: List<YogaPose>,
-    bestUrls:List<String>,
+    bestUrls:List<MultiBestPhoto>,
+    processIntent: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -55,11 +56,14 @@ fun GalleryScreen(
             // Padding inside the grid scroll area
             contentPadding = PaddingValues(vertical = 16.dp) // Only vertical padding inside grid needed now
         ) {
-            itemsIndexed(bestUrls) { index, url -> // index와 url(String)을 받음
+            itemsIndexed(bestUrls) { _, it -> // index와 url(String)을 받음
                 GalleryPhotoCard(
-                    url = url,
-                    name = poseList[index].poseName,
-                    onClick = { onItemClick(index) } // 아이템의 인덱스(Int)를 전달
+                    url = it.poseUrl,
+                    name = it.poseName,
+                    onClick = {
+                        processIntent(it.roomOrderIndex)
+                        onItemClick(it.roomOrderIndex)
+                    } // 아이템의 인덱스(Int)를 전달
                 )
             }
         }

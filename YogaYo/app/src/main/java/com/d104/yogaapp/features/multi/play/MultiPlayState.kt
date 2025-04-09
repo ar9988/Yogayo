@@ -1,6 +1,8 @@
 package com.d104.yogaapp.features.multi.play
 
 import android.graphics.Bitmap
+import com.d104.domain.model.MultiBestPhoto
+import com.d104.domain.model.MultiPhoto
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.Room
 import com.d104.domain.model.YogaPose
@@ -23,8 +25,8 @@ data class MultiPlayState(
     val exit: Boolean = false,
     val myId: String? = null,
     val isLoading: Boolean = true,
-    val bestUrls: List<String> = emptyList(),
-    val urls: Map<Int,List<String>> = emptyMap(),
+    val bestUrls: List<MultiBestPhoto> = emptyList(),
+    val allUrls: List<MultiPhoto> = emptyList(),
     val uri: String = "",
     val beyondPose: YogaPose = YogaPose(0, "", "", 0, listOf("나무 자세 설명"), "", 0,""),
     val accuracy: Float = 0.0f,

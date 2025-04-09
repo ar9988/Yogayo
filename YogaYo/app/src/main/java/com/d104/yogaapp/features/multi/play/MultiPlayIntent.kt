@@ -1,6 +1,8 @@
 package com.d104.yogaapp.features.multi.play
 
 import android.graphics.Bitmap
+import com.d104.domain.model.MultiBestPhoto
+import com.d104.domain.model.MultiPhoto
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.Room
 import com.d104.domain.model.ScoreUpdateMessage
@@ -24,6 +26,10 @@ sealed class MultiPlayIntent {
     data class UpdateTimerProgress(val progress: Float) : MultiPlayIntent()
     data class SendHistory(val pose: YogaPose,val accuracy: Float,val time: Float,val bitmap: Bitmap) : MultiPlayIntent()
     data class SetCurrentHistory(val accuracy: Float,val time: Float) : MultiPlayIntent()
+    data class BestPose(val it: List<MultiBestPhoto>) : MultiPlayIntent()
+    data class ClickPhoto(val it: Int) : MultiPlayIntent()
+    data class AllPose(val it: List<MultiPhoto>) : MultiPlayIntent()
+
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()
