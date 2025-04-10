@@ -236,43 +236,59 @@ fun RoomList(
     onOverScrollTop: () -> Unit,
     onOverScrollBottom: () -> Unit
 ) {
-    val density = LocalDensity.current
-    val overScrollState = remember { mutableStateOf(0f) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (state.firstVisibleItemIndex == 0 && available.y > 0) {
-                    overScrollState.value = available.y
-                    onOverScrollTop()
-                } else if (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index == rooms.size - 1 && available.y < 0) {
-                    overScrollState.value = available.y
-                    onOverScrollBottom()
+    if (rooms.isEmpty()) {
+        // 방 목록이 비어있을 때 표시할 내용
+        Box(
+            modifier = Modifier.fillMaxSize(), // 화면 전체를 채우도록 설정
+            contentAlignment = Alignment.Center // 내용을 중앙에 정렬
+        ) {
+            Text(
+                text = "생성된 방이 없습니다.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Gray // 좀 더 흐린 색상으로 표시 (선택 사항)
+            )
+        }
+    } else {
+        // 방 목록이 있을 때 기존 LazyColumn 표시
+        val density = LocalDensity.current
+        val overScrollState = remember { mutableStateOf(0f) }
+        val nestedScrollConnection = remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    if (state.firstVisibleItemIndex == 0 && available.y > 0) {
+                        overScrollState.value = available.y
+                        onOverScrollTop()
+                    } else if (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index == rooms.size - 1 && available.y < 0) {
+                        overScrollState.value = available.y
+                        onOverScrollBottom()
+                    }
+                    return Offset.Zero
                 }
-                return Offset.Zero
             }
         }
-    }
-    LazyColumn(
-        state = state,
-        modifier = Modifier
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(rooms) { room ->
-            val onClickRemembered = remember(room) {
-                { onItemClick(room) }
+        LazyColumn(
+            state = state,
+            modifier = Modifier
+                .fillMaxSize(),
+            // .nestedScroll(nestedScrollConnection), // nestedScroll은 필요에 따라 추가/제거
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(rooms, key = { room -> room.roomId }) { room -> // key 추가 권장
+                val onClickRemembered = remember(room) {
+                    { onItemClick(room) }
+                }
+                CourseCard(
+                    content = {
+                        MultiCourseCardHeader(
+                            room
+                        )
+                    },
+                    poseList = room.userCourse.poses,
+                    course = room.userCourse,
+                    onClick = onClickRemembered,
+                    showEditButton = false
+                )
             }
-            CourseCard(
-                content = {
-                    MultiCourseCardHeader(
-                        room
-                    )
-                },
-                poseList = room.userCourse.poses,
-                course = room.userCourse,
-                onClick = onClickRemembered,
-                showEditButton = false
-            )
         }
     }
 }
