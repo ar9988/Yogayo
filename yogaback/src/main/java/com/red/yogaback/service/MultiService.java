@@ -19,10 +19,7 @@ public class MultiService {
     private final RoomCoursePoseRepository roomCoursePoseRepository;
     private final PoseRecordRepository poseRecordRepository;
 
-    /**
-     * GET /api/multi/{roomId}
-     * 해당 roomId에 대해 각 자세의 roomOrderIndex별로 가장 긴 poseTime을 가진 레코드의 사진 URL을 반환
-     */
+    // roomId와 roomOrderIndex에 맞는 가장 긴 poseTime을 가진 레코드의 사진 URL을 반환
     public List<RoomCoursePoseMaxImageDTO> getMaxImageDTOs(Long roomId) {
         List<RoomCoursePose> coursePoses = roomCoursePoseRepository.findByRoom_RoomId(roomId);
         List<RoomCoursePoseMaxImageDTO> dtoList = new ArrayList<>();
@@ -32,7 +29,6 @@ public class MultiService {
             List<PoseRecord> records = poseRecordRepository.findByRoomIdAndPoseIdOrderByPoseTimeDesc(roomId, poseId);
             String maxImageUrl = "";
             if (!records.isEmpty()) {
-                // 가장 긴 poseTime을 가진 포즈의 URL을 찾음
                 maxImageUrl = records.get(0).getRecordImg();
             }
             RoomCoursePoseMaxImageDTO dto = RoomCoursePoseMaxImageDTO.builder()
@@ -48,10 +44,7 @@ public class MultiService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * GET /api/multi/{roomId}/{roomOrderIndex}
-     * 주어진 roomOrderIndex와 roomId에 대한 가장 높은 랭킹을 가진 사용자의 포즈 URL을 반환
-     */
+    // roomOrderIndex와 roomId에 해당하는 자세 기록을 반환
     public List<RoomCoursePoseRecordDTO> getPoseRecordDTOs(Long roomId, int roomOrderIndex) {
         Optional<RoomCoursePose> optionalCoursePose = roomCoursePoseRepository
                 .findByRoom_RoomId(roomId)
@@ -88,4 +81,5 @@ public class MultiService {
                 )
                 .collect(Collectors.toList());
     }
+
 }
