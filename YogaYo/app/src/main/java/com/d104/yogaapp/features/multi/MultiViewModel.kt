@@ -26,7 +26,6 @@ class MultiViewModel @Inject constructor(
     private val multiReducer: MultiReducer,
     private val getRoomUseCase : GetRoomUseCase,
     private val cancelSearchStreamUseCase: CancelSearchStreamUseCase,
-    private val updateCourseUseCase: UpdateCourseUseCase,
     private val getCourseUseCase: GetUserCourseUseCase,
     courseJsonParser: CourseJsonParser,
     private val enterRoomUseCase: EnterRoomUseCase,

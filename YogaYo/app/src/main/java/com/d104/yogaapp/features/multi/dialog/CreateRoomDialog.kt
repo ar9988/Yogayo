@@ -227,6 +227,7 @@ fun CreateRoomDialog(
                         Button(onClick = {
                             if (selectedCourse != null) {
                                 onConfirm()
+                                onDismiss()
                             } else {
                                 Toast.makeText(context, "코스를 선택해주세요", Toast.LENGTH_SHORT).show()
                             }
