@@ -23,17 +23,17 @@ public class MultiService {
 
     /**
      * GET /api/multi/{roomId}
-     * 주어진 roomId에 대해 해당 방의 코스 내 각 자세에서 가장 긴 poseTime을 가진 레코드의 사진 URL 및 자세명을,
-     * room_order_index순으로 배열로 반환.
-     * ranking 1위인 사람의 포즈 URL을 포함하여 반환합니다.
+     * 주어진 roomId에 대해 각 자세에서 1등의 poseUrl을 포함하여 반환.
+     * 각 {roomOrderIndex} 순으로 배열로 반환합니다.
      */
     public List<RoomCoursePoseMaxImageDTO> getMaxImageDTOs(Long roomId) {
+        // 해당 room의 RoomCoursePose 목록 조회
         List<RoomCoursePose> coursePoses = roomCoursePoseRepository.findByRoom_RoomId(roomId);
         List<RoomCoursePoseMaxImageDTO> dtoList = new ArrayList<>();
 
         for (RoomCoursePose coursePose : coursePoses) {
             Long poseId = coursePose.getPose().getPoseId();
-            // 해당 roomId와 poseId로 PoseRecord를 조회
+            // 해당 roomId와 poseId에 해당하는 PoseRecord들을 내림차순으로 조회
             List<PoseRecord> records = poseRecordRepository.findByRoomIdAndPoseIdOrderByPoseTimeDesc(roomId, poseId);
 
             String maxImageUrl = "";
@@ -63,10 +63,11 @@ public class MultiService {
 
     /**
      * GET /api/multi/{roomId}/{roomOrderIndex}
-     * 주어진 roomId와 room_order_index(순서)에 해당하는 자세의 모든 PoseRecord를 조회하여,
+     * 주어진 roomId와 room_order_index에 해당하는 자세의 모든 PoseRecord를 조회하여,
      * ranking 순으로 정렬된 사용자 기록을 반환.
      */
     public List<RoomCoursePoseRecordDTO> getPoseRecordDTOs(Long roomId, int roomOrderIndex) {
+        // 해당 roomId에 속하는 RoomCoursePose 중 입력된 roomOrderIndex를 가진 객체를 찾음
         Optional<RoomCoursePose> optionalCoursePose = roomCoursePoseRepository
                 .findByRoom_RoomId(roomId)
                 .stream()
@@ -79,6 +80,7 @@ public class MultiService {
 
         RoomCoursePose coursePose = optionalCoursePose.get();
         Long poseId = coursePose.getPose().getPoseId();
+        // 해당 roomId와 poseId에 해당하는 PoseRecord들을 내림차순으로 조회
         List<PoseRecord> records = poseRecordRepository.findByRoomIdAndPoseIdOrderByPoseTimeDesc(roomId, poseId);
 
         // ranking 순으로 정렬하여 반환 (1위부터)
@@ -94,3 +96,4 @@ public class MultiService {
                 .collect(Collectors.toList());
     }
 }
+
