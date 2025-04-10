@@ -7,7 +7,7 @@ import javax.inject.Inject
 class ProcessChunkImageUseCase @Inject constructor(
     private val imageReassemblyRepository: ImageReassemblyRepository
 ) {
-    operator fun invoke(msg: ImageChunkMessage){
-        imageReassemblyRepository.processChunk(chunk = msg)
+    operator fun invoke(peerId: String, msg: ImageChunkMessage){
+        imageReassemblyRepository.processChunk(peerId,chunk = msg)
     }
 }

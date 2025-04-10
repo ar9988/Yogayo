@@ -9,6 +9,7 @@ import com.d104.data.local.dao.DataStorePreferencesDao
 import com.d104.data.local.dao.PreferencesDao
 import com.d104.data.repository.DataStoreRepositoryImpl
 import com.d104.domain.model.AnswerMessage
+import com.d104.domain.model.ChunkReRequest
 import com.d104.domain.model.DataChannelMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
@@ -82,6 +83,7 @@ object PersistenceModule {
             polymorphic(DataChannelMessage::class){
                 subclass(ScoreUpdateMessage::class)
                 subclass(ImageChunkMessage::class)
+                subclass(ChunkReRequest::class)
             }
         }
          // @SerialName 사용 시에는 필요 없을 수 있음

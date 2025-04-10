@@ -7,6 +7,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.d104.domain.model.ChunkReRequest
 import com.d104.domain.model.GameStateMessage
 import com.d104.domain.model.IceCandidateMessage
 import com.d104.domain.model.ImageChunkMessage
@@ -26,17 +27,19 @@ import com.d104.domain.usecase.HandleSignalingMessage
 import com.d104.domain.usecase.InitializeWebRTCUseCase
 import com.d104.domain.usecase.InitiateConnectionUseCase
 import com.d104.domain.usecase.ObserveChunkImageUseCase
+import com.d104.domain.usecase.ObserveMissingChunksUseCase
 import com.d104.domain.usecase.ObserveWebRTCMessageUseCase
 import com.d104.domain.usecase.ObserveWebSocketConnectionStateUseCase
 import com.d104.domain.usecase.PostYogaPoseHistoryUseCase
 import com.d104.domain.usecase.ProcessChunkImageUseCase
+import com.d104.domain.usecase.ResendChunkMessageUseCase
 import com.d104.domain.usecase.SendImageUseCase
 import com.d104.domain.usecase.SendRoomRecordUseCase
 import com.d104.domain.usecase.SendSignalingMessageUseCase
 import com.d104.domain.usecase.SendWebRTCUseCase
+import com.d104.domain.usecase.SendChunkReRequestUseCase
 import com.d104.domain.utils.StompConnectionState
 import com.d104.yogaapp.R
-import com.d104.yogaapp.features.solo.play.DownloadState
 import com.d104.yogaapp.utils.ImageDownloader
 import com.d104.yogaapp.utils.ImageStorageManager
 import com.d104.yogaapp.utils.bitmapToBase64
@@ -85,6 +88,9 @@ class MultiPlayViewModel @Inject constructor(
     private val getMultiAllPhotoUseCase: GetMultiAllPhotoUseCase,
     private val imageDownloader: ImageDownloader,
     private val sendRoomRecordUseCase: SendRoomRecordUseCase,
+    private val observeMissingChunksUseCase: ObserveMissingChunksUseCase,
+    private val sendChunkReRequestUseCase: SendChunkReRequestUseCase,
+    private val resendChunkMessageUseCase: ResendChunkMessageUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MultiPlayState())
     val uiState: StateFlow<MultiPlayState> = _uiState.asStateFlow()
@@ -908,7 +914,7 @@ class MultiPlayViewModel @Inject constructor(
                     when (it.second) {
                         is ImageChunkMessage -> {
                             Timber.d("Received ImageChunkMessage: ${it.second}")
-                            processChunkImageUseCase((it.second as ImageChunkMessage))
+                            processChunkImageUseCase(it.first,(it.second as ImageChunkMessage))
                         }
                         is ScoreUpdateMessage -> {
                             Timber.d("Received ScoreUpdateMessage: ${it.second}")
@@ -919,9 +925,69 @@ class MultiPlayViewModel @Inject constructor(
                                 )
                             )
                         }
+                        is ChunkReRequest -> {
+                            val currentState = uiState.value
+                            Timber.d("Received ChunkReRequest: ${it.first}")
+                            // 1. 사용할 비트맵 결정: 상태에 있으면 사용, 없으면 drawable에서 로드
+                            val bitmapToUse: Bitmap? = if (currentState.bitmap != null) {
+                                Timber.d("Using bitmap from UI state for WebRTC send.")
+                                currentState.bitmap
+                            } else {
+                                Timber.w("UI state bitmap is null. Attempting to load default image from drawable for WebRTC send.")
+                                // Drawable 리소스 로드 시도 (IO 작업이므로 withContext 사용 권장)
+                                withContext(Dispatchers.IO) {
+                                    // sendImageToServer와 동일한 기본 이미지를 사용하거나 다른 이미지를 지정할 수 있습니다.
+                                    loadBitmapFromDrawable(
+                                        context,
+                                        R.drawable.ic_launcher_foreground
+                                    ) // <<<--- 기본 이미지 리소스 ID 지정
+                                }
+                            }
+
+                            // 2. 비트맵 확보 실패 시 처리
+                            if (bitmapToUse == null) {
+                                Timber.e("Failed to get bitmap (neither from state nor drawable). Cannot send image via WebRTC.")
+                                // 오류 처리: 사용자에게 알림, 로그만 남기기 등
+                                return@launch // 코루틴 실행 중단
+                            }
+
+                            // 3. 결정된 비트맵을 Base64로 인코딩
+                            // bitmapToBase64 함수가 null을 반환할 수 있는지 확인 필요
+                            // 만약 null 반환 가능하다면 추가 처리 필요
+                            val imageBytesBase64: ByteArray? =
+                                withContext(Dispatchers.Default) { // 인코딩은 CPU 작업이므로 Default 디스패처 사용 가능
+                                    bitmapToBase64(bitmapToUse) // bitmapToUse는 null이 아님
+                                }
+
+                            // 4. Base64 인코딩 실패 시 처리
+                            if (imageBytesBase64 == null) {
+                                Timber.e("Failed to encode bitmap to Base64. Cannot send image via WebRTC.")
+                                // 오류 처리
+                                return@launch
+                            }
+
+                            // *** 추가된 로그: Base64 인코딩된 데이터의 크기 확인 ***
+                            Timber.d("sendImageToMeshNetwork: imageBytesBase64 size = ${imageBytesBase64.size}")
+
+                            // 5. WebRTC를 통해 이미지 전송
+                            Timber.d("Sending image via WebRTC...") // 이 로그는 이미 있음
+                            resendChunkMessageUseCase(
+                                it.first,
+                                chunkReRequest = it.second as ChunkReRequest,
+                                quality = 85,
+                                originalImageBytes =  imageBytesBase64
+                            )
+                        }
                     }
                 }
                 Timber.d("Received WebRTC message: ${it.second}")
+            }
+        }
+
+        viewModelScope.launch {
+            observeMissingChunksUseCase().collect { missingInfo ->
+                Timber.w("Missing chunks detected for peer ${missingInfo.peerId}: ${missingInfo.missingIndices}. Requesting retransmission.")
+                sendChunkReRequestUseCase(uiState.value.myId!!,missingInfo)
             }
         }
 

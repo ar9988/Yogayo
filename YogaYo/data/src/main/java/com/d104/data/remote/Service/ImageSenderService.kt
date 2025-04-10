@@ -58,7 +58,6 @@ class ImageSenderService @Inject constructor(
             // 2. 이미지 데이터를 청크로 분할
             val base64String = Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
             val totalChunks = (base64String.length + CHUNK_SIZE - 1) / CHUNK_SIZE // Base64 문자열 길이 기준
-            var chunkIndex = 0
             Log.d(TAG, "Total chunks to send (from Base64 string): $totalChunks")
 
 // 3. Base64 문자열을 청크로 나누어 전송
@@ -66,22 +65,20 @@ class ImageSenderService @Inject constructor(
                 val start = i * CHUNK_SIZE
                 val end = min(start + CHUNK_SIZE, base64String.length)
                 val chunkData = base64String.substring(start, end) // Base64 문자열 조각
-
                 val chunkMessage = ImageChunkMessage(
-                    chunkIndex = chunkIndex,
+                    chunkIndex = i,
                     totalChunks = totalChunks,
                     dataBase64 = chunkData // Base64 문자열 청크 전달
                 )
 
                 try {
                     val messageJson = json.encodeToString(DataChannelMessage.serializer(), chunkMessage)
-                    Log.v(TAG, "Sending chunk ${chunkIndex + 1}/$totalChunks (${chunkData.length} chars)") // 로그 수정
+                    Log.v(TAG, "Sending chunk ${i + 1}/$totalChunks (${chunkData.length} chars)") // 로그 수정
                     webRTCRepository.sendBroadcastData(messageJson.toByteArray()) // JSON 문자열을 ByteArray로 변환하여 전송
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to encode or send chunk $chunkIndex", e)
+                    Log.e(TAG, "Failed to encode or send chunk $i", e)
                     break // 에러 시 중단
                 }
-                chunkIndex++
                 // delay(1) // 딜레이 고려
             }
             Log.i(TAG, "Finished sending all $totalChunks chunks for the image.")
