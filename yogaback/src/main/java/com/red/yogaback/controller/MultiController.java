@@ -42,5 +42,5 @@ public class MultiController {
         List<RoomCoursePoseRecordDTO> result = multiService.getPoseRecordDTOs(roomId, roomOrderIndex);
         return ResponseEntity.ok(result);
     }
-    
+
 }

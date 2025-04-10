@@ -26,23 +26,30 @@ public class MultiService {
 
         for (RoomCoursePose coursePose : coursePoses) {
             Long poseId = coursePose.getPose().getPoseId();
+            int roomOrderIndex = coursePose.getRoomOrderIndex();  // roomOrderIndex를 가져옴
             List<PoseRecord> records = poseRecordRepository.findByRoomIdAndPoseIdOrderByPoseTimeDesc(roomId, poseId);
+
+            // 가장 긴 poseTime을 가진 포즈의 이미지 URL을 찾음
             String maxImageUrl = "";
             if (!records.isEmpty()) {
                 maxImageUrl = records.get(0).getRecordImg();
             }
+
+            // roomOrderIndex별로 포즈 이미지 URL을 구분
             RoomCoursePoseMaxImageDTO dto = RoomCoursePoseMaxImageDTO.builder()
                     .poseName(coursePose.getPose().getPoseName())
                     .poseUrl(maxImageUrl)
-                    .roomOrderIndex(coursePose.getRoomOrderIndex())
+                    .roomOrderIndex(roomOrderIndex)  // roomOrderIndex에 맞는 이미지
                     .build();
             dtoList.add(dto);
         }
 
+        // roomOrderIndex 순서대로 정렬
         return dtoList.stream()
                 .sorted(Comparator.comparingInt(RoomCoursePoseMaxImageDTO::getRoomOrderIndex))
                 .collect(Collectors.toList());
     }
+
 
     // roomOrderIndex와 roomId에 해당하는 자세 기록을 반환
     public List<RoomCoursePoseRecordDTO> getPoseRecordDTOs(Long roomId, int roomOrderIndex) {
@@ -69,11 +76,12 @@ public class MultiService {
                         (record1, record2) -> record1.getPoseTime() >= record2.getPoseTime() ? record1 : record2
                 ));
 
+        // roomOrderIndex에 맞는 포즈 레코드를 반환
         return bestRecordByUser.values().stream()
                 .map(record ->
                         RoomCoursePoseRecordDTO.builder()
                                 .userName(record.getUser().getUserName())
-                                .poseUrl(record.getRecordImg())
+                                .poseUrl(record.getRecordImg())  // 각 포즈별 이미지 URL
                                 .poseTime(record.getPoseTime())
                                 .accuracy(record.getAccuracy())
                                 .ranking(record.getRanking())
@@ -81,5 +89,4 @@ public class MultiService {
                 )
                 .collect(Collectors.toList());
     }
-
 }
