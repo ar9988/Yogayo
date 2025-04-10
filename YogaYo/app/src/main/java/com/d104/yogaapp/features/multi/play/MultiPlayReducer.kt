@@ -214,8 +214,9 @@ class MultiPlayReducer @Inject constructor() {
 
             is MultiPlayIntent.ReceiveWebRTCImage -> {
                 Timber.d("Reducer: Received complete WebRTC image.")
+                val newBitmap = Bitmap.createBitmap(intent.bitmap)
                 currentState.copy(
-                    bestBitmap = intent.bitmap, // 수신된 비트맵으로 업데이트
+                    bestBitmap = newBitmap, // 수신된 비트맵으로 업데이트
                     isLoading = false,      // 로딩 종료!
                 )
             }
