@@ -32,8 +32,9 @@ public class MultiController {
 
     /**
      * GET /api/multi/{roomId}/{roomOrderIndex}
-     * 주어진 roomId와 room_order_index에 해당하는 자세의 모든 PoseRecord를 조회하여,
-     * ranking 순으로 정렬된 사용자 기록을 반환.
+     * 주어진 roomId와 room_order_index에 해당하는 자세에 대하여,
+     * 그 자세의 모든 PoseRecord(연관된 사용자 기록) 정보를 배열로 반환
+     * 각 요소: userName, poseUrl, poseTime, accuracy, ranking
      */
     @GetMapping("/{roomId}/{roomOrderIndex}")
     public ResponseEntity<List<RoomCoursePoseRecordDTO>> getRoomCoursePoseRecords(@PathVariable Long roomId,
