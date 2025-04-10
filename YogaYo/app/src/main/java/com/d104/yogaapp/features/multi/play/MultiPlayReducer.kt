@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi.play
 
+import android.graphics.Bitmap
 import com.d104.domain.model.PeerUser
 import com.d104.domain.model.UserJoinedMessage
 import com.d104.domain.model.UserLeftMessage
@@ -20,8 +21,9 @@ class MultiPlayReducer @Inject constructor() {
 
             is MultiPlayIntent.SetBestImage -> {
                 Timber.d("Reducer: Handling SetBestImage with ${intent.bitmap}")
+                val newBitmap = Bitmap.createBitmap(intent.bitmap)
                 currentState.copy(
-                    bestBitmap = intent.bitmap,
+                    bestBitmap = newBitmap,
                     isLoading = false
                 )
             }
