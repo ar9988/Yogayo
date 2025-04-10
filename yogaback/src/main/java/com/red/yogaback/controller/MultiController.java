@@ -43,4 +43,3 @@ public class MultiController {
         return ResponseEntity.ok(result);
     }
 }
-
