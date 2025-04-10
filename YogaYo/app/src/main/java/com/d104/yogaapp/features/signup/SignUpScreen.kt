@@ -94,13 +94,13 @@ fun SignUpScreen(
             verticalArrangement = Arrangement.Center
         ){
             // 로고 결정시 로고로 변경
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "Logo",
-                modifier = Modifier
-                    .size(120.dp)
-                    .padding(bottom = 32.dp)
-            )
+//            Image(
+//                painter = painterResource(id = R.drawable.ic_logo_pink),
+//                contentDescription = "Logo",
+//                modifier = Modifier
+//                    .size(200.dp)
+//                    .padding(bottom = 32.dp)
+//            )
             //회원가입 카드
             Card(
                modifier = Modifier

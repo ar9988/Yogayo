@@ -65,6 +65,7 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.ui.theme.Neutral20
 import com.d104.yogaapp.ui.theme.Neutral40
 import com.d104.yogaapp.ui.theme.Neutral50
+import com.d104.yogaapp.utils.ImageResourceMapper
 
 @Composable
 fun CourseResultScreen(
@@ -290,7 +291,7 @@ fun YogaPoseDetailDialog(
                             val context = LocalContext.current
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
-                                    .data(history.poseImg)
+                                    .data(ImageResourceMapper.getImageResource(history.poseId))
                                     .crossfade(true)
                                     .transformations(CircleCropTransformation()) // 동그랗게 자르기
                                     .build(),

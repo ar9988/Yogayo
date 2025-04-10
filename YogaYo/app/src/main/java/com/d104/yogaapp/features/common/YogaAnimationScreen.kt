@@ -66,7 +66,8 @@ fun YogaAnimationScreen(
                 GifImage(
                     url = pose.poseAnimation,
                     modifier = Modifier.fillMaxSize(),
-                    isPlaying = isPlaying
+                    isPlaying = isPlaying,
+                    poseId = pose.poseId
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))

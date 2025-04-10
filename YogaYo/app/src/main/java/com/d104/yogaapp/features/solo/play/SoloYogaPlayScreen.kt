@@ -499,7 +499,8 @@ fun PoseGuideScreen(
                 .padding(16.dp)
             ){
                 GifImage(
-                    pose.poseAnimation
+                    url = pose.poseAnimation,
+                    poseId = pose.poseId
                 )
             }
             Column(

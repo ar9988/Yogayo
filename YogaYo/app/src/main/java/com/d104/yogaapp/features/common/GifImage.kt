@@ -33,6 +33,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.d104.yogaapp.R
+import com.d104.yogaapp.utils.ImageResourceMapper
 
 
 //이거 gif에서 추후 lottie로 변경하는게 나을듯
@@ -40,7 +41,8 @@ import com.d104.yogaapp.R
 fun GifImage(
     url: String,
     modifier: Modifier = Modifier,
-    isPlaying: Boolean = true
+    isPlaying: Boolean = true,
+    poseId:Long = 1L
 ) {
     val context = LocalContext.current
     var gifDrawable by remember { mutableStateOf<GifDrawable?>(null) }
@@ -84,8 +86,8 @@ fun GifImage(
             // URL에서 GIF 로드 및 표시
             Glide.with(context)
                 .asGif()
-                .load(url) // 리소스 ID 대신 직접 URL 사용
-                .error(R.drawable.img_sample_pose) // 로드 실패 시 표시할 이미지
+                .load(ImageResourceMapper.getAnimationResource(poseId)) // 리소스 ID 대신 직접 URL 사용
+                .error(url) // 로드 실패 시 표시할 이미지
                 .into(object : CustomTarget<GifDrawable>() {
                     override fun onResourceReady(
                         resource: GifDrawable,

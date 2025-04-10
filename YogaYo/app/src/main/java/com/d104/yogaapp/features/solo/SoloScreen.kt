@@ -74,6 +74,7 @@ import com.d104.domain.model.YogaPoseWithOrder
 import com.d104.yogaapp.features.common.CourseCard
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.ui.theme.SplashFontFamily
+import com.d104.yogaapp.utils.ImageResourceMapper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -292,7 +293,6 @@ fun SoloCourseCardContent(course: UserCourse){
                     modifier = Modifier.size(20.dp) // 아이콘 크기 고정 (선택 사항)
                 )
 
-                // 각 포즈당 3분으로 계산
                 val durationMinutes = course.poses.size * 1
                 Text(
                     text = "${durationMinutes}분",
@@ -574,7 +574,7 @@ fun PosesRowWithArrows(course: UserCourse) {
 @Composable
 fun PoseItem(pose: YogaPose) {
     AsyncImage(
-        model = pose.poseImg,
+        model = ImageResourceMapper.getImageResource(pose.poseId),
         contentDescription = pose.poseName,
         contentScale = ContentScale.Crop,
         modifier = Modifier

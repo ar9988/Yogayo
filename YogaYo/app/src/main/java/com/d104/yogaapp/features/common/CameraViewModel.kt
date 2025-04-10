@@ -243,9 +243,9 @@ class CameraViewModel @Inject constructor(
 
                         // UI 업데이트는 Main 스레드로 전환
                         withContext(Dispatchers.Main) {
-                            if(accuracy>0.9){
-                                saveFloatArrayToInternalStorage(keypointsArray,"keypoints_all_proc2.csv")
-                            }
+//                            if(accuracy>0.9){
+//                                saveFloatArrayToInternalStorage(keypointsArray,"keypoints_all_proc2.csv")
+//                            }
                             _feedback.value = feedbackResult
                             Timber.d("feedback: ${feedback.value}")
                             _rawAccuracy.value = score // Main 스레드에서 LiveData 업데이트 시 value 사용
@@ -586,9 +586,10 @@ class CameraViewModel @Inject constructor(
         val handY = averageY(kp, 15, 16)
         val kneeY = averageY(kp, 25, 26)
         val noseY = kp[0 * 3 + 1]
+        val shoulderY = averageY(kp, 11, 12)
 
-        if (kneeY < 0.4f ) return "무릎을 바닥에 붙여주세요."
-        if (noseY < 0.3f) return "고개를 더 젖혀주세요."
+        if (Math.abs(ankleY-kneeY) < 0.1f ) return "무릎을 바닥에 붙여주세요."
+        if (shoulderY > noseY+0.07) return "고개를 더 젖혀주세요."
         if (Math.abs(handY - ankleY) > 0.2f ) return "발목을 잡아주세요."
         return ""
     }
