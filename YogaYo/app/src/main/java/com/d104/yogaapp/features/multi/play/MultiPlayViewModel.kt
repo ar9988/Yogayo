@@ -215,6 +215,7 @@ class MultiPlayViewModel @Inject constructor(
                     if ((intent.message as RequestPhotoMessage).toPeerId == uiState.value.myId) {
                         sendImageToMeshNetwork()
                     }
+                    sendImageToServer()
                 }
             }
 
@@ -243,7 +244,6 @@ class MultiPlayViewModel @Inject constructor(
             is MultiPlayIntent.SendHistory -> {
                 Timber.d("Send history")
                 sendScore()
-                sendImageToServer()
             }
 
             is MultiPlayIntent.ClickPhoto -> {
@@ -369,7 +369,6 @@ class MultiPlayViewModel @Inject constructor(
                     // 유저 리스트를 순회하며 랭킹 계산
                     var rank = 1
                     var currentUserRank = -1
-                    val currentUserId = currentState.myId
 
                     currentState.userList.values.sortedByDescending { it.roundScore }.forEach { user ->
                         if (user.id == currentUserId) {
