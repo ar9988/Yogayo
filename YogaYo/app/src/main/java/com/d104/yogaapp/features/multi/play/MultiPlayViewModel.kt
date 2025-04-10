@@ -366,11 +366,19 @@ class MultiPlayViewModel @Inject constructor(
                 val currentUserId = currentState.myId
                 Timber.d("$logTag Calculating ranking for user: $currentUserId")
                 val ranking = if (currentState.userList.isNotEmpty()) {
-                    val sortedUserData = currentState.userList.values
-                        .sortedWith(compareByDescending<PeerUser> { it.roundScore }
-                            .thenBy { it.id }) // roundScore 동점일 경우 id 오름차순 정렬
-                    val rankingIndex = sortedUserData.indexOfFirst { it.id == currentUserId }
-                    if (rankingIndex != -1) rankingIndex + 1 else -1
+                    // 유저 리스트를 순회하며 랭킹 계산
+                    var rank = 1
+                    var currentUserRank = -1
+                    val currentUserId = currentState.myId
+
+                    currentState.userList.values.sortedByDescending { it.roundScore }.forEach { user ->
+                        if (user.id == currentUserId) {
+                            currentUserRank = rank // 현재 유저의 랭킹 저장
+                        }
+                        rank++
+                    }
+
+                    currentUserRank // 현재 유저의 랭킹 반환 (-1은 유저를 찾지 못한 경우)
                 } else {
                     Timber.w("$logTag User list is empty, cannot calculate ranking. Setting rank to -1.")
                     -1
@@ -539,13 +547,35 @@ class MultiPlayViewModel @Inject constructor(
             val stateAfterPhotoDelay = _uiState.value
             val userListForPhoto = stateAfterPhotoDelay.userList
             if (userListForPhoto.isNotEmpty()) {
-                val topScorerEntryPhoto = userListForPhoto.maxWithOrNull(
-                    compareByDescending<Map.Entry<String, PeerUser>> { it.value.roundScore }
-                        .thenBy { it.value.id }
-                )
-                if (topScorerEntryPhoto != null) {
-                    Timber.i("Host requesting photo from top scorer: ${topScorerEntryPhoto.key}")
-                    requestPhoto(topScorerEntryPhoto.key)
+                var manualTopScorer: Map.Entry<String, PeerUser>? = null
+                for (entry in userListForPhoto.entries) {
+                    val currentScore = entry.value.roundScore
+                    // NaN이나 무한대 값은 일단 건너뛰도록 처리 (선택 사항)
+                    if (currentScore.isNaN() || currentScore.isInfinite()) {
+                        Timber.d("점수 Skipping user ${entry.value.nickName} due to special float value: $currentScore")
+                        continue
+                    }
+
+                    if (manualTopScorer == null) {
+                        manualTopScorer = entry
+                    } else {
+                        val topScore = manualTopScorer.value.roundScore
+                        if (currentScore > topScore) {
+                            manualTopScorer = entry
+                        }
+                        // 동점자 처리 로직 필요 시 추가 (예: ID 비교)
+                         else if (currentScore == topScore && entry.value.id < manualTopScorer.value.id) {
+                             manualTopScorer = entry
+                         }
+                    }
+                }
+// 결과 출력
+                manualTopScorer?.let {
+                    Timber.d("최고 점수 유저: ID=${it.value.nickName}, 점수=${it.value.roundScore}")
+                } ?: Timber.d("유저가 없습니다.")
+                if (manualTopScorer != null) {
+                    Timber.i("Host requesting photo from top scorer: ${manualTopScorer.value.nickName}")
+                    requestPhoto(manualTopScorer.key)
                 } else {
                     Timber.w("Host could not determine top scorer for photo request.")
                 }
@@ -576,7 +606,6 @@ class MultiPlayViewModel @Inject constructor(
             // 로직 점검
             val nextRoundIndex = stateAfter10s.roundIndex + 1
             val poses = stateAfter10s.currentRoom?.userCourse?.poses
-
             if (poses != null && nextRoundIndex < poses.size) {
                 // 다음 라운드 시작 요청
                 Timber.i("Host sending next round message for round: $nextRoundIndex")
@@ -728,7 +757,7 @@ class MultiPlayViewModel @Inject constructor(
         viewModelScope.launch {
             val myId = getUserIdUseCase()
             sendSignalingMessageUseCase(
-                myId,
+                fromPeerId = myId,
                 uiState.value.currentRoom!!.roomId.toString(),
                 type = 7,
                 toPeerId = toPeerId,
@@ -844,7 +873,6 @@ class MultiPlayViewModel @Inject constructor(
                             Timber.d("Received ImageChunkMessage: ${it.second}")
                             processChunkImageUseCase((it.second as ImageChunkMessage))
                         }
-
                         is ScoreUpdateMessage -> {
                             Timber.d("Received ScoreUpdateMessage: ${it.second}")
                             processIntent(
@@ -854,11 +882,8 @@ class MultiPlayViewModel @Inject constructor(
                                 )
                             )
                         }
-
-
                     }
                 }
-
                 Timber.d("Received WebRTC message: ${it.second}")
             }
         }

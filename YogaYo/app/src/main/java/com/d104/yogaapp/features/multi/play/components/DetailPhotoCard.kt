@@ -181,7 +181,7 @@ fun DetailPhotoCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "동작 유지시간: ",
+                        text = "수행 유지시간: ",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
@@ -199,7 +199,7 @@ fun DetailPhotoCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "최고 일치율: ",
+                        text = "정확도: ",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
@@ -210,12 +210,6 @@ fun DetailPhotoCard(
                         color = Color(0xFF4CAF50)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_best),
-                        contentDescription = "최고 일치율",
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.Unspecified
-                    )
                 }
             }
 
