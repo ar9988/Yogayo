@@ -27,7 +27,6 @@ public class MultiService {
      * 각 {roomOrderIndex} 순으로 배열로 반환합니다.
      */
     public List<RoomCoursePoseMaxImageDTO> getMaxImageDTOs(Long roomId) {
-        // 해당 room의 RoomCoursePose 목록 조회
         List<RoomCoursePose> coursePoses = roomCoursePoseRepository.findByRoom_RoomId(roomId);
         List<RoomCoursePoseMaxImageDTO> dtoList = new ArrayList<>();
 
@@ -84,8 +83,10 @@ public class MultiService {
         List<PoseRecord> records = poseRecordRepository.findByRoomIdAndPoseIdOrderByPoseTimeDesc(roomId, poseId);
 
         // ranking 순으로 정렬하여 반환 (1위부터)
+        // 2명만 반환되도록 제한
         return records.stream()
                 .sorted(Comparator.comparingInt(PoseRecord::getRanking))
+                .limit(2) // ranking 순으로 상위 2명만 반환
                 .map(record -> RoomCoursePoseRecordDTO.builder()
                         .userName(record.getUser().getUserName())
                         .poseUrl(record.getRecordImg())
@@ -96,4 +97,3 @@ public class MultiService {
                 .collect(Collectors.toList());
     }
 }
-
