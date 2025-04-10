@@ -67,7 +67,7 @@ fun DetailScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp) // Space between cards
         ) {
-            itemsIndexed(sortedPhotos) { index, it -> // 각 아이템은 이제 String 타입의 URL
+            itemsIndexed(sortedPhotos) { _, it -> // 각 아이템은 이제 String 타입의 URL
                 DetailPhotoCard(
                     resultData = it,
                     onDownload = { uri, name ->

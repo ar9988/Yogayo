@@ -366,19 +366,47 @@ class MultiPlayViewModel @Inject constructor(
                 val currentUserId = currentState.myId
                 Timber.d("$logTag Calculating ranking for user: $currentUserId")
                 val ranking = if (currentState.userList.isNotEmpty()) {
-                    // 유저 리스트를 순회하며 랭킹 계산
-                    var rank = 1
-                    var currentUserRank = -1
+                    // --- 기존 sortedWith/indexOfFirst 로직 대체 시작 ---
+                    val userListValues = currentState.userList.values // 사용자 목록 값 가져오기
+                    val currentUserData = currentState.userList[currentUserId] // 현재 사용자 데이터 가져오기
 
-                    currentState.userList.values.sortedByDescending { it.roundScore }.forEach { user ->
-                        if (user.id == currentUserId) {
-                            currentUserRank = rank // 현재 유저의 랭킹 저장
+                    if (currentUserData == null) {
+                        // 현재 사용자를 목록에서 찾을 수 없는 경우 (이론상 발생하면 안 됨)
+                        Timber.w("$logTag Current user $currentUserId not found in userList. Cannot calculate rank.")
+                        -1
+                    } else {
+                        val currentUserScore = currentUserData.roundScore
+                        val currentUserIdValue = currentUserData.id // 비교용 ID 저장
+
+                        // 현재 사용자 점수 유효성 검사 (NaN/Infinity)
+                        if (currentUserScore.isNaN() || currentUserScore.isInfinite()) {
+                            Timber.w("$logTag Current user $currentUserId has invalid score ($currentUserScore). Rank is -1.")
+                            -1
+                        } else {
+                            var higherRankCount = 0 // 자신보다 순위가 높은 사용자 수
+                            // 다른 모든 사용자와 비교
+                            for (otherUser in userListValues) {
+                                // 자기 자신은 건너뛰기
+                                if (otherUser.id == currentUserIdValue) continue
+
+                                val otherUserScore = otherUser.roundScore
+                                val otherUserId = otherUser.id
+
+                                // 다른 사용자 점수 유효성 검사 (NaN/Infinity) - 유효하지 않으면 비교에서 제외
+                                if (otherUserScore.isNaN() || otherUserScore.isInfinite()) continue
+
+                                // 다른 사용자가 더 높은 순위인지 확인
+                                if (otherUserScore > currentUserScore || (otherUserScore == currentUserScore && otherUserId < currentUserIdValue)) {
+                                    higherRankCount++
+                                }
+                            }
+                            // 최종 랭크 반환 (자신보다 높은 순위 수 + 1)
+                            higherRankCount + 1
                         }
-                        rank++
                     }
-
-                    currentUserRank // 현재 유저의 랭킹 반환 (-1은 유저를 찾지 못한 경우)
+                    // --- 기존 sortedWith/indexOfFirst 로직 대체 끝 ---
                 } else {
+                    // userList가 비어있는 경우는 그대로 유지
                     Timber.w("$logTag User list is empty, cannot calculate ranking. Setting rank to -1.")
                     -1
                 }
