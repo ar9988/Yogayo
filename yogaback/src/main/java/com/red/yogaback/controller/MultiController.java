@@ -22,7 +22,7 @@ public class MultiController {
     /**
      * GET /api/multi/{roomId}
      * 주어진 roomId에 대해 해당 방의 코스 내 각 자세에서 가장 긴 poseTime을 가진 레코드의 사진 URL 및 자세명을,
-     * room_order_index순으로 배열로 반환
+     * room_order_index순으로 배열로 반환. ranking 1위인 사람의 포즈 URL 포함.
      */
     @GetMapping("/{roomId}")
     public ResponseEntity<List<RoomCoursePoseMaxImageDTO>> getRoomCourseMaxImages(@PathVariable Long roomId) {
@@ -32,9 +32,8 @@ public class MultiController {
 
     /**
      * GET /api/multi/{roomId}/{roomOrderIndex}
-     * 주어진 roomId와 room_order_index(순서)에 해당하는 자세에 대하여,
-     * 그 자세의 모든 PoseRecord(연관된 사용자 기록) 정보를 배열로 반환
-     * 각 요소: userName, poseUrl, poseTime, accuracy, ranking
+     * 주어진 roomId와 room_order_index에 해당하는 자세의 모든 PoseRecord를 조회하여,
+     * ranking 순으로 정렬된 사용자 기록을 반환.
      */
     @GetMapping("/{roomId}/{roomOrderIndex}")
     public ResponseEntity<List<RoomCoursePoseRecordDTO>> getRoomCoursePoseRecords(@PathVariable Long roomId,
