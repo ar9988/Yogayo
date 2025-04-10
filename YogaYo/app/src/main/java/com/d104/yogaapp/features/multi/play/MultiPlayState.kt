@@ -35,6 +35,7 @@ data class MultiPlayState(
     val source:Boolean = false,
     val courseList:List<UserCourse> = emptyList(),
     val myName:String = "",
+    val errorMsg :String = "",
 )
 
 enum class GameState {

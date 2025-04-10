@@ -40,10 +40,10 @@ class WebRTCManager @Inject constructor(
 
     // ICE 서버 설정 (Coturn 서버 정보)
     private val iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:54.161.126.21:3478").createIceServer(), // 실제 IP로 변경
-        PeerConnection.IceServer.builder("turn:54.161.126.21:3478")    // 실제 IP로 변경
-            .setUsername("testuser")        // 설정한 사용자 이름으로 변경
-            .setPassword("testkey1")          // 설정한 비밀번호로 변경
+        PeerConnection.IceServer.builder("stun:43.203.169.28:3478").createIceServer(), // 실제 IP로 변경
+        PeerConnection.IceServer.builder("turn:43.203.169.28:3478")    // 실제 IP로 변경
+            .setUsername("yogayo")        // 설정한 사용자 이름으로 변경
+            .setPassword("yogayo")          // 설정한 비밀번호로 변경
             .createIceServer()
     )
 

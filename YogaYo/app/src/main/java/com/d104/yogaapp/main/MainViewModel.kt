@@ -56,7 +56,11 @@ class MainViewModel @Inject constructor(
     }
 
     private fun isLoggedIn(): Boolean {
-        return runBlocking { getLoginStatusUseCase().first() }
+        return runBlocking {
+            val value = getLoginStatusUseCase().first()
+            Timber.d("isLoggedIn: $value")
+            value
+        }
     }
 
     init {

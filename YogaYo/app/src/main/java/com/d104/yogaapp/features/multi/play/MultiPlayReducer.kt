@@ -65,7 +65,7 @@ class MultiPlayReducer @Inject constructor() {
             )
 
             is MultiPlayIntent.ExitRoom -> currentState.copy(
-                menuClicked = !currentState.menuClicked
+                menuClicked = false
             )
 
             is MultiPlayIntent.BackPressed -> {
@@ -90,6 +90,14 @@ class MultiPlayReducer @Inject constructor() {
                 currentState.copy(
                     gameState = nextState,
                     selectedPoseId = intent.poseId
+                )
+            }
+
+            is MultiPlayIntent.SetErrorMessage -> {
+                Timber.d("Reducer: Handling SetErrorMessage with ${intent.e}")
+                currentState.copy(
+                    errorMsg = intent.e,
+                    gameState = GameState.GameResult
                 )
             }
 

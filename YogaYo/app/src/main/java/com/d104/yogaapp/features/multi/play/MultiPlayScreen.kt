@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,6 +56,9 @@ fun MultiPlayScreen(
         if(uiState.exit){
             val activity = context as? Activity
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            if(!uiState.errorMsg.isEmpty()){
+                Toast.makeText(context, uiState.errorMsg, Toast.LENGTH_SHORT).show()
+            }
             onBackPressed()
         }
     }

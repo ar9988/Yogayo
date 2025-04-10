@@ -204,6 +204,16 @@ class MultiPlayViewModel @Inject constructor(
                 }
                 if (intent.message.type == "user_left") {
                     processIntent(MultiPlayIntent.UserLeft(intent.message.fromPeerId))
+                    if (!(uiState.value.gameState == GameState.Detail || uiState.value.gameState == GameState.Gallery || uiState.value.gameState == GameState.GameResult) && intent.message.fromPeerId == uiState.value.currentRoom?.userId.toString()) {
+                        Timber.d("User left: host (in non-detail/gallery/result state)")
+                        cancelPlayTimer()
+                        processIntent(MultiPlayIntent.SetErrorMessage("방장이 나갔습니다. 게임 진행이 불가능합니다."))
+
+                        viewModelScope.launch {
+                            delay(1000)
+                            processIntent(MultiPlayIntent.ExitRoom)
+                        }
+                    }
                 }
                 if (intent.message.type == "user_ready") {
                     Timber.d("Received user_ready message for ID: ${intent.message.fromPeerId}")
