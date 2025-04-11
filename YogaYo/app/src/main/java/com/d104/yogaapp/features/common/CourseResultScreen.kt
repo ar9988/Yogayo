@@ -65,6 +65,7 @@ import com.d104.yogaapp.R
 import com.d104.yogaapp.ui.theme.Neutral20
 import com.d104.yogaapp.ui.theme.Neutral40
 import com.d104.yogaapp.ui.theme.Neutral50
+import com.d104.yogaapp.utils.ImageResourceMapper
 
 @Composable
 fun CourseResultScreen(
@@ -235,7 +236,7 @@ fun YogaPoseResultCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "${(history.accuracy * 100).toInt()}.${((history.accuracy * 100) % 1 * 10).toInt()}%",
+                    text = "${(history.accuracy).toInt()}.${((history.accuracy) % 1 * 10).toInt()}%",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFF4CAF50),
                     fontWeight = FontWeight.Bold,
@@ -290,7 +291,7 @@ fun YogaPoseDetailDialog(
                             val context = LocalContext.current
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
-                                    .data(history.poseImg)
+                                    .data(ImageResourceMapper.getImageResource(history.poseId))
                                     .crossfade(true)
                                     .transformations(CircleCropTransformation()) // 동그랗게 자르기
                                     .build(),
@@ -369,7 +370,7 @@ fun YogaPoseDetailDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "동작 유지시간: ",
+                            text = "유지시간: ",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )
@@ -387,23 +388,23 @@ fun YogaPoseDetailDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "최고 일치율: ",
+                            text = "최고 정확도: ",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "${(history.accuracy * 100).toInt()}.${((history.accuracy * 100) % 1 * 10).toInt()}%",
+                            text = "${(history.accuracy).toInt()}.${((history.accuracy) % 1 * 10).toInt()}%",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF4CAF50)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_best),
-                            contentDescription = "최고 일치율",
-                            modifier = Modifier.size(24.dp),
-                            tint = Color.Unspecified
-                        )
+//                        Spacer(modifier = Modifier.width(4.dp))
+//                        Icon(
+//                            painter = painterResource(id = R.drawable.ic_best),
+//                            contentDescription = "최고 일치율",
+//                            modifier = Modifier.size(24.dp),
+//                            tint = Color.Unspecified
+//                        )
                     }
                 }
 

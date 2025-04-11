@@ -108,15 +108,19 @@ fun MyPageScreen(
         }
     }
 
-    val itemsPerRow = 3
-    val gridSpacing = 8.dp // 그리드 아이템 간 간격
-
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
     }
+
+
+
+
+
+    val itemsPerRow = 3
+    val gridSpacing = 8.dp // 그리드 아이템 간 간격
 
 
 

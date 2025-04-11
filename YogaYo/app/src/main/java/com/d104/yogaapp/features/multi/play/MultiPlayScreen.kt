@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,13 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
-import com.d104.yogaapp.R
 import com.d104.yogaapp.features.common.RotateScreen
 import com.d104.yogaapp.features.common.YogaAnimationScreen
 import com.d104.yogaapp.features.multi.play.components.MenuOverlay
@@ -40,6 +40,7 @@ import com.d104.yogaapp.features.multi.play.components.WaitingScreen
 import com.d104.yogaapp.features.multi.play.result.DetailScreen
 import com.d104.yogaapp.features.multi.play.result.GalleryScreen
 import com.d104.yogaapp.features.multi.play.result.LeaderboardScreen
+import timber.log.Timber
 
 
 @Composable
@@ -50,6 +51,17 @@ fun MultiPlayScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    LaunchedEffect(uiState.exit) {
+        if(uiState.exit){
+            val activity = context as? Activity
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            if(!uiState.errorMsg.isEmpty()){
+                Toast.makeText(context, uiState.errorMsg, Toast.LENGTH_SHORT).show()
+            }
+            onBackPressed()
+        }
+    }
 
     LaunchedEffect(room) {
         // Check prevents re-initializing if already set (e.g., during recomposition)
@@ -90,7 +102,6 @@ fun MultiPlayScreen(
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         if(uiState.gameState == GameState.Waiting){
             viewModel.processIntent(MultiPlayIntent.ExitRoom)
-            onBackPressed()
         } else if (uiState.gameState == GameState.Playing||uiState.gameState == GameState.RoundResult){
             viewModel.processIntent(MultiPlayIntent.ClickMenu)
         } else if (uiState.gameState == GameState.GameResult){
@@ -102,6 +113,7 @@ fun MultiPlayScreen(
     }
     if (uiState.gameState == GameState.GameResult) {
         LeaderboardScreen(
+            userList = uiState.userList,
             onNextClick = {
             viewModel.processIntent(MultiPlayIntent.ClickNext)
         })
@@ -112,6 +124,10 @@ fun MultiPlayScreen(
             },
             onCheckClick = {
                 onBackPressed()
+            },
+            bestUrls = uiState.bestUrls,
+            processIntent = {
+                viewModel.processIntent(MultiPlayIntent.ClickPhoto(it))
             }
         )
     } else if (uiState.gameState == GameState.Detail){
@@ -119,7 +135,13 @@ fun MultiPlayScreen(
             onBackButtonClick = {
                 viewModel.processIntent(MultiPlayIntent.BackPressed)
             },
-            poseName = "나무 자세"
+            poseList = uiState.currentRoom!!.userCourse.poses,
+            selectedPoseId = uiState.selectedPoseId,
+            photos = uiState.allUrls,
+            onDownload = { uri, fileName ->
+                viewModel.save(uri, fileName)
+            },
+            myName = uiState.myName,
         )
     }
     // 권한에 따른 UI 표시
@@ -136,7 +158,9 @@ fun MultiPlayScreen(
                     when (uiState.gameState) {
                         GameState.Waiting -> {
                             WaitingScreen(
-                                userList = uiState.userList
+                                myId = uiState.myId,
+                                userList = uiState.userList,
+                                onReadyClick = { viewModel.processIntent(MultiPlayIntent.ReadyClick) }
                             )
                         }
 
@@ -149,19 +173,25 @@ fun MultiPlayScreen(
                         }
 
                         GameState.RoundResult -> {
+
                             RoundResultScreen(
-                                resultImage = painterResource(id = R.drawable.ic_crown),
-                                contentDescription = "TODO()"
+                                isLoading = uiState.isLoading, // 로딩 상태는 그대로 유지,
+                                resultBitmap = uiState.bestBitmap, // 조건부로 선택된 비트맵 전달
+                                contentDescription = uiState.currentPose.poseName // 컨텐츠 설명도 유지
                             )
                         }
 
                         else -> {}
                     }
                 },
-                onImageCaptured = { bitmap ->
-                    viewModel.processIntent(MultiPlayIntent.CaptureImage(bitmap))
-                },
-                userList = uiState.userList
+                onSendResult = {pose,accuracy, time, bitmap: Bitmap ->  viewModel.processIntent(
+                    MultiPlayIntent.SendHistory(pose,accuracy, time, bitmap))},
+                userList = uiState.userList,
+                pose = uiState.currentPose,
+                onAccuracyUpdate = {accuracy,time->
+                    Timber.d("multi accuracy: ${accuracy}")
+                    viewModel.processIntent(MultiPlayIntent.SetCurrentHistory(accuracy,time))
+                }
             )
 
             // 일시정지 오버레이 표시
@@ -170,9 +200,6 @@ fun MultiPlayScreen(
                     onResume = { viewModel.processIntent(MultiPlayIntent.ClickMenu) },
                     onExit = {
                         viewModel.processIntent(MultiPlayIntent.ExitRoom)
-                        val activity = context as? Activity
-                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                        onBackPressed()
                     }
                 )
             }

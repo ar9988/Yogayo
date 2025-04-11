@@ -1,12 +1,16 @@
 package com.d104.yogaapp.features.multi.play
 
 import android.graphics.Bitmap
+import com.d104.domain.model.MultiBestPhoto
+import com.d104.domain.model.MultiPhoto
+import com.d104.domain.model.PeerUser
 import com.d104.domain.model.Room
 import com.d104.domain.model.ScoreUpdateMessage
 import com.d104.domain.model.SignalingMessage
+import com.d104.domain.model.YogaPose
 
 sealed class MultiPlayIntent {
-    data class UserJoined(val userId: String) : MultiPlayIntent()
+    data class UserJoined(val user: PeerUser) : MultiPlayIntent()
     data class UserLeft(val userId: String) : MultiPlayIntent()
     data class UserReady(val userId: String) : MultiPlayIntent()
     data class UserNotReady(val userId: String) : MultiPlayIntent()
@@ -18,9 +22,23 @@ sealed class MultiPlayIntent {
     data class ReceiveWebSocketMessage(val message: SignalingMessage) : MultiPlayIntent()
     data class ReceiveWebRTCImage(val bitmap:Bitmap) : MultiPlayIntent()
     data class UpdateScore(val id: String,val scoreUpdateMessage: ScoreUpdateMessage) : MultiPlayIntent()
+    data class RoundStarted(val state: Int) : MultiPlayIntent()
+    data class UpdateTimerProgress(val progress: Float) : MultiPlayIntent()
+    data class SendHistory(val pose: YogaPose,val accuracy: Float,val time: Float,val bitmap: Bitmap) : MultiPlayIntent()
+    data class SetCurrentHistory(val accuracy: Float,val time: Float) : MultiPlayIntent()
+    data class BestPose(val it: List<MultiBestPhoto>) : MultiPlayIntent()
+    data class ClickPhoto(val it: Int) : MultiPlayIntent()
+    data class AllPose(val it: List<MultiPhoto>) : MultiPlayIntent()
+    data class SetBestImage(val bitmap: Bitmap) : MultiPlayIntent()
+    data class UpdateTotalScore(val peerId: String,val score: Int) : MultiPlayIntent()
+    data class SetErrorMessage(val e: String) : MultiPlayIntent()
 
     data object ExitRoom: MultiPlayIntent()
     data object ClickMenu : MultiPlayIntent()
     data object BackPressed: MultiPlayIntent()
     data object ClickNext : MultiPlayIntent()
+    data object RoundEnded: MultiPlayIntent()
+    data object Exit: MultiPlayIntent()
+    data object ReadyClick: MultiPlayIntent()
+    data object GameEnd: MultiPlayIntent()
 }

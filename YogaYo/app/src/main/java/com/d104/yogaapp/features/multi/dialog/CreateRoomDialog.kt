@@ -1,5 +1,6 @@
 package com.d104.yogaapp.features.multi.dialog
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -27,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,14 +36,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.d104.domain.model.UserCourse
-import com.d104.yogaapp.features.multi.MultiIntent
 import com.d104.yogaapp.features.solo.PosesRowWithArrows
-import timber.log.Timber
 
 @Composable
 fun CreateRoomDialog(
@@ -50,17 +51,30 @@ fun CreateRoomDialog(
     roomPassword: String,
     onRoomTitleChange: (String) -> Unit,
     onRoomPasswordChange: (String) -> Unit,
+    onRoomPasswordChecked: (Boolean) -> Unit,
+    onMaxCountChanged: (Int) -> Unit,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     onCourseSelect: (UserCourse) -> Unit,
     userCourses: List<UserCourse>,
-    onEditCourse: () -> Unit
+    onAddCourse: () -> Unit,
+    selectedCourse: UserCourse?,
 ) {
     var peopleExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
-    var selectedMaxCount by remember { mutableStateOf("1 명") }
-    var selectedCourse by remember { mutableStateOf<UserCourse?>(null) }
+    var selectedMaxCount by remember { mutableStateOf("2 명") }
+    val context = LocalContext.current
+
+    LaunchedEffect(showDialog) {
+        if (showDialog) {
+            peopleExpanded = false
+            courseExpanded = false
+            showPassword = false
+            selectedMaxCount = "2 명" // 원하는 초기값으로 설정
+        }
+
+    }
     if (showDialog) {
         Dialog(
             onDismissRequest = onDismiss
@@ -110,11 +124,19 @@ fun CreateRoomDialog(
                                 expanded = peopleExpanded,
                                 onDismissRequest = { peopleExpanded = false }
                             ) {
-                                listOf("1 명", "2 명", "3 명", "4 명").forEach { option ->
+                                listOf("2 명", "3 명", "4 명").forEach { option ->
                                     DropdownMenuItem(
                                         text = { Text(option) },
                                         onClick = {
                                             selectedMaxCount = option
+                                            var count = 2
+                                            when (option) {
+                                                "1 명" -> count = 1
+                                                "2 명" -> count = 2
+                                                "3 명" -> count = 3
+                                                "4 명" -> count = 4
+                                            }
+                                            onMaxCountChanged(count)
                                             peopleExpanded = false
                                         }
                                     )
@@ -132,7 +154,10 @@ fun CreateRoomDialog(
                         )
                         Checkbox(
                             checked = showPassword,
-                            onCheckedChange = { showPassword = it },
+                            onCheckedChange = {
+                                showPassword = it
+                                onRoomPasswordChecked(it)
+                            },
                         )
                     }
                     if (showPassword) {
@@ -152,8 +177,8 @@ fun CreateRoomDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
-                    )  {
-                        if(selectedCourse==null) Text("코스 선택")
+                    ) {
+                        if (selectedCourse == null) Text("코스 선택")
                         else Text(selectedCourse!!.courseName)
                         Spacer(Modifier.width(10.dp))
                         OutlinedButton(
@@ -170,25 +195,23 @@ fun CreateRoomDialog(
                                 DropdownMenuItem(
                                     text = { Text(option.courseName) },
                                     onClick = {
-                                        selectedCourse = option
                                         courseExpanded = false
-                                        onCourseSelect(selectedCourse!!)
+                                        onCourseSelect(option)
                                     }
                                 )
                             }
                         }
-                        if(selectedCourse!=null){
-                            IconButton(
-                                onClick = onEditCourse
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Button"
-                                )
-                            }
+                        IconButton(
+                            onClick = onAddCourse
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Button"
+                            )
                         }
+
                     }
-                    if(selectedCourse!=null){
+                    if (selectedCourse != null) {
                         PosesRowWithArrows(selectedCourse!!)
                     }
                     Row(
@@ -201,7 +224,14 @@ fun CreateRoomDialog(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Button(onClick = onConfirm) {
+                        Button(onClick = {
+                            if (selectedCourse != null) {
+                                onConfirm()
+                                onDismiss()
+                            } else {
+                                Toast.makeText(context, "코스를 선택해주세요", Toast.LENGTH_SHORT).show()
+                            }
+                        }) {
                             Text("만들기")
                         }
                     }

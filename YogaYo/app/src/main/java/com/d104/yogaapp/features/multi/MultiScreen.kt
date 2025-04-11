@@ -31,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,18 +55,47 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.d104.domain.model.Room
 import com.d104.yogaapp.features.common.CourseCard
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.d104.domain.model.YogaPose
 import com.d104.yogaapp.features.common.CustomCourseDialog
 import com.d104.yogaapp.features.multi.dialog.CreateRoomDialog
 import com.d104.yogaapp.features.multi.dialog.EnterRoomDialog
+import timber.log.Timber
 
 @Composable
 fun MultiScreen(
     onNavigateMultiPlay: (Room) -> Unit,
-    viewModel: MultiViewModel = hiltViewModel()
+    viewModel: MultiViewModel = hiltViewModel(),
+    yogaPoses: List<YogaPose>
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current // 현재 LifecycleOwner 가져오기
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 화면이 다시 활성화될 때 ViewModel에 알림
+                Timber.d("MultiScreen ON_RESUME event detected.")
+                viewModel.onScreenResumed()
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.onScreenPaused()
+            }
+        }
+
+        // Observer 등록
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // Composable이 사라질 때 Observer 제거
+        onDispose {
+            Timber.d("Disposing MultiScreen LifecycleObserver.")
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // 여기서 cancelSearch를 호출하여 화면이 완전히 사라질 때 연결을 끊을 수도 있음
+            // viewModel.cancelSearch() // 필요하다면 활성화
+        }
+    }
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -75,10 +105,12 @@ fun MultiScreen(
     }
     LaunchedEffect(uiState.enteringRoom) {
         if (uiState.enteringRoom) {
+            viewModel.processIntent(MultiIntent.EnterRoomComplete)
             onNavigateMultiPlay(
                 uiState.selectedRoom!!
             )
-            viewModel.processIntent(MultiIntent.EnterRoomComplete)
+            Timber.tag("MultiScreen")
+                .d("Navigating to MultiPlayScreen with room: ${uiState.enteringRoom}")
         }
     }
     Box(
@@ -156,11 +188,14 @@ fun MultiScreen(
         roomPassword = uiState.roomPassword,
         onRoomTitleChange = { viewModel.processIntent(MultiIntent.UpdateRoomTitle(it)) },
         onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) },
+        onRoomPasswordChecked = { viewModel.processIntent(MultiIntent.UpdateRoomPasswordChecked(it)) },
         onConfirm = { viewModel.processIntent(MultiIntent.CreateRoom) },
         onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.CREATING)) },
         onCourseSelect = { viewModel.processIntent(MultiIntent.SelectCourse(it)) },
-        onEditCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
-        userCourses = uiState.yogaCourses
+        onAddCourse = { viewModel.processIntent(MultiIntent.ShowEditDialog) },
+        userCourses = uiState.yogaCourses,
+        onMaxCountChanged = {viewModel.processIntent(MultiIntent.UpdateRoomMaxCount(it))},
+        selectedCourse = uiState.selectedCourse
     )
     // 방 참가 다이얼로그
     EnterRoomDialog(
@@ -172,15 +207,18 @@ fun MultiScreen(
         onRoomPasswordChange = { viewModel.processIntent(MultiIntent.UpdateRoomPassword(it)) }
     )
     // 코스 수정 다이얼로그
-    if (uiState.dialogState == DialogState.COURSE_EDITING) {
+    if (uiState.dialogState == DialogState.COURSE_ADD) {
         CustomCourseDialog(
-            poseList = uiState.selectedCourse!!.poses,
-            onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.COURSE_EDITING)) },
-            onSave = { courseName, poses ->
+            poseList = yogaPoses,
+            onDismiss = { viewModel.processIntent(MultiIntent.DismissDialog(DialogState.COURSE_ADD)) },
+            onSave = { courseName, poses ->{}
+            },
+            isMultiMode = true,
+            onAdd = {poses ->
                 viewModel.processIntent(
-                    MultiIntent.EditCourse(
-                        uiState.selectedCourse!!.courseId,
-                        courseName,
+                    MultiIntent.AddTempCourse(
+                        -1,
+                        "임시 코스",
                         poses
                     )
                 )
@@ -198,43 +236,59 @@ fun RoomList(
     onOverScrollTop: () -> Unit,
     onOverScrollBottom: () -> Unit
 ) {
-    val density = LocalDensity.current
-    val overScrollState = remember { mutableStateOf(0f) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (state.firstVisibleItemIndex == 0 && available.y > 0) {
-                    overScrollState.value = available.y
-                    onOverScrollTop()
-                } else if (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index == rooms.size - 1 && available.y < 0) {
-                    overScrollState.value = available.y
-                    onOverScrollBottom()
+    if (rooms.isEmpty()) {
+        // 방 목록이 비어있을 때 표시할 내용
+        Box(
+            modifier = Modifier.fillMaxSize(), // 화면 전체를 채우도록 설정
+            contentAlignment = Alignment.Center // 내용을 중앙에 정렬
+        ) {
+            Text(
+                text = "생성된 방이 없습니다.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.Gray // 좀 더 흐린 색상으로 표시 (선택 사항)
+            )
+        }
+    } else {
+        // 방 목록이 있을 때 기존 LazyColumn 표시
+        val density = LocalDensity.current
+        val overScrollState = remember { mutableStateOf(0f) }
+        val nestedScrollConnection = remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    if (state.firstVisibleItemIndex == 0 && available.y > 0) {
+                        overScrollState.value = available.y
+                        onOverScrollTop()
+                    } else if (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index == rooms.size - 1 && available.y < 0) {
+                        overScrollState.value = available.y
+                        onOverScrollBottom()
+                    }
+                    return Offset.Zero
                 }
-                return Offset.Zero
             }
         }
-    }
-    LazyColumn(
-        state = state,
-        modifier = Modifier
-            .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(rooms) { room ->
-            val onClickRemembered = remember(room) {
-                { onItemClick(room) }
+        LazyColumn(
+            state = state,
+            modifier = Modifier
+                .fillMaxSize(),
+            // .nestedScroll(nestedScrollConnection), // nestedScroll은 필요에 따라 추가/제거
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(rooms, key = { room -> room.roomId }) { room -> // key 추가 권장
+                val onClickRemembered = remember(room) {
+                    { onItemClick(room) }
+                }
+                CourseCard(
+                    content = {
+                        MultiCourseCardHeader(
+                            room
+                        )
+                    },
+                    poseList = room.userCourse.poses,
+                    course = room.userCourse,
+                    onClick = onClickRemembered,
+                    showEditButton = false
+                )
             }
-            CourseCard(
-                header = {
-                    MultiCourseCardHeader(
-                        room
-                    )
-                },
-                poseList = room.userCourse.poses,
-                course = room.userCourse,
-                onClick = onClickRemembered,
-                showEditButton = false
-            )
         }
     }
 }
@@ -261,7 +315,7 @@ fun MultiCourseCardHeader(room: Room) {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(0.5f)
                 ) {
-                    if (room.isPassword) {
+                    if (room.hasPassword) {
                         Icon(
                             imageVector = Icons.Default.Key,
                             contentDescription = "비밀번호 필요함",

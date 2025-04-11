@@ -1,5 +1,6 @@
 package com.d104.data.repository
 
+import android.util.Log
 import com.d104.data.mapper.YogaPoseMapper
 import com.d104.data.remote.datasource.yogapose.YogaPoseDataSource
 import com.d104.domain.model.YogaPose
@@ -23,12 +24,14 @@ class YogaPoseRepositoryImpl @Inject constructor(
             }
 
             val body = response.body()
+            Log.d("YogaPoseRepositoryImpl", "API 호출 성공: $body")
             if (response.isSuccessful && body != null) {
                 emit(Result.success(yogaPoseMapper.mapToDomainList(body)))
             } else {
                 emit(Result.failure(IOException("API 호출 실패: ${response.code()} ${response.message()}")))
             }
         } catch (e: Exception) {
+            Log.e("YogaPoseRepositoryImpl", "API 호출 실패", e)
             emit(Result.failure(e))
         }
     }

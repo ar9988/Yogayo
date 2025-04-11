@@ -212,7 +212,7 @@ fun BestPoseRecordCard(
                     // 정확도 표시 (아이콘 + 값)
                     MetricItemShort( // 작은 지표 표시용 Composable (아래 정의)
                         icon = Icons.Filled.CheckCircleOutline,
-                        value = String.format("%.1f%%", bestPoseHistory.bestAccuracy*100),
+                        value = String.format("%.1f%%", bestPoseHistory.bestAccuracy),
                         contentDescription = "정확도"
                     )
 

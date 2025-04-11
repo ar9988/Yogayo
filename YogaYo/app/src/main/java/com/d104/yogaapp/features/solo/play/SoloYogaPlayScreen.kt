@@ -2,9 +2,13 @@ package com.d104.yogaapp.features.solo.play
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.widget.Toast
@@ -195,7 +199,7 @@ fun SoloYogaPlayScreen(
 
         } else if(state.isGuide){
             Box(modifier = Modifier.fillMaxSize()) {
-                if(state.userCourse.tutorial){
+                if(state.userCourse.tutorial&& isNetworkConnected(context)){
                     VideoPlayer(
                         currentPose.poseVideo,
                         onVideoCompleted = { viewModel.processIntent(SoloYogaPlayIntent.ExitGuide) },
@@ -499,7 +503,8 @@ fun PoseGuideScreen(
                 .padding(16.dp)
             ){
                 GifImage(
-                    pose.poseAnimation
+                    url = pose.poseAnimation,
+                    poseId = pose.poseId
                 )
             }
             Column(
@@ -843,4 +848,30 @@ data class WindowInfo(
     val screenWidthDp: Int,
     val screenHeightDp: Int
 )
+
+fun isNetworkConnected(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    // API 23 (M) 이상 버전에 대한 처리
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val network = connectivityManager.activeNetwork ?: return false // 활성 네트워크 확인
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false // 네트워크 기능 확인
+
+        // Wi-Fi, 모바일 데이터, 이더넷 중 하나라도 연결되어 있으면 true 반환
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        /*
+        // 실제 인터넷 사용 가능 여부 확인 (더 엄격한 검사)
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+               capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        */
+
+    } else {
+        // API 23 미만 버전에 대한 처리 (Deprecated)
+        @Suppress("DEPRECATION")
+        val networkInfo = connectivityManager.activeNetworkInfo ?: return false
+        @Suppress("DEPRECATION")
+        return networkInfo.isConnected
+    }
+}
 

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -43,6 +44,7 @@ class LoginViewModel @Inject constructor(
                             when (loginResult) {
                                 is LoginResult.Success -> {
                                     processIntent(LoginIntent.LoginSuccess)
+                                    Timber.d("Login successful: ${loginResult.userProfile}")
                                 }
                                 is LoginResult.Error -> {
                                     val errorMessage = when (loginResult) {

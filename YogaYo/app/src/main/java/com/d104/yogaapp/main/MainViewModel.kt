@@ -6,6 +6,7 @@ import com.d104.domain.event.AuthEvent
 import com.d104.domain.event.AuthEventManager
 import com.d104.domain.model.UserCourse
 import com.d104.domain.usecase.GetLoginStatusUseCase
+import com.d104.domain.usecase.GetYogaPosesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,13 +19,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val reducer: MainReducer,
     private val authEventManager: AuthEventManager,
-    private val getLoginStatusUseCase: GetLoginStatusUseCase
+    private val getLoginStatusUseCase: GetLoginStatusUseCase,
+    private val getYogaPosesUseCase:GetYogaPosesUseCase
 ) : ViewModel(){
 
     private val _state = MutableStateFlow(MainState())
@@ -53,18 +56,49 @@ class MainViewModel @Inject constructor(
     }
 
     private fun isLoggedIn(): Boolean {
-        return runBlocking { getLoginStatusUseCase().first() }
+        return runBlocking {
+            val value = getLoginStatusUseCase().first()
+            Timber.d("isLoggedIn: $value")
+            value
+        }
     }
 
     init {
         // AuthEvent를 수집하여 NavigationEvent로 변환
         viewModelScope.launch {
+            Timber.d("???")
             getLoginStatusUseCase().collectLatest { isLogin ->
                 _state.update { it.copy(
                     selectedTab = Tab.Solo,
                     isLogin = isLogin
                 ) }
             }
+
+
+        }
+        viewModelScope.launch {
+            try {
+                Timber.d("!!!")
+                getYogaPosesUseCase().collectLatest { result ->
+                    when {
+                        result.isSuccess -> {
+                            _state.update {
+                                it.copy(
+                                    yogaPoses = result.getOrDefault(emptyList()),
+                                )
+                            }
+                            Timber.d("yogaPoses${_state.value.yogaPoses}")
+                        }
+                        result.isFailure -> {
+                            Timber.d("Error: ${result.exceptionOrNull()}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error fetching yoga poses")
+            }
+        }
+        viewModelScope.launch {
             authEventManager.authEvents.collect { authEvent ->
                 when (authEvent) {
                     is AuthEvent.TokenRefreshFailed -> {
@@ -72,17 +106,11 @@ class MainViewModel @Inject constructor(
                     }
                 }
             }
+
         }
 
     }
 
-//    // 코스 선택 메서드
-//    private fun selectCourse(course: UserCourse) {
-//        _selectedCourse.value = course
-//    }
-//
-//    // 코스 선택 초기화
-//    fun clearSelectedCourse() {
-//        _selectedCourse.value = null
-//    }
+
+
 }

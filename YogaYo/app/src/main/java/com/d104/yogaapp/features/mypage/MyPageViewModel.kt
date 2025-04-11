@@ -45,6 +45,7 @@ class MyPageViewModel @Inject constructor(
             MyPageIntent.Initialize -> {
                 myPageInfoLoaded = false
                 myBadgesLoaded = false
+                myNewBadgesLoaded = false
                 getMyPageUserInfo()
                 getMyBadges()
                 getNewBadges()

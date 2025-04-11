@@ -12,7 +12,7 @@ class SoloReducer@Inject constructor() {
             is SoloIntent.ShowAddCourseDialog->{
                 state.copy(
                     showAddCourseDialog = true,
-                    yogaPoseLoading = true
+//                    yogaPoseLoading = true
                     )
             }
             is SoloIntent.HideAddCourseDialog -> {

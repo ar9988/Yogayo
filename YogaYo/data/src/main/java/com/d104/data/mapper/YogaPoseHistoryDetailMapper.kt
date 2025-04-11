@@ -1,7 +1,11 @@
 package com.d104.data.mapper
 
+import com.d104.data.remote.dto.MultiAllPhotoResponseDto
+import com.d104.data.remote.dto.MultiBestPhotoResponseDto
 import com.d104.data.remote.dto.YogaHistoryResponseDto
 import com.d104.data.remote.dto.YogaPoseHistoryDetailResponseDto
+import com.d104.domain.model.MultiBestPhoto
+import com.d104.domain.model.MultiPhoto
 import com.d104.domain.model.YogaHistory
 import com.d104.domain.model.YogaPoseHistoryDetail
 import javax.inject.Inject
@@ -50,5 +54,27 @@ class YogaPoseHistoryDetailMapper @Inject constructor() {
             poseImg = poseImg, // 상위 DTO에서 전달받음
             createdAt = historyDto.createdAt // DTO는 Long, Domain은 Long? 이지만 DTO가 non-null이므로 직접 할당
         )
+    }
+
+    fun mapToDomainList(dtoList: List<MultiBestPhotoResponseDto>): List<MultiBestPhoto> {
+        return dtoList.map { dto ->
+            MultiBestPhoto(
+                poseName = dto.poseName,
+                poseUrl = dto.poseUrl,
+                roomOrderIndex = dto.roomOrderIndex,
+            )
+        }
+    }
+
+    fun mapToDomainList2(body: List<MultiAllPhotoResponseDto>): List<MultiPhoto> {
+        return body.map { dto ->
+            MultiPhoto(
+                poseUrl = dto.poseUrl,
+                accuracy = dto.accuracy,
+                ranking = dto.ranking,
+                poseTime = dto.poseTime,
+                userName = dto.userName,
+            )
+        }
     }
 }

@@ -7,6 +7,6 @@ data class Room(
     val roomMax: Int,
     val roomCount: Int,
     val roomName: String,
-    val isPassword: Boolean,
+    val hasPassword: Boolean,
     val userCourse: UserCourse
 )

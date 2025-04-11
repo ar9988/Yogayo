@@ -18,7 +18,7 @@ class CreateRoomMapper @Inject constructor(
                 roomMax = input.roomMax,
                 roomCount = input.roomCount,
                 roomName = input.roomName,
-                isPassword = input.hasPassword,
+                hasPassword = input.hasPassword,
                 userNickname = input.userNickname,
                 userCourse = UserCourse(
                     courseId = -1,

@@ -12,6 +12,8 @@ import com.d104.data.repository.WebRTCRepositoryImpl
 import com.d104.data.repository.WebSocketRepositoryImpl
 import com.d104.data.repository.YogaPoseHistoryRepositoryImpl
 import com.d104.data.repository.YogaPoseRepositoryImpl
+import com.d104.data.utils.AndroidBase64Encoder
+import com.d104.data.utils.AndroidImageCompressor
 import com.d104.domain.repository.AuthRepository
 import com.d104.domain.repository.ImageReassemblyRepository
 import com.d104.domain.repository.ImageSenderRepository
@@ -22,6 +24,8 @@ import com.d104.domain.repository.UserRepository
 import com.d104.domain.repository.YogaPoseHistoryRepository
 import com.d104.domain.repository.WebSocketRepository
 import com.d104.domain.repository.YogaPoseRepository
+import com.d104.domain.utils.Base64Encoder
+import com.d104.domain.utils.ImageCompressor
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -78,4 +82,16 @@ abstract class RepositoryModule {
         dataStorePreferencesDaoImpl: DataStorePreferencesDao // 구현체 주입 요청
     ): PreferencesDao // 인터페이스 반환 타입
 
+
+    @Binds
+    @Singleton // 필요에 따라 스코프 지정
+    abstract fun bindBase64Encoder(
+        encoder: AndroidBase64Encoder // 실제 구현체
+    ): Base64Encoder // 제공할 인터페이스 타입
+
+    @Binds
+    @Singleton
+    abstract fun bindImageCompressor(
+        compressor: AndroidImageCompressor
+    ): ImageCompressor
 }

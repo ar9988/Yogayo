@@ -40,10 +40,10 @@ class WebRTCManager @Inject constructor(
 
     // ICE 서버 설정 (Coturn 서버 정보)
     private val iceServers = listOf(
-        PeerConnection.IceServer.builder("stun:54.161.126.21:3478").createIceServer(), // 실제 IP로 변경
-        PeerConnection.IceServer.builder("turn:54.161.126.21:3478")    // 실제 IP로 변경
-            .setUsername("testuser")        // 설정한 사용자 이름으로 변경
-            .setPassword("testkey1")          // 설정한 비밀번호로 변경
+        PeerConnection.IceServer.builder("stun:43.203.169.28:3478").createIceServer(), // 실제 IP로 변경
+        PeerConnection.IceServer.builder("turn:43.203.169.28:3478")    // 실제 IP로 변경
+            .setUsername("yogayo")        // 설정한 사용자 이름으로 변경
+            .setPassword("yogayo")          // 설정한 비밀번호로 변경
             .createIceServer()
     )
 
@@ -233,7 +233,7 @@ class WebRTCManager @Inject constructor(
                 val state = dataChannel.state()
                 Log.d(TAG, "DataChannel $peerId: State changed to $state")
                 if (state == DataChannel.State.OPEN) {
-                    broadcastData("Hello from $peerId".toByteArray()) // 예시: 데이터 전송
+//                    broadcastData("Hello from $peerId".toByteArray()) // 예시: 데이터 전송
                     // 데이터 채널 열림! 데이터 전송 가능
                 } else if (state == DataChannel.State.CLOSED) {
                     // 데이터 채널 닫힘

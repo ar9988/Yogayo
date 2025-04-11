@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import android.util.Log
+import com.d104.domain.model.DataChannelMessage
 import com.d104.domain.model.ImageChunkMessage
 import com.d104.domain.repository.WebRTCRepository // WebRTC 데이터 전송 인터페이스
 import kotlinx.coroutines.*
@@ -14,6 +15,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.min
 
 @Singleton
 class ImageSenderService @Inject constructor(
@@ -54,54 +56,31 @@ class ImageSenderService @Inject constructor(
             Log.d(TAG, "Image compressed size: ${compressedBytes.size} bytes (Quality: $quality)")
 
             // 2. 이미지 데이터를 청크로 분할
-            val inputStream = ByteArrayInputStream(compressedBytes)
-            val buffer = ByteArray(CHUNK_SIZE)
-            var bytesRead: Int
-            val totalChunks = (compressedBytes.size + CHUNK_SIZE - 1) / CHUNK_SIZE // 전체 청크 수 계산
-            var chunkIndex = 0
+            val base64String = Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
+            val totalChunks = (base64String.length + CHUNK_SIZE - 1) / CHUNK_SIZE // Base64 문자열 길이 기준
+            Log.d(TAG, "Total chunks to send (from Base64 string): $totalChunks")
 
-            Log.d(TAG, "Total chunks to send: $totalChunks")
-
-            // 3. 각 청크를 Base64 인코딩하고 메시지로 만들어 전송
-            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                val actualChunkData = buffer.copyOf(bytesRead) // 실제 읽은 크기만큼만 복사
-                val base64Data = Base64.encodeToString(actualChunkData, Base64.NO_WRAP) // Base64 인코딩 (NO_WRAP 추천)
-
+// 3. Base64 문자열을 청크로 나누어 전송
+            for (i in 0 until totalChunks) {
+                val start = i * CHUNK_SIZE
+                val end = min(start + CHUNK_SIZE, base64String.length)
+                val chunkData = base64String.substring(start, end) // Base64 문자열 조각
                 val chunkMessage = ImageChunkMessage(
-                    chunkIndex = chunkIndex,
+                    chunkIndex = i,
                     totalChunks = totalChunks,
-                    dataBase64 = base64Data
+                    dataBase64 = chunkData // Base64 문자열 청크 전달
                 )
 
                 try {
-                    val messageJson = json.encodeToString(chunkMessage)
-                    Log.v(TAG, "Sending chunk ${chunkIndex + 1}/$totalChunks (${actualChunkData.size} bytes)")
-
-                    val sendResult = if (targetPeerId != null) {
-                        webRTCRepository.sendData(targetPeerId, messageJson.toByteArray()) // 특정 피어에게 전송
-                    } else {
-                        webRTCRepository.sendBroadcastData(messageJson.toByteArray()) // 브로드캐스트
-                    }
-
-                    // TODO: sendData/sendBroadcastData 의 Result 를 확인하여 실패 시 처리 로직 추가 (예: 재시도, 전송 중단)
-                    // if (sendResult.isFailure) { ... }
-
+                    val messageJson = json.encodeToString(DataChannelMessage.serializer(), chunkMessage)
+                    Log.v(TAG, "Sending chunk ${i + 1}/$totalChunks (${chunkData.length} chars)") // 로그 수정
+                    webRTCRepository.sendBroadcastData(messageJson.toByteArray()) // JSON 문자열을 ByteArray로 변환하여 전송
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to encode or send chunk $chunkIndex", e)
-                    // TODO: 전송 실패 처리 (예: 재시도, 사용자 알림 등)
-                    // break // 전송 중단
+                    Log.e(TAG, "Failed to encode or send chunk $i", e)
+                    break // 에러 시 중단
                 }
-
-                chunkIndex++
-
-                // !! 중요: 너무 빠르게 연속 전송 시 네트워크 혼잡/버퍼 오버플로우 발생 가능 !!
-                // DataChannel 의 bufferedAmount 를 확인하거나, 약간의 딜레이를 주는 것을 고려
-                // 예시: if (chunkIndex % 10 == 0) delay(10) // 10 청크마다 10ms 딜레이 (조절 필요)
-                // 또는 webRTCRepository.observeBufferedAmount(peerId) 같은 인터페이스 추가 고려
-                // delay(1) // 아주 작은 딜레이라도 도움이 될 수 있음
+                // delay(1) // 딜레이 고려
             }
-
-            inputStream.close()
             Log.i(TAG, "Finished sending all $totalChunks chunks for the image.")
         }
     }

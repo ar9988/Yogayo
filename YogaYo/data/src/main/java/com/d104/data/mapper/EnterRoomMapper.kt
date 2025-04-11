@@ -5,6 +5,7 @@ import javax.inject.Inject
 
 class EnterRoomMapper @Inject constructor() : Mapper<Boolean, EnterResult> {
     override fun map(input: Boolean): EnterResult {
-        return EnterResult.Success
+        return if (input) EnterResult.Success
+        else EnterResult.Error.BadRequest("Wrong password")
     }
 }
