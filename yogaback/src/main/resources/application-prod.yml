@@ -1,0 +1,68 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]  # .env
+  datasource:
+    url: ${DB_PROD_URL}
+    username: ${DB_PROD_USERNAME}
+    password: ${DB_PROD_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      leak-detection-threshold: 2000  # 밀리초 단위
+      # 최소 유휴 커넥션 수
+      minimum-idle: 5
+      # 최대 풀 크기 (동시에 활성화될 수 있는 최대 커넥션 수)
+      maximum-pool-size: 20
+      # 커넥션이 풀에 유휴 상태로 유지될 수 있는 최대 시간 (ms)
+      idle-timeout: 300000   # 5분
+      # 커넥션의 최대 수명 (ms)
+      max-lifetime: 1800000  # 30분
+      # 커넥션을 얻기 위해 대기할 최대 시간 (ms)
+      connection-timeout: 30000  # 30초
+  jpa:
+    open-in-view: false
+    hibernate:
+      batch_fetch_size: 100
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.web.socket: trace
+    org.springframework.messaging: trace
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    com.red.yogaback: DEBUG
+    com.zaxxer.hikari: DEBUG
+    # application.yml 예시
+    com.zaxxer.hikari.pool.HikariPool: DEBUG
+    com.zaxxer.hikari.HikariDataSource: DEBUG
+
+
+jwt:
+  secret: ${JWT-SECRET}
+  expiration:
+    access: 86400000
+    refresh: 604800000
+
+url:
+  https: https_address
+  http: http_address
+
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha # 태그 알파벳 순.
+    operations-sorter: alpha
+  packages-to-scan: com.red.yogaback
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+aws:
+  s3:
+    bucket: ${your-bucket-name}
+    region: ap-northeast-2
+    access-key: ${yourAccessKey}
+    secret-key: ${yourSecretKey}
